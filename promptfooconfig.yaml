@@ -1,0 +1,69 @@
+# Copyright 2026 Andre Cipriani Bandarra
+# SPDX-License-Identifier: Apache-2.0
+
+description: 'Evaluation suite for WebMCP Agent Skills'
+
+prompts:
+  - 'file://skills/build-webmcp-tools/SKILL.md'
+
+providers:
+  - id: 'google:gemini-2.5-flash'
+    config:
+      apiKey: '{{ env.GOOGLE_AI }}'
+
+tests:
+  # -------------------------------------------------------------
+  # Stage 0: Dynamic Stage Assessment & Router
+  # -------------------------------------------------------------
+  - description: 'Stage 0 Router jumps directly to Stage 5 when tools exist'
+    vars:
+      user_input: 'I already have a schema.json defining tools for my pizza maker application. I want to generate evals.json for automated testing.'
+    assert:
+      - type: llm-rubric
+        value: 'The agent must route directly to Stage 5 (Tool Specs & Evals Generation) or ask to view the existing schema.json, rather than forcing the user to redo Stage 1 (Goal Ideation) or Stage 2.'
+
+  # -------------------------------------------------------------
+  # Stage 2: Context & Diagnostic Pruning
+  # -------------------------------------------------------------
+  - description: 'Stage 2 aggressively prunes irrelevant hardware/diagnostic metrics'
+    vars:
+      user_input: 'The user wants to search for shoes on an e-commerce site. The application state is: current_url=/products, device_battery=87%, gpu_temp=68C, screen_dpi=2.0, cart_items=[]. Establish the starting state.'
+    assert:
+      - type: llm-rubric
+        value: 'The agent must retain relevant application state (URL, cart) but explicitly prune or exclude device_battery, gpu_temp, and screen_dpi as irrelevant diagnostics.'
+
+  # -------------------------------------------------------------
+  # Stage 3: Turn-by-Turn Roleplay Structure & Pagination
+  # -------------------------------------------------------------
+  - description: 'Stage 3 includes 6 turn elements and paginates collections'
+    vars:
+      user_input: 'Role-play the first turn where a user asks for available hotel rooms in Paris next Friday.'
+    assert:
+      - type: llm-rubric
+        value: 'The role-play turn must document user utterance, agent intent, tool invocation, structured JSON tool response with pagination (page_size, total_count), site UI reaction, and agent response.'
+
+  # -------------------------------------------------------------
+  # Stage 6: React Framework Pattern Compliance
+  # -------------------------------------------------------------
+  - description: 'Stage 6 React implementation uses use-webmcp-tool and no deprecated APIs'
+    vars:
+      user_input: 'Write the implementation code for search_hotels tool in a React component.'
+    assert:
+      - type: javascript
+        value: '!output.includes("navigator.modelContext") && !output.includes("unregisterTool")'
+      - type: javascript
+        value: 'output.includes("useWebMCP") && output.includes("use-webmcp-tool")'
+      - type: javascript
+        value: 'output.includes("readOnlyHint: true")'
+
+  # -------------------------------------------------------------
+  # Stage 6: Angular Framework Pattern Compliance
+  # -------------------------------------------------------------
+  - description: 'Stage 6 Angular implementation uses provideExperimentalWebMcpTools'
+    vars:
+      user_input: 'Write the implementation code for search_hotels tool in an Angular application config.'
+    assert:
+      - type: javascript
+        value: 'output.includes("provideExperimentalWebMcpTools")'
+      - type: javascript
+        value: '!output.includes("navigator.modelContext")'
