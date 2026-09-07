@@ -50,7 +50,7 @@ npm install
 ### 2. Configure Environment
 Set your Google AI API key:
 ```bash
-export GOOGLE_AI="your-gemini-api-key"
+export GEMINI_API_KEY="your-gemini-api-key"
 ```
 
 ### 3. Run Evaluations

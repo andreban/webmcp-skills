@@ -27,5 +27,5 @@ jobs:
 
       - name: Run Promptfoo Skill Evals
         env:
-          GOOGLE_AI: ${{ secrets.GOOGLE_AI }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: npm test

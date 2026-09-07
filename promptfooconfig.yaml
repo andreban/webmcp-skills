@@ -4,12 +4,24 @@
 description: 'Evaluation suite for WebMCP Agent Skills'
 
 prompts:
-  - 'file://skills/build-webmcp-tools/SKILL.md'
+  - '{{ user_input }}'
 
 providers:
-  - id: 'google:gemini-2.5-flash'
+  - id: 'google:gemini-3.5-flash-lite'
     config:
-      apiKey: '{{ env.GOOGLE_AI }}'
+      apiKey: '{{ env.GEMINI_API_KEY }}'
+      systemInstruction: 'file://skills/build-webmcp-tools/SKILL.md'
+
+defaultTest:
+  options:
+    provider:
+      id: 'google:gemini-3.5-flash-lite'
+      config:
+        apiKey: '{{ env.GEMINI_API_KEY }}'
+
+evaluateOptions:
+  maxConcurrency: 1
+  delay: 1000
 
 tests:
   # -------------------------------------------------------------
@@ -67,3 +79,64 @@ tests:
         value: 'output.includes("provideExperimentalWebMcpTools")'
       - type: javascript
         value: '!output.includes("navigator.modelContext")'
+
+  # -------------------------------------------------------------
+  # Stage 1: User Goals Portfolio & Journey Prioritization
+  # -------------------------------------------------------------
+  - description: 'Stage 1 identifies and prioritizes candidate user journeys with boundaries'
+    vars:
+      user_input: 'I am building an airline ticketing website. Help me create my portfolio of user goals for WebMCP.'
+    assert:
+      - type: llm-rubric
+        value: 'The agent must propose prioritized candidate user goals (such as flight search, seat selection, booking, or check-in) and define outcomes, context required, or boundaries for each goal.'
+
+  # -------------------------------------------------------------
+  # Stage 4: Human-in-the-Loop & High-Risk Boundaries
+  # -------------------------------------------------------------
+  - description: 'Stage 4 enforces human-in-the-loop hand-off on sensitive actions'
+    vars:
+      user_input: 'Design the roleplay turn where the user confirms payment for a $500 hotel booking.'
+    assert:
+      - type: llm-rubric
+        value: 'The roleplay or tool design must explicitly require human confirmation on dedicated UI (e.g. requires_user_action status or confirmation hand-off) rather than autonomously executing payment without user action.'
+
+  # -------------------------------------------------------------
+  # Stage 5: Evals CLI & Format Specification
+  # -------------------------------------------------------------
+  - description: 'Stage 5 guides developer to run local evals with webmcp-evals CLI'
+    vars:
+      user_input: 'I have finalized our roleplay conversations. How do I test them automatically?'
+    assert:
+      - type: javascript
+        value: 'output.includes("webmcp-evals") && output.includes("schema.json") && output.includes("evals.json")'
+
+  # -------------------------------------------------------------
+  # Stage 6: Vanilla JS with AbortController Lifecycle
+  # -------------------------------------------------------------
+  - description: 'Stage 6 Vanilla JS registers on document.modelContext with AbortSignal'
+    vars:
+      user_input: 'Write the implementation code for search_hotels tool in vanilla JavaScript.'
+    assert:
+      - type: javascript
+        value: 'output.includes("document.modelContext") && output.includes("registerTool") && (output.includes("AbortController") || output.includes("signal"))'
+
+  # -------------------------------------------------------------
+  # Stage 6: Declarative HTML Forms Pattern
+  # -------------------------------------------------------------
+  - description: 'Stage 6 Declarative Forms uses standard form attributes and respondWith'
+    vars:
+      user_input: 'How do I expose a search tool using declarative HTML forms?'
+    assert:
+      - type: javascript
+        value: 'output.includes("toolname") && output.includes("toolautosubmit") && output.includes("event.respondWith")'
+
+  # -------------------------------------------------------------
+  # Core Architectural Principle: In-tab client vs Backend stdio
+  # -------------------------------------------------------------
+  - description: 'Enforces in-tab client modelContext and rejects Node stdio transports'
+    vars:
+      user_input: 'How do I configure the stdio transport for WebMCP in my Express backend?'
+    assert:
+      - type: llm-rubric
+        value: 'The agent must clarify that WebMCP runs client-side in the browser tab via document.modelContext and does not use stdio, SSE, or Node.js backend server transports.'
+
