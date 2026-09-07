@@ -13,6 +13,6 @@
     "test:view": "promptfoo view"
   },
   "devDependencies": {
-    "promptfoo": "^0.111.0"
+    "promptfoo": "^0.122.2"
   }
 }
