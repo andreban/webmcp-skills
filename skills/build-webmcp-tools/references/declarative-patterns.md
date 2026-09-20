@@ -142,11 +142,8 @@ reservationForm.addEventListener('submit', async (event) => {
       return `Reservation confirmed! Confirmation code: ${data.confirmationCode}.`;
     })
     .catch((err) => {
-      // Return actionable error guidance or reject with Error
-      return {
-        status: 'error',
-        message: `Reservation failed: ${err.message}. Please verify availability with the user.`,
-      };
+      // Re-throw actionable Error so submissionPromise rejects and signals an execution failure to the agent
+      throw new Error(`Reservation failed: ${err.message}. Please verify availability with the user.`);
     });
 
   // 3. Resolve to the agent
@@ -156,9 +153,10 @@ reservationForm.addEventListener('submit', async (event) => {
 });
 ```
 
-> **Note on Declarative vs. Imperative Error Handling**:
-> * **Declarative forms (`<form>`)**: As implemented in official Chrome docs and GoogleChromeLabs reference demos (`demos/french-bistro`), field validation errors are returned as structured payloads (e.g. `[{ field, value, message }]`) via `event.respondWith(validationErrors)` so the model learns exactly which form fields need correction. If a hard unrecoverable failure is desired, passing `event.respondWith(Promise.reject(new Error(...)))` signals an execution failure to the agent.
-> * **Imperative tools (`use-webmcp-tool`)**: In JavaScript/React tools, always `throw new Error(...)` to trigger the runtime's `{ isError: true }` normalization.
+> **Critical WebMCP Guidance: Resolving vs. Rejecting Errors**:
+> * **Declarative forms (`<form>`)**: As implemented in official Chrome docs and GoogleChromeLabs reference demos (`demos/french-bistro`), field validation errors are returned as structured payloads (e.g. `[{ field, value, message }]`) via `event.respondWith(validationErrors)` so the model learns exactly which form fields need correction. Rejecting (`Promise.reject`) discards the field details into a generic `DOMException: UnknownError`. Reserve rejection only for fatal operational crashes.
+> * **Native imperative tools (`registerTool`)**: In raw `execute()` callbacks, the W3C WebMCP spec discards rejection reasons and rejects `executeTool()` with `UnknownError`. Return structured error payloads (e.g. `{ error: "...", code: "..." }`) so the agent can read the failure and proceed.
+> * **React tools (`useWebMCP`)**: In `use-webmcp-tool`, throw `new Error(...)`. The hook's `try/catch` catches the error and internally resolves `{ content: [...], isError: true }`, giving you the ergonomics of standard JavaScript exceptions while ensuring the agent receives the error text and error flag.
 
 ---
 

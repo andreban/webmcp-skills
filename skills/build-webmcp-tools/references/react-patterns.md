@@ -78,7 +78,9 @@ const { supported, registered, error } = useWebMCP<Args, Result>({
 | Returns an `Error` instance | Treated identically to throwing (`isError: true`) |
 
 > **Critical Rule**: **Throw actionable errors; do NOT return failure objects.**
-> Never return `{ status: "error", message: "..." }`. Returning an object is interpreted by the agent as a successful execution. Throwing an `Error` triggers `onError` telemetry and sends `isError: true` to the agent runtime, allowing the model to correct its parameters and retry.
+> Never return `{ status: "error", message: "..." }`. In `useWebMCP`, returning a plain object is interpreted as a successful execution. Throwing an `Error` triggers `onError` telemetry and resolves `{ content: [{ type: "text", text: err.message }], isError: true }`.
+> 
+> *Under the hood*: `useWebMCP` catches the thrown `Error` and **resolves** the tool promise with `isError: true`. This prevents the browser from discarding the error message into a generic `DOMException: UnknownError` (as native WebMCP does on unhandled rejections), ensuring the agent receives both the full remediation text and the error flag to self-correct.
 
 ---
 
@@ -119,7 +121,8 @@ export function FlightSearch() {
         }
         const data = await response.json();
         
-        // Await UI state update so DOM matches tool return
+        // Update local state before returning result to the agent
+        // (Use flushSync(() => setFlights(data.results)) from 'react-dom' if synchronous DOM mutation is strictly required)
         setFlights(data.results);
         
         return `Found ${data.results.length} flights to ${destination} on ${date}.`;

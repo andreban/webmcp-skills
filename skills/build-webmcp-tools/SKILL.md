@@ -62,8 +62,11 @@ Before designing or implementing tools, enforce these fundamental principles:
    * Set `consequentialHint: true` on irreversible or sensitive actions (payments, bookings, deletions) so the browser/agent demands user confirmation.
    * Set `untrustedContentHint: true` when output includes third-party or user-generated content susceptible to prompt injection.
 8. **Errors Are Guides, Not Dead Ends**:
-   * In code, **throw actionable `Error` instances** rather than returning `{ error: ... }` objects. Throwing flags `isError: true` to the agent runtime so the model can self-correct parameters.
-   * Never encode a failure as a success string.
+   * **Deliver actionable error guidance so the agent can self-correct and proceed**:
+     * **React (`useWebMCP`)**: Throw `new Error(...)` with clear remediation instructions. The hook catches thrown errors and internally resolves `{ content: [...], isError: true }` so the agent receives the error text without an unhandled browser crash.
+     * **Declarative Forms (`<form>`)**: Return structured field validation errors (e.g. `[{ field, message }]`) via `event.respondWith(...)`. Do **not** call `Promise.reject()`, as WebMCP discards rejection reasons into a generic `UnknownError`.
+     * **Native Imperative (`registerTool`)**: In raw `execute()` callbacks, unhandled rejections/throws are mapped by the W3C WebMCP spec to a generic `DOMException: UnknownError`. To return actionable feedback the agent can recover from, **resolve** with a structured error payload (e.g. `{ error: "...", code: "...", retryable: true }`).
+   * **Never encode a failure as a plain success string** (e.g., returning `"Saved"` on failure).
 9. **UI Synchronization**:
    * In asynchronous tools, always await DOM/state updates *before* returning the result to the agent so the agent inspects a consistent page state.
 10. **Cross-Origin & Permissions Policy Boundaries**:
@@ -182,7 +185,7 @@ Reconcile all tools discovered across the various goals and states into a single
   ```bash
   npx webmcp-evals local -t schema.json -e evals.json
   ```
-* Use the [Failure-Mode Troubleshooting Matrix](./references/evals-format.md#3-failure-mode-troubleshooting-matrix) if tool selection or ordering fails.
+* Use the [Failure-Mode Troubleshooting Matrix](./references/evals-format.md#4-failure-mode-troubleshooting-matrix) if tool selection or ordering fails.
 
 ---
 
@@ -215,6 +218,7 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 
 #### Pathway D: Declarative HTML Forms
 * Pair `toolname` AND `tooldescription` on `<form>`. (Missing either fails Lighthouse audits).
+* Apply `toolautosubmit` for safe, read-only queries or low-risk actions; omit `toolautosubmit` for sensitive or financial actions to enforce human-in-the-loop confirmation.
 * Ensure every field has a unique `name` and `<label>` or `toolparamdescription`.
 * Handle `event.agentInvoked` and respond with `event.respondWith(promise)`.
 * Listen to `window` events `toolactivated` and `toolcancel` to update UI state.
@@ -239,12 +243,12 @@ Use this checklist when evaluating any WebMCP tool implementation:
 - [ ] **Description Budgets**: Descriptions are ≤ 500 chars, positive phrasing, explaining *what* it does and *when* to use it.
 - [ ] **Parameter Schemas**: Specific types, `enum` arrays with descriptions, property descriptions ≤ 150 chars, required fields marked.
 - [ ] **Accept Raw Input**: Tools accept raw user strings and dates; no arithmetic or manual transformations forced onto the model.
-- [ ] **Actionable Errors**: Code validates strictly and throws actionable `Error` strings (`isError: true`); failures are never encoded as success objects.
+- [ ] **Actionable Errors**: Errors provide remediation guidance; React tools throw `Error` (normalized to `isError: true`), declarative forms return structured validation arrays via `event.respondWith`, and native tools return actionable error payloads rather than empty rejections.
 - [ ] **Output Budget**: Payloads are ≤ 1,500 characters, structured, and LLM-readable.
 - [ ] **UI Synchronization**: Application state and DOM updates are awaited before the tool resolves.
 - [ ] **Annotations**: `readOnlyHint`, `consequentialHint`, and `untrustedContentHint` are set accurately.
 - [ ] **Cross-Origin Security**: `exposedTo` lists only trusted origins; `allow="tools"` set only on approved iframes; origin isolation preserved.
-- [ ] **Declarative Forms**: `toolname` + `tooldescription` paired; all fields have a unique `name` and label/`toolparamdescription`.
+- [ ] **Declarative Forms**: `toolname` + `tooldescription` paired; `toolautosubmit` applied appropriately (omitted for sensitive actions); all fields have a unique `name` and label/`toolparamdescription`.
 - [ ] **Declarative Submissions**: `event.agentInvoked` and `event.respondWith` handled; `toolactivated`/`toolcancel` events update UI; focus styles present.
 - [ ] **Imperative Lifecycle**: Unregister on unmount via `AbortController`; `execute` honors `{ signal }`.
 - [ ] **React Compliance**: Every imperative tool registered through `useWebMCP` from `use-webmcp-tool`; `enabled` used for state gating; schema literals stable.

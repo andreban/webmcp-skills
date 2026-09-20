@@ -49,8 +49,13 @@ if ('modelContext' in document && typeof document.modelContext.registerTool === 
         const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal });
         
         if (!response.ok) {
-          // Throw actionable errors so the agent receives isError: true
-          throw new Error(`Catalog search service unavailable (${response.status}).`);
+          // Resolve with structured error guidance so the agent receives actionable context to proceed.
+          // Note: Unhandled throws/rejections in native WebMCP map to a generic DOMException: UnknownError per the W3C spec.
+          return {
+            error: `Catalog search service unavailable (${response.status}).`,
+            code: 'SERVICE_UNAVAILABLE',
+            retryable: true,
+          };
         }
         
         const data = await response.json();
@@ -82,8 +87,8 @@ if ('modelContext' in document && typeof document.modelContext.registerTool === 
    As of Chrome 153, aborting the registration signal stops future discoveries but does not automatically abort executions already in-flight.
 3. **Respect Cancellation inside `execute`**:
    `execute(input, { signal })` receives an execution `AbortSignal` in its second argument. Always forward this `signal` to `fetch()` and long-running promises so agent cancellations terminate background network operations immediately.
-4. **Throw Actionable Errors**:
-   Never return `{ error: "some error" }` strings or objects. Throw standard `Error` instances with clear remediation guidance (e.g., `"No items found. Suggest broadening the query."`). Thrown errors flag `isError: true` to the agent.
+4. **Actionable Error Reporting**:
+   Under the W3C WebMCP specification (`index.bs`), if a native tool's `execute` promise rejects or throws an unhandled exception, `executeTool()` rejects with a generic `DOMException: UnknownError`, discarding the rejection reason. To allow the agent to understand what failed, self-correct, and proceed, **resolve** with a structured error payload (e.g. `{ error: "No items found", code: "NOT_FOUND", suggestion: "Broaden search query" }`). Reserve unhandled rejections only for fatal operational crashes.
 
 ---
 
