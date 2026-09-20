@@ -187,6 +187,9 @@ export function useWebMcpCart(cartStore) {
         },
         required: ['itemId'],
       },
+      annotations: {
+        readOnlyHint: false, // Explicitly declare that this tool mutates application state
+      },
       async execute({ itemId, quantity = 1 }) {
         await cartStore.addItem(itemId, quantity);
         return `Added ${quantity} of ${itemId} to cart. Total items: ${cartStore.count}.`;

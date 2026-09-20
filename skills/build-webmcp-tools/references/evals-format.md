@@ -21,7 +21,67 @@ Agents are probabilistic; identical prompts can produce different paths. Before 
 
 ---
 
-## 2. Evaluation File Format (`evals.json`)
+## 2. Tool Schema Specification (`schema.json`)
+
+The consolidated `schema.json` file contains a root object with a `tools` array. Each tool definition includes its `name` (≤ 30 chars), `description` (≤ 500 chars), standard JSON Schema `inputSchema`, optional `outputSchema`, and `annotations`:
+
+```json
+{
+  "tools": [
+    {
+      "name": "search_flights",
+      "description": "Searches available flights between origin and destination airports for specified dates.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "origin": {
+            "type": "string",
+            "description": "3-letter IATA departure airport code (e.g. SFO)"
+          },
+          "destination": {
+            "type": "string",
+            "description": "3-letter IATA arrival airport code (e.g. JFK)"
+          },
+          "departure_date": {
+            "type": "string",
+            "description": "Departure date in YYYY-MM-DD format"
+          },
+          "cabin_class": {
+            "type": "string",
+            "enum": ["economy", "premium_economy", "business", "first"],
+            "description": "Preferred cabin class (optional)"
+          }
+        },
+        "required": ["origin", "destination", "departure_date"]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "initiate_booking",
+      "description": "Pre-selects the flight and navigates user to checkout confirmation screen.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "flight_id": {
+            "type": "string",
+            "description": "Unique identifier of the flight to book"
+          }
+        },
+        "required": ["flight_id"]
+      },
+      "annotations": {
+        "consequentialHint": true
+      }
+    }
+  ]
+}
+```
+
+---
+
+## 3. Evaluation File Format (`evals.json`)
 
 Evaluation suites provide test cases matching conversational messages against expected tool calls.
 
@@ -96,7 +156,7 @@ When some steps must occur sequentially while others can execute in any order (s
 
 ---
 
-## 3. Failure-Mode Troubleshooting Matrix
+## 4. Failure-Mode Troubleshooting Matrix
 
 When an evaluation fails or an agent misbehaves, consult this diagnostic guide:
 
@@ -110,7 +170,7 @@ When an evaluation fails or an agent misbehaves, consult this diagnostic guide:
 
 ---
 
-## 4. Debugging with Chrome DevTools (Chrome 149+)
+## 5. Debugging with Chrome DevTools (Chrome 149+)
 
 Enable Chrome flags:
 * `chrome://flags/#enable-webmcp-testing`
@@ -130,7 +190,7 @@ Open **Chrome DevTools $\rightarrow$ Application $\rightarrow$ WebMCP**:
 
 ---
 
-## 5. Chrome DevTools for Agents (`chrome-devtools-mcp`)
+## 6. Chrome DevTools for Agents (`chrome-devtools-mcp`)
 
 Use the Chrome DevTools MCP server to let coding agents interact with running WebMCP web pages:
 
@@ -155,7 +215,7 @@ Use the Chrome DevTools MCP server to let coding agents interact with running We
 
 ---
 
-## 6. Lighthouse "Agentic Browsing" Audits (Chrome 150+)
+## 7. Lighthouse "Agentic Browsing" Audits (Chrome 150+)
 
 Lighthouse evaluates site readiness for AI agents using fractional pass ratios and specific audits:
 

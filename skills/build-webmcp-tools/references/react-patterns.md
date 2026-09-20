@@ -180,6 +180,13 @@ Enforce character budgets (≤ 1.5K characters) and structure output for LLM con
 useWebMCP({
   name: 'search_catalog',
   description: 'Searches product catalog; returns top matches with prices and stock.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: 'Search keywords or product terms' },
+    },
+    required: ['query'],
+  },
   annotations: { readOnlyHint: true, untrustedContentHint: true },
   async execute({ query }) {
     return await searchCatalogApi(query); // returns raw database array
@@ -237,6 +244,12 @@ describe('FlightSearch WebMCP Integration', () => {
   });
 
   it('registers tool on mount and executes successfully', async () => {
+    // Mock successful API fetch response
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ results: [{ id: '1', airline: 'SkyAir', price: 299 }] }),
+    } as any);
+
     render(<FlightSearch />);
 
     expect(document.modelContext.registerTool).toHaveBeenCalledTimes(1);

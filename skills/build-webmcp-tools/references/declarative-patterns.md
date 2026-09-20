@@ -95,13 +95,27 @@ reservationForm.addEventListener('submit', async (event) => {
   const partySize = parseInt(formData.get('party_size'), 10);
   const reservationTime = formData.get('reservation_time');
 
-  // 1. Validate inputs
+  // 1. Validate inputs (collect structured field errors matching demos/french-bistro)
+  const validationErrors = [];
   if (!partySize || partySize < 1) {
+    validationErrors.push({
+      field: 'party_size',
+      value: formData.get('party_size'),
+      message: 'Party size must be at least 1 guest.',
+    });
+  }
+  if (!reservationTime) {
+    validationErrors.push({
+      field: 'reservation_time',
+      value: formData.get('reservation_time'),
+      message: 'Reservation date and time is required.',
+    });
+  }
+
+  if (validationErrors.length > 0) {
     if (event.agentInvoked) {
-      // Send actionable validation guidance back to the model
-      event.respondWith(Promise.resolve(
-        "Validation Error: party_size must be at least 1 guest."
-      ));
+      // Return structured validation errors directly to the model so the agent can self-correct specific fields
+      event.respondWith(Promise.resolve(validationErrors));
     }
     return;
   }
@@ -128,7 +142,11 @@ reservationForm.addEventListener('submit', async (event) => {
       return `Reservation confirmed! Confirmation code: ${data.confirmationCode}.`;
     })
     .catch((err) => {
-      return `Error completing reservation: ${err.message}. Please verify availability with the user.`;
+      // Return actionable error guidance or reject with Error
+      return {
+        status: 'error',
+        message: `Reservation failed: ${err.message}. Please verify availability with the user.`,
+      };
     });
 
   // 3. Resolve to the agent
@@ -137,6 +155,10 @@ reservationForm.addEventListener('submit', async (event) => {
   }
 });
 ```
+
+> **Note on Declarative vs. Imperative Error Handling**:
+> * **Declarative forms (`<form>`)**: As implemented in official Chrome docs and GoogleChromeLabs reference demos (`demos/french-bistro`), field validation errors are returned as structured payloads (e.g. `[{ field, value, message }]`) via `event.respondWith(validationErrors)` so the model learns exactly which form fields need correction. If a hard unrecoverable failure is desired, passing `event.respondWith(Promise.reject(new Error(...)))` signals an execution failure to the agent.
+> * **Imperative tools (`use-webmcp-tool`)**: In JavaScript/React tools, always `throw new Error(...)` to trigger the runtime's `{ isError: true }` normalization.
 
 ---
 
