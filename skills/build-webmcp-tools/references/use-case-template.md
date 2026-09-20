@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # WebMCP Use Case: [Scenario Title]
 
-This document defines a focused user journey, turn-by-turn conversation role-play, discovered WebMCP tools, expected site UI reactions, and recovery behaviors.
+This document defines a focused user journey, turn-by-turn conversation role-play, discovered WebMCP tools, expected site UI reactions, recovery behaviors, and security annotations.
 
 ---
 
@@ -24,7 +24,7 @@ This document defines a focused user journey, turn-by-turn conversation role-pla
 
 <!-- 
 Simulate the conversation turn-by-turn driving directly toward achieving the defined goal.
-For every turn, document all 6 elements:
+For every turn, document all 6 core elements:
 -->
 
 ### Turn 1: [Phase Name, e.g., Initial Request & Discovery]
@@ -54,6 +54,7 @@ For every turn, document all 6 elements:
     }
   }
   ```
+  *(Enforce payload budget: ≤ 1,500 characters)*
 * **Site Implementation & UI Reaction**:
   * Direct state updates (e.g., store dispatch, route transition, entity selection).
   * Visual UI updates (e.g., render filtered results grid, open preview drawer, highlight selected item).
@@ -91,10 +92,17 @@ For every turn, document all 6 elements:
 
 ## 3. Discovered WebMCP Tool Specifications
 
-| Tool Name | Parameters & Types | Purpose & Return Payload | Expected Site Reaction | Read-Only? |
+Ensure every tool respects Chrome character budgets:
+* **Tool Name**: ≤ 30 chars
+* **Tool Description**: ≤ 500 chars
+* **Parameter Description**: ≤ 150 chars
+* **Tool Output**: ≤ 1,500 chars
+
+| Tool Name | Parameters & JSON Schema | Description & Purpose | Annotations | Expected Site Reaction |
 | :--- | :--- | :--- | :--- | :--- |
-| `search_catalog` | `query: string`, `category?: string`, `page?: number` | Queries products; returns paginated results & facets | Updates results grid view | Yes (`readOnlyHint: true`) |
-| `select_item` | `item_id: string`, `options?: object` | Configures and selects specific item | Focuses item detail pane | No |
+| `search_catalog` | `query: string`<br>`category?: string`<br>`page?: number` | Searches catalog items by keywords; returns paginated results and facet summaries. | `readOnlyHint: true` | Updates search results grid |
+| `select_item` | `item_id: string`<br>`options?: object` | Configures and selects a specific catalog item. | `readOnlyHint: false` | Focuses item detail pane |
+| `initiate_booking` | `item_id: string` | Navigates the user to the checkout screen to confirm booking. | `consequentialHint: true` | Navigates route to `/checkout` |
 
 ---
 
@@ -102,15 +110,14 @@ For every turn, document all 6 elements:
 
 1. **Missing Required Parameters**:
    * *Trigger*: User says "Find me flights next week" without origin or specific dates.
-   * *Expected Agent Behavior*: Prompt user for missing parameters before invoking the tool, or tool returns `MISSING_REQUIRED_PARAMETER` with list of required fields.
+   * *Expected Agent Behavior*: Prompt user for missing parameters before invoking the tool, or tool throws an actionable error listing required parameters.
 2. **Prerequisite Failures / Wrong State**:
    * *Trigger*: Agent calls `apply_filters` before `search_catalog` has executed.
-   * *Tool Response*: `{ "error": "NO_ACTIVE_SEARCH", "message": "Execute search_catalog first before applying filters." }`
-   * *Agent Recovery*: Agent runs `search_catalog` first or prompts user for search terms.
-3. **Empty Results / Over-Constrained**:
+   * *Tool Behavior*: Throws `Error("No active search found. Execute search_catalog first before applying filters.")` to signal `isError: true`.
+   * *Agent Recovery*: Runs `search_catalog` first or prompts user for search terms.
+3. **Over-Constrained Queries / 0 Results**:
    * *Trigger*: Filter combination yields 0 matches.
-   * *Tool Response*: `{ "total_count": 0, "results": [], "suggested_relaxations": ["Remove price filter under $50"] }`
-   * *Agent Recovery*: Informs user and suggests relaxing specific filters.
+   * *Tool Response*: Returns helpful suggestion: `"No items found matching the selected filters. Suggest expanding price range or category."`
 4. **Conversational Coreference**:
    * *Trigger*: User refers to previous items by shorthand ("the cheap one", "the red one", "the first flight").
    * *Resolution*: Agent maps ordinal or property references back to concrete IDs from preceding turn payloads.
@@ -120,9 +127,12 @@ For every turn, document all 6 elements:
 ## 5. Security & Trust Boundaries
 
 * **Human-in-the-Loop Hand-off**:
-  * Sensitive actions (e.g. final credit card payment, submitting irreversible deletion, approving device pairing) must hand off control to the user via a dedicated UI modal or screen (`requires_user_action`) rather than allowing the agent to execute autonomously.
-* **Server-Side Integrity**:
-  * All input parameters (e.g. prices, quantities, permissions) must be validated server-side; client tools never trust agent-generated prices or discounts.
+  * High-risk or irreversible actions (financial transactions, credential updates, account deletion) must be marked with `consequentialHint: true` or omit `toolautosubmit`.
+  * Transition the UI to a confirmation modal or checkout view (`initiate_booking`) rather than executing autonomous checkout.
+* **Untrusted Content Demarcation**:
+  * If tool output incorporates user reviews or third-party listings, mark with `untrustedContentHint: true` so consuming agents spotlight the payload.
+* **Server-Side Verification**:
+  * Client-side tools never trust agent-generated prices or discounts; all financial inputs must be verified by backend services.
 
 ---
 
@@ -130,6 +140,7 @@ For every turn, document all 6 elements:
 
 * [ ] **Tool Selection Sequence**: Verify agent selects tools in correct order across turns.
 * [ ] **Parameter Extraction**: Verify exact extraction of required and optional arguments.
+* [ ] **Character Budgets**: Confirm all descriptions and output payloads remain within limits.
 * [ ] **UI Synchronization**: Verify DOM/application state updates match tool invocations.
-* [ ] **Error Recovery**: Verify agent successfully recovers when a tool returns an actionable error.
+* [ ] **Actionable Errors**: Verify errors are thrown with guidance so model can self-correct.
 * [ ] **Security Compliance**: Verify agent pauses and directs user to UI for human-in-the-loop actions.
