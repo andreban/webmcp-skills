@@ -140,3 +140,42 @@ tests:
       - type: llm-rubric
         value: 'The agent must clarify that WebMCP runs client-side in the browser tab via document.modelContext and does not use stdio, SSE, or Node.js backend server transports.'
 
+  # -------------------------------------------------------------
+  # Core Principle: Character Budgets
+  # -------------------------------------------------------------
+  - description: 'Enforces character budgets on tool names, descriptions, and outputs'
+    vars:
+      user_input: 'What are the official Chrome character and token budget limits for WebMCP tools?'
+    assert:
+      - type: llm-rubric
+        value: 'The agent must specify the character budgets: tool name <= 30 chars, tool description <= 500 chars, parameter description <= 150 chars, and tool output <= 1,500 chars (or ~1.5KB).'
+
+  # -------------------------------------------------------------
+  # Core Principle: Initiation vs Execution Naming
+  # -------------------------------------------------------------
+  - description: 'Distinguishes execution from initiation in tool naming'
+    vars:
+      user_input: 'How should I name a tool that navigates the user to a flight checkout form vs one that executes the booking immediately?'
+    assert:
+      - type: llm-rubric
+        value: 'The agent must distinguish execution (e.g. book_flight or create_event) from initiation (e.g. initiate_booking or start_event_creation_process) rather than treating them identically.'
+
+  # -------------------------------------------------------------
+  # Annotations Matrix
+  # -------------------------------------------------------------
+  - description: 'Explains all three WebMCP annotations: readOnlyHint, consequentialHint, untrustedContentHint'
+    vars:
+      user_input: 'Which annotations can I attach to a WebMCP tool and what do they mean?'
+    assert:
+      - type: javascript
+        value: 'output.includes("readOnlyHint") && output.includes("consequentialHint") && output.includes("untrustedContentHint")'
+
+  # -------------------------------------------------------------
+  # React Error Handling: Throw Error vs Return Failure Object
+  # -------------------------------------------------------------
+  - description: 'React tools throw Error instances to trigger isError rather than returning failure objects'
+    vars:
+      user_input: 'In useWebMCP, how should I handle a validation error when the user provides an invalid flight date?'
+    assert:
+      - type: llm-rubric
+        value: 'The agent must instruct throwing an Error (e.g. throw new Error(...)) so the tool result receives isError: true, and advise against returning error objects as successful responses.'

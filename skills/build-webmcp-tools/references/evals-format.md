@@ -3,88 +3,38 @@ Copyright 2026 Andre Cipriani Bandarra
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# WebMCP Tool Schema & Evals Specification
+# WebMCP Evaluations, Debugging & Auditing Specification
 
-This guide specifies the format for declaring WebMCP tool schemas (`schema.json`) and automated evaluations (`evals.json`) compatible with the `webmcp-evals` framework.
-
----
-
-## 1. WebMCP Tool Schema (`schema.json`)
-
-The schema file contains an object with a `tools` array. Each tool defines its `name`, a clear natural-language `description`, and a standard JSON Schema `inputSchema`.
-
-```json
-{
-  "tools": [
-    {
-      "name": "search_flights",
-      "description": "Searches for available flights between origins and destinations for specified dates.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "origin": {
-            "type": "string",
-            "description": "3-letter IATA departure airport code (e.g., SFO, JFK)"
-          },
-          "destination": {
-            "type": "string",
-            "description": "3-letter IATA arrival airport code (e.g., LHR, HND)"
-          },
-          "departure_date": {
-            "type": "string",
-            "description": "Departure date in YYYY-MM-DD format"
-          },
-          "cabin_class": {
-            "type": "string",
-            "enum": ["economy", "premium_economy", "business", "first"],
-            "description": "Preferred cabin class (optional)"
-          },
-          "nonstop_only": {
-            "type": "boolean",
-            "description": "True if only non-stop direct flights should be returned"
-          }
-        },
-        "required": ["origin", "destination", "departure_date"]
-      }
-    },
-    {
-      "name": "book_flight",
-      "description": "Books a specific flight for the current user using their profile and flight ID.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "flight_id": {
-            "type": "string",
-            "description": "Unique identifier of the flight to book"
-          }
-        },
-        "required": ["flight_id"]
-      }
-    }
-  ]
-}
-```
-
-### Schema Best Practices
-* **Positive Descriptions**: State clearly what the tool accomplishes rather than listing negative restrictions.
-* **Avoid Agent Calculations**: Accept raw inputs (e.g., raw search query or date string) rather than expecting the agent to compute offsets or indices.
-* **Document Every Property**: Every parameter in `properties` should have a descriptive `description` to prevent model hallucinations.
+This guide specifies how to test, evaluate, debug, and audit WebMCP tools across deterministic unit testing, probabilistic model evaluations (`evals.json`), Chrome DevTools inspection, and Lighthouse audits.
 
 ---
 
-## 2. Evals Test Suite (`evals.json`)
+## 1. Multi-Layer Testing Strategy
 
-The evaluations file is a JSON array of test cases. Each test case provides conversational prompt messages and the expected tool invocations.
+Agents are probabilistic; identical prompts can produce different paths. Before deploying tools to production, test across five distinct layers:
 
+1. **Deterministic Unit Tests**: Mock `document.modelContext.registerTool`, invoke the captured `execute` callback directly, and assert state store updates, argument validation, and return payloads without invoking an LLM.
+2. **Tools in Isolation**: Verify schemas and descriptions in isolation. Trigger tools directly using `document.modelContext.executeTool(tool, jsonString)` to verify parser behavior before introducing model randomness.
+3. **Probabilistic Model Evals**: Run conversational prompt suites to confirm the model selects the right tool and extracts the correct parameters under both direct queries ("Book flight AA-100") and ambiguous queries ("Find me a morning flight next Friday").
+4. **End-to-End User Journeys**: Verify complete multi-turn flows (e.g. `search_flights` $\rightarrow$ `select_flight` $\rightarrow$ `initiate_booking`), specifying ordering constraints where sequence matters.
+5. **Mid-Chain Failures**: Advance the application state directly to an intermediate step and simulate failures (e.g. discount coupon expired) to ensure the agent recovers gracefully rather than blindly completing the journey.
+
+---
+
+## 2. Evaluation File Format (`evals.json`)
+
+Evaluation suites provide test cases matching conversational messages against expected tool calls.
+
+### Single Tool / Direct Query
 ```json
 [
   {
-    "name": "Search direct economy flight to JFK",
+    "name": "Direct flight search",
     "messages": [
       {
         "role": "user",
         "type": "message",
-        "content": "I need a direct flight from SFO to JFK on 2026-10-15 in economy class."
+        "content": "I need a flight from SFO to JFK on 2026-10-15 in economy class."
       }
     ],
     "expectedCall": [
@@ -94,46 +44,7 @@ The evaluations file is a JSON array of test cases. Each test case provides conv
           "origin": "SFO",
           "destination": "JFK",
           "departure_date": "2026-10-15",
-          "cabin_class": "economy",
-          "nonstop_only": true
-        }
-      }
-    ]
-  },
-  {
-    "name": "Date extraction pattern matching",
-    "messages": [
-      {
-        "role": "user",
-        "type": "message",
-        "content": "Look up flights from Seattle (SEA) to Chicago (ORD) for next Tuesday."
-      }
-    ],
-    "expectedCall": [
-      {
-        "functionName": "search_flights",
-        "arguments": {
-          "origin": "SEA",
-          "destination": "ORD",
-          "departure_date": "/^202[0-9]-[0-1][0-9]-[0-3][0-9]$/"
-        }
-      }
-    ]
-  },
-  {
-    "name": "Multi-turn booking selection",
-    "messages": [
-      {
-        "role": "user",
-        "type": "message",
-        "content": "Book flight AA-100 for me."
-      }
-    ],
-    "expectedCall": [
-      {
-        "functionName": "book_flight",
-        "arguments": {
-          "flight_id": "AA-100"
+          "cabin_class": "economy"
         }
       }
     ]
@@ -141,32 +52,116 @@ The evaluations file is a JSON array of test cases. Each test case provides conv
 ]
 ```
 
-### Matching Features Supported by `webmcp-evals`
-1. **Exact Matching**: Literal values (`"economy"`, `true`, `42`).
-2. **Regex Patterns**: Enclose pattern in slashes (e.g., `"arguments": { "date": "/^202[0-9]-[0-9]{2}-[0-9]{2}$/" }`).
-3. **Sequential (Ordered) Invocations**: By default, multiple items in `expectedCall` expect the LLM to call tools in that exact sequence.
-4. **Unordered Invocations**: Can be tested via unordered eval suites (`evals-unordered.json`) when tool call sequence order is flexible.
+### Multi-Step Journey with Ordered & Unordered Constraints
+When some steps must occur sequentially while others can execute in any order (such as looking up details for multiple items), use nested `ordered` and `unordered` blocks:
+
+```json
+[
+  {
+    "name": "Multi-item lookup journey",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Find black running shoes and red water bottles, and show details for both."
+      }
+    ],
+    "expectedCall": [
+      { "functionName": "navigate_to_catalog", "arguments": { "category": "sports" } },
+      {
+        "unordered": [
+          {
+            "ordered": [
+              { "functionName": "search_products", "arguments": { "query": "black running shoes" } },
+              { "functionName": "get_product_details", "arguments": { "productId": "SHOE-101" } }
+            ]
+          },
+          {
+            "ordered": [
+              { "functionName": "search_products", "arguments": { "query": "red water bottle" } },
+              { "functionName": "get_product_details", "arguments": { "productId": "BOTTLE-202" } }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
+```
+
+### Argument Matching Rules
+* **Exact Matching**: Matches primitive values (`"SFO"`, `true`, `42`).
+* **Regex Pattern Matching**: Enclose strings in regex slashes (e.g. `"departure_date": "/^202[0-9]-[0-1][0-9]-[0-3][0-9]$/"`).
+* **Realistic Tool Sets**: When evaluating tool selection, always supply the **complete tool catalog for that page state** so the agent must choose between competing tools.
 
 ---
 
-## 3. Running Evaluations with CLI
+## 3. Failure-Mode Troubleshooting Matrix
 
-The `webmcp-evals` CLI runs evaluations against your generated tool schemas:
+When an evaluation fails or an agent misbehaves, consult this diagnostic guide:
 
-### Local Evaluation (Against static `schema.json`)
-```bash
-# Using Vercel AI SDK backend (default)
-npx webmcp-evals local -t schema.json -e evals.json
+| Failure Mode | Typical Symptom | Diagnostic Checks |
+| :--- | :--- | :--- |
+| **Wrong Tool Selected / Skipped** | Agent calls `checkout` without calling `add_to_cart`. | • Description clear, positive, and complete?<br>• Name intuitive (action-verb ≤ 30 chars)?<br>• Tool exposed in current page state?<br>• Description overlaps with another tool? |
+| **Incorrect Step Ordering** | Calls `select_seat` before `search_flights`. | • Does preceding tool output supply required context?<br>• Are tools dynamically exposed/gated by application state?<br>• Test the isolated sub-chain by pre-seeding state. |
+| **Invalid or Hallucinated Arguments** | Agent sends raw text instead of enum, or wrong date format. | • `inputSchema` has explicit `enum` arrays and property descriptions?<br>• Required fields declared?<br>• Description explains how to map user input to structured values? |
+| **Stale or Missing Output** | Agent reports wrong total or claims action failed. | • Tool logic bug?<br>• UI state update awaited before returning payload?<br>• Payload concise and formatted for LLM consumption (≤ 1.5K chars)? |
+| **Runtime Exceptions / Crash** | Agent stops abruptly; tool crashes. | • Runtime exceptions caught and re-thrown with actionable messages?<br>• Network failures handled?<br>• Is error distinguishable between retryable vs fatal? |
 
-# Using Gemini backend with Gemini 3.5 Flash
-npx webmcp-evals local -b gemini -m gemini-3.5-flash -t schema.json -e evals.json
+---
 
-# Run 3 iterations per test case to evaluate consistency
-npx webmcp-evals local -t schema.json -e evals.json -r 3
+## 4. Debugging with Chrome DevTools (Chrome 149+)
+
+Enable Chrome flags:
+* `chrome://flags/#enable-webmcp-testing`
+* `chrome://flags/#devtools-webmcp-support`
+
+Open **Chrome DevTools $\rightarrow$ Application $\rightarrow$ WebMCP**:
+
+1. **Available Tools Pane**:
+   * Displays all active declarative and imperative tools as the browser agent sees them.
+   * Features an **invocation counter** per tool. A count of zero across sessions indicates the agent never deemed the tool relevant.
+2. **Invoked Tools Log**:
+   * Chronological log showing Status (`Completed`, `Canceled`, `In Progress`, `Error`), input arguments received, and returned payload.
+3. **Manual Tool Execution**:
+   * Click any tool or click the Play icon on a log entry to execute tools manually with custom parameters, bypassing the LLM to verify application state reactions.
+4. **Schema Violation Warnings**:
+   * Inspect validation warnings when parameters passed by the model do not match the declared JSON Schema.
+
+---
+
+## 5. Chrome DevTools for Agents (`chrome-devtools-mcp`)
+
+Use the Chrome DevTools MCP server to let coding agents interact with running WebMCP web pages:
+
+```json
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--autoConnect",
+        "--categoryExperimentalWebmcp",
+        "--channel=canary"
+      ]
+    }
+  }
+}
 ```
 
-### Live Browser Evaluation (Against active WebMCP page)
-```bash
-# Evaluates tools exposed on a running web application
-npx webmcp-evals browser --url http://localhost:3000 -e evals.json
-```
+* Enables coding agents to query available WebMCP tools, execute tools inside the browser, and inspect accessibility trees and visual renders.
+
+---
+
+## 6. Lighthouse "Agentic Browsing" Audits (Chrome 150+)
+
+Lighthouse evaluates site readiness for AI agents using fractional pass ratios and specific audits:
+
+* **Registered WebMCP Tools**: Audits discovered declarative and imperative tools for action-oriented names and descriptive text.
+* **Forms Missing Declarative WebMCP**: Detects standard `<form>` elements lacking `toolname` and `tooldescription`.
+* **WebMCP Schema Validity**: Fails if a form has only one of `toolname`/`tooldescription`, or if an input lacks a `name`. Warns if fields lack `toolparamdescription` or `<label>`.
+* **Accessibility for Agents**: Verifies that every interactive element has a programmatic accessible name and valid roles.
+* **Layout Stability (CLS)**: Asserts Cumulative Layout Shift thresholds so visual position shifts do not cause agent misclicks.
+* **`llms.txt`**: Checks for `/llms.txt` per the [llmstxt.org](https://llmstxt.org/) standard summarizing site capabilities and entry points.

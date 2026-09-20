@@ -2,9 +2,11 @@
 name: build-webmcp-tools
 description: >-
   Comprehensive guide and workflow for designing, role-playing, evaluating,
-  and implementing WebMCP tools into web applications. Supports jumping into any
-  stage of the lifecycle (user goals portfolio, start states matrix, conversation
-  roleplay, edge-case variations, schema & evals generation, and app integration).
+  auditing, and implementing WebMCP tools into web applications. Supports jumping
+  into any stage of the lifecycle (user goals portfolio, start states matrix,
+  conversation roleplay, edge-case variations, schema & evals generation, and
+  app integration). Enforces Chrome's official guardrails, character budgets,
+  annotations, and agent security principles.
 ---
 
 <!--
@@ -14,7 +16,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # WebMCP Tool Development Workflow (`build-webmcp-tools`)
 
-WebMCP (Web Model Context Protocol) is an emerging browser standard that allows web applications to expose client-side capabilities as structured "tools" directly to AI agents. It runs **client-side within the browser tab**, avoiding brittle DOM scraping, screenshots, or robotic clicking.
+WebMCP (Web Model Context Protocol) is an emerging web standard that enables web applications to expose client-side capabilities as structured "tools" directly to in-browser AI agents. It runs **client-side within the browser tab on `document.modelContext`**, avoiding brittle DOM scraping, screenshots, or robotic clicking.
 
 This skill guides developers through the complete lifecycle of creating WebMCP tools for their product. It supports both **end-to-end design** and **direct jumping into any stage** depending on what the developer has already prepared.
 
@@ -23,11 +25,13 @@ This skill guides developers through the complete lifecycle of creating WebMCP t
 ## Quick Reference & Navigation
 
 * [Use Case Markdown Template](./references/use-case-template.md)
-* [Tool Schema & Evals Specification (`webmcp-evals`)](./references/evals-format.md)
+* [Tool Schema & Evals Specification (`evals.json`)](./references/evals-format.md)
 * [React Integration Guide (`use-webmcp-tool`)](./references/react-patterns.md)
-* [Angular Integration Guide](./references/angular-patterns.md)
+* [Angular Integration Guide (`@angular/core`)](./references/angular-patterns.md)
 * [Vanilla JS & General Framework Patterns](./references/vanilla-patterns.md)
 * [Declarative HTML Forms Patterns](./references/declarative-patterns.md)
+* [Agent Security & Injection Guardrails](./references/agent-security.md)
+* [Official Chrome Documentation & Spec Sources](./references/sources.md)
 
 ---
 
@@ -35,17 +39,37 @@ This skill guides developers through the complete lifecycle of creating WebMCP t
 
 Before designing or implementing tools, enforce these fundamental principles:
 
-1. **Client-Side Tab Execution Only**: WebMCP runs in the browser tab on `document.modelContext`. It is **not** a backend Node.js server, and it does **not** use HTTP, SSE, or `stdio` transports.
-2. **Tools Only**: Current WebMCP only supports Tools (no Resources or Prompts).
+1. **Client-Side Tab Execution Only**: WebMCP runs client-side in the browser tab on `document.modelContext`. It is **not** a backend server (like backend MCP over `stdio`/SSE); it uses the active authenticated browser session.
+2. **Tools Only**: Current WebMCP specifications support Tools only (no Resources or Prompts).
 3. **Direct Programmatic Actions**: Tools execute direct application logic (state stores, APIs, client routers). They do **not** simulate typing into DOM inputs or clicking buttons.
-4. **Context Window Efficiency**:
-   * Always paginate collections (`page`, `page_size: 12`, `total_count`, `total_pages`).
-   * Return high-level facet summaries so the agent understands catalog distribution without dumping raw records into context.
-5. **Atomic & Composable Tools**: Tools should perform a single well-defined task with positive action verbs (e.g. `create_event` rather than `start_event_creation_process`). Do not write prompt instructions like "Do not call B after A"—let the agent reason dynamically.
-6. **Accept Raw User Input**: Accept raw dates, query strings, and entity names; do not force the agent to perform manual math or offset calculations.
-7. **Read-Only Annotations**: Use `annotations: { readOnlyHint: true }` for query tools that do not modify state.
-8. **UI Synchronization**: In asynchronous tools, always await DOM/state updates *before* returning the result to the agent so the agent inspects a consistent page state.
-9. **Human-in-the-Loop Trust Boundaries**: High-risk actions (payment authorization, account deletion, sensitive settings) must hand off control to the user on a dedicated UI screen (`requires_user_action`) or omit `toolautosubmit`.
+4. **Character & Token Budgets**:
+   * **Tool Name & Parameter Names**: ≤ 30 characters (action-oriented).
+   * **Tool Description**: ≤ 500 characters (what it does, when to use it, positive phrasing).
+   * **Parameter Description**: ≤ 150 characters (meaning, format, constraints).
+   * **Tool Output Payload**: ≤ 1,500 characters (~400 tokens; concise, LLM-readable summary).
+   * Paginate collections (`page`, `page_size: 12`, `total_count`, `total_pages`) and provide high-level facet summaries.
+5. **Tool Naming & Initiation vs. Execution**:
+   * Use concise action-oriented verbs.
+   * **Distinguish execution from initiation**:
+     * Use `create_event` or `book_flight` when the tool executes immediately.
+     * Use `start_event_creation_process` or `initiate_booking` when the tool navigates to a form or wizard for user interaction.
+   * **One function per tool**: Avoid overlapping tools. Fewer, well-scoped tools improve agent selection accuracy.
+6. **Accept Raw User Input**:
+   * Accept raw dates, natural-language queries, and entity names; do not force the agent to perform manual math or offset calculations. Use natural-language values over opaque database IDs (e.g. `shipping="Express"`, not `shipping_id=1`).
+7. **Complete Tool Annotations Matrix**:
+   * Agents assume a tool mutates state unless `readOnlyHint: true` is set.
+   * Set `readOnlyHint: true` on query tools that do not modify state.
+   * Set `consequentialHint: true` on irreversible or sensitive actions (payments, bookings, deletions) so the browser/agent demands user confirmation.
+   * Set `untrustedContentHint: true` when output includes third-party or user-generated content susceptible to prompt injection.
+8. **Errors Are Guides, Not Dead Ends**:
+   * In code, **throw actionable `Error` instances** rather than returning `{ error: ... }` objects. Throwing flags `isError: true` to the agent runtime so the model can self-correct parameters.
+   * Never encode a failure as a success string.
+9. **UI Synchronization**:
+   * In asynchronous tools, always await DOM/state updates *before* returning the result to the agent so the agent inspects a consistent page state.
+10. **Cross-Origin & Permissions Policy Boundaries**:
+    * Tools are same-origin by default and gated by Permissions Policy `tools` (default `self`).
+    * Expose tools to cross-origin iframes only with `<iframe allow="tools">` and `{ exposedTo: ['https://trusted.origin'] }`.
+    * Requires an origin-isolated document (`Origin-Agent-Cluster: ?0` disables WebMCP).
 
 ---
 
@@ -73,15 +97,15 @@ Catalog and prioritize the set of user journeys where agentic conversational sup
 ### Procedure
 1. **Discover Candidate Journeys**:
    * Inspect the project's routes, navigation menus, API endpoints, and primary UI components.
-   * Identify common user jobs-to-be-done (e.g. *Product Discovery*, *Flight Rebooking*, *Cart Management*, *Order Tracking*).
+   * Focus on high-friction flows: multi-step wizards, filtering large catalogs, support requests, diagnostics.
 2. **Define Each Goal**:
    * **Ideal Outcome**: What does success look like for the user?
    * **Context Required**: What data or permissions does the agent need?
    * **Boundaries**: What must the agent *not* do autonomously?
 3. **Prioritize**:
-   * Rank goals by added value (e.g., tasks where natural language search or multi-parameter filtering saves multiple wizard steps).
+   * Rank goals by added value (tasks where natural language saves multiple wizard steps).
 4. **Conversation Isolation Rule**:
-   * While the product has a portfolio of multiple goals, each individual roleplay conversation in Stage 3 will isolate **one specific goal** at a time.
+   * Each individual roleplay conversation in Stage 3 isolates **one specific goal** at a time.
 
 ---
 
@@ -92,13 +116,13 @@ For each goal in the portfolio, establish the realistic starting points and cont
 
 ### Procedure
 1. **Identify Starting State Dimensions**:
-   * **Application View/Route**: Is the user on the home page `/`, a search results page `/search`, an active order page, or a settings view?
-   * **Loaded Entities & Filters**: Are there existing items in a cart? Is a flight search pre-populated?
+   * **Application View/Route**: Active URL/route (`/`, `/search`, `/orders/123`, `/settings`).
+   * **Loaded Entities & Filters**: Existing cart items, active filter selections, pre-populated forms.
    * **Agent Context & History**: Fresh session vs. continuing conversation, authenticated profile, saved user preferences.
    * **System Constraints**: Catalog restrictions, inventory availability, permissions.
-2. **Aggressive Pruning Check**:
-   * Prune out irrelevant internal diagnostic state (e.g. hardware metrics, battery, screen dimensions) if they do not directly serve the goal.
-   * Keep initial state lean to prevent context window bloat.
+2. **Aggressive Diagnostic Pruning**:
+   * Prune out irrelevant internal diagnostic state (e.g. hardware metrics, battery level, GPU temperature, screen DPI).
+   * Keep initial state lean to prevent context window bloat and model distraction.
 
 ---
 
@@ -111,8 +135,8 @@ For each `(Goal, Start State)` combination, simulate the complete interaction fr
 For each turn, document all **6 core elements**:
 1. **User Utterance**: Natural language user request driving toward the goal.
 2. **Agent Intent**: Reasoning, parameter normalization, coreference resolution.
-3. **Agent Tool Invocations**: Tool call with explicit arguments schema.
-4. **Tool Response (to Agent)**: Structured JSON payload returned to the model (enforcing pagination and facet summaries).
+3. **Agent Tool Invocations**: Tool call with explicit arguments schema respecting character budgets (names ≤ 30 chars).
+4. **Tool Response (to Agent)**: Structured payload returned to the model (enforcing pagination, facet summaries, and the ≤ 1,500 character budget).
 5. **Site Implementation & UI Reaction**: Application-side behavior (routing, Redux/Zustand state updates, drawer toggle, canvas redraw).
 6. **Agent Response (to User)**: Final conversational response to the user.
 
@@ -126,11 +150,11 @@ Consult [Use Case Template](./references/use-case-template.md) for detailed mark
 Stress-test each baseline conversation against real-world ambiguity, bad inputs, and system failures.
 
 ### Variations to Generate
-1. **Missing Required Parameters**: User provides vague input ("I want a flight next week") $\rightarrow$ agent clarifies or tool returns `MISSING_REQUIRED_PARAMETER` with options.
-2. **Prerequisite Violations**: Agent calls `filter_results` before `search_catalog` $\rightarrow$ tool returns actionable error guiding the agent to search first.
+1. **Missing Required Parameters**: User provides vague input ("Find flights next week") $\rightarrow$ agent clarifies or tool throws an actionable error listing missing fields.
+2. **Prerequisite Violations**: Agent calls `apply_coupon` before creating an order $\rightarrow$ tool throws an actionable error guiding the agent to start checkout first.
 3. **Over-Constrained Queries**: Search returns 0 results $\rightarrow$ tool provides suggested filter relaxations.
-4. **Conversational Coreference**: User uses shorthand ("the second one", "the cheap flight") $\rightarrow$ agent resolves reference against previous turn data.
-5. **Human-in-the-Loop Hand-off**: Sensitive actions (payment, account deletion) return `{ "status": "requires_user_action" }` and transition the UI to a confirmation modal.
+4. **Conversational Coreference**: User uses shorthand ("the second one", "the red flight") $\rightarrow$ agent resolves reference against previous turn data.
+5. **Human-in-the-Loop Hand-off**: Sensitive actions (payment, account deletion) transition the UI to a confirmation modal or checkout view (`initiate_booking`) with `consequentialHint: true`.
 
 ---
 
@@ -142,37 +166,38 @@ Reconcile all tools discovered across the various goals and states into a single
 ### Procedure
 
 #### 1. Tool Consolidation & Deduplication
-* Review all tools discovered across Stage 3 and Stage 4.
-* Reconcile overlapping tools (e.g., merge parameters into a single, unified `search_catalog` tool rather than creating distinct tools for each goal).
-* Verify tool names use consistent action verbs and input parameters have complete JSON Schema definitions.
+* Merge overlapping tools into cohesive, parameterized tools (e.g., single `search_catalog` tool with category filters rather than distinct tools per category).
+* Verify character budgets: names ≤ 30 chars, descriptions ≤ 500 chars, parameter descriptions ≤ 150 chars.
+* Verify annotations: `readOnlyHint`, `consequentialHint`, `untrustedContentHint`.
 
 #### 2. Generate Consolidated Tool Schema (`schema.json`)
-* Output standard WebMCP JSON schema definitions matching [Evals Format Specification](./references/evals-format.md).
+* Output standard WebMCP JSON schema definitions matching [Evals Specification](./references/evals-format.md).
 
 #### 3. Generate Automated Evals Suite (`evals.json`)
-* Compile all baseline and variation trajectories into `evals.json` compatible with `webmcp-evals`.
-* Include exact argument checks and regex patterns (e.g. dates, IDs).
-* Guide the developer to run local evals:
+* Compile baseline and variation trajectories into `evals.json` using exact match, regex patterns, and nested `ordered` / `unordered` blocks.
+* Include mid-chain failure tests.
+
+#### 4. Run Evals & Diagnostics
+* Guide the developer to run local schema evaluations:
   ```bash
   npx webmcp-evals local -t schema.json -e evals.json
   ```
-
-#### 4. Save Human-Readable Use Case Specs
-* Generate `<goal>-usecase.md` or a consolidated `use-case-catalog.md` following [Use Case Template](./references/use-case-template.md).
+* Use the [Failure-Mode Troubleshooting Matrix](./references/evals-format.md#3-failure-mode-troubleshooting-matrix) if tool selection or ordering fails.
 
 ---
 
-## Stage 6: Application Implementation (Step f)
+## Stage 6: Application Implementation & Audit (Step f)
 
 ### Objective
-Embed the consolidated WebMCP tools into the frontend application code using framework-idiomatic conventions.
+Embed the consolidated WebMCP tools into the frontend application code using framework-idiomatic conventions, audit page readiness, and verify compliance against the review checklist.
 
 ### Implementation Pathways
 
 #### Pathway A: React Applications
-* Guide the developer to install and use [`use-webmcp-tool`](https://www.npmjs.com/package/use-webmcp-tool).
-* Implement component-scoped tools with `useWebMCP` hook.
-* Connect tools directly to React state, hooks, or stores (Zustand/Redux).
+* **Mandatory Rule**: Use [`use-webmcp-tool`](https://www.npmjs.com/package/use-webmcp-tool) (`useWebMCP`). Never hand-roll `useEffect` + `AbortController` in components.
+* Use `enabled` for state-gated tools (e.g. `enabled: step === 'payment'`).
+* Throw `Error` instances on failure to trigger `onError` and pass `isError: true`.
+* Keep `inputSchema` and `annotations` literals stable to avoid re-registration churn.
 * Consult [React Patterns](./references/react-patterns.md).
 
 #### Pathway B: Angular Applications
@@ -183,20 +208,46 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 * Consult [Angular Patterns](./references/angular-patterns.md).
 
 #### Pathway C: Vanilla JS & Other Frameworks (Vue, Svelte)
-* Register tools directly on `document.modelContext.registerTool(tool, { signal })`.
-* Manage lifecycle unregistration using `AbortController`.
-* Set `annotations: { readOnlyHint: true }` for query tools.
+* Register tools directly on `document.modelContext.registerTool(tool, { signal, exposedTo })`.
+* Manage lifecycle unregistration using `AbortController.abort()`.
+* Forward `{ signal }` inside `execute(input, { signal })` to background network requests.
 * Consult [Vanilla Patterns](./references/vanilla-patterns.md).
 
 #### Pathway D: Declarative HTML Forms
-* Annotate standard `<form>` elements with `toolname`, `tooldescription`, `toolautosubmit`, and `toolparamdescription`.
+* Pair `toolname` AND `tooldescription` on `<form>`. (Missing either fails Lighthouse audits).
+* Ensure every field has a unique `name` and `<label>` or `toolparamdescription`.
 * Handle `event.agentInvoked` and respond with `event.respondWith(promise)`.
-* Add `:tool-form-active` and `:tool-submit-active` CSS pseudo-classes.
+* Listen to `window` events `toolactivated` and `toolcancel` to update UI state.
+* Add `:tool-form-active` and `:tool-submit-active` CSS styles.
 * Consult [Declarative Patterns](./references/declarative-patterns.md).
 
-### Verification
-* Guide the developer to inspect tools live in Chrome using the [Model Context Tool Inspector](https://github.com/beaufortfrancois/model-context-tool-inspector) extension.
-* Run live browser evaluations using `webmcp-evals`:
-  ```bash
-  npx webmcp-evals browser --url http://localhost:3000 -e evals.json
-  ```
+### Page-Level Agent Readiness & Audits
+1. **Accessibility Tree**: Interactive elements must have programmatic names and valid roles; nothing interactive hidden from the accessibility tree.
+2. **Layout Stability (CLS)**: Avoid layout shifts that cause agent coordinate misclicks.
+3. **`llms.txt`**: Provide a concise Markdown summary at `/llms.txt` per [llmstxt.org](https://llmstxt.org/).
+4. **DevTools Inspection**: Inspect registered tools live in Chrome DevTools (Application $\rightarrow$ WebMCP).
+5. **Lighthouse Audit**: Run the "Agentic browsing" category in Lighthouse (Chrome 150+).
+
+---
+
+## Comprehensive WebMCP Review Checklist
+
+Use this checklist when evaluating any WebMCP tool implementation:
+
+- [ ] **Single Responsibility**: Each tool performs one task; no overlapping tools; tool count is minimal.
+- [ ] **Naming Conventions**: Names are ≤ 30-char action verbs; initiation (`start_...` / `initiate_...`) is distinct from execution (`create_...` / `book_...`).
+- [ ] **Description Budgets**: Descriptions are ≤ 500 chars, positive phrasing, explaining *what* it does and *when* to use it.
+- [ ] **Parameter Schemas**: Specific types, `enum` arrays with descriptions, property descriptions ≤ 150 chars, required fields marked.
+- [ ] **Accept Raw Input**: Tools accept raw user strings and dates; no arithmetic or manual transformations forced onto the model.
+- [ ] **Actionable Errors**: Code validates strictly and throws actionable `Error` strings (`isError: true`); failures are never encoded as success objects.
+- [ ] **Output Budget**: Payloads are ≤ 1,500 characters, structured, and LLM-readable.
+- [ ] **UI Synchronization**: Application state and DOM updates are awaited before the tool resolves.
+- [ ] **Annotations**: `readOnlyHint`, `consequentialHint`, and `untrustedContentHint` are set accurately.
+- [ ] **Cross-Origin Security**: `exposedTo` lists only trusted origins; `allow="tools"` set only on approved iframes; origin isolation preserved.
+- [ ] **Declarative Forms**: `toolname` + `tooldescription` paired; all fields have a unique `name` and label/`toolparamdescription`.
+- [ ] **Declarative Submissions**: `event.agentInvoked` and `event.respondWith` handled; `toolactivated`/`toolcancel` events update UI; focus styles present.
+- [ ] **Imperative Lifecycle**: Unregister on unmount via `AbortController`; `execute` honors `{ signal }`.
+- [ ] **React Compliance**: Every imperative tool registered through `useWebMCP` from `use-webmcp-tool`; `enabled` used for state gating; schema literals stable.
+- [ ] **Evals Suite**: Deterministic unit tests mock `registerTool`; probabilistic evals cover direct queries, ambiguous queries, and mid-chain failures.
+- [ ] **DevTools & Lighthouse Verification**: Verified in Chrome DevTools WebMCP pane and Lighthouse Agentic browsing audit.
+- [ ] **Page Readiness**: Accessibility tree valid; CLS within bounds; `/llms.txt` present if applicable.
