@@ -32,7 +32,7 @@ interface CliArgs {
 function parseArgs(): CliArgs {
   const args = process.argv.slice(2);
   const result: CliArgs = {
-    mode: 'with-only',
+    mode: 'comparison',
     dryRun: false,
     bundleOnly: false,
   };
@@ -72,7 +72,7 @@ Usage:
 Evaluation & Benchmarking:
   --skill <name>          Target a specific skill directory (default: all in skills/)
   --filter <regex>        Filter evals by ID or prompt substring/regex
-  --mode <mode>           Run mode: 'with-only' (default) or 'comparison' (with vs without skill)
+  --mode <mode>           Run mode: 'comparison' (default, with vs without skill) or 'with-only'
   --iteration <N>         Explicit iteration folder number
   --model <model>         Gemini model identifier (default: gemini-2.5-flash)
   --dry-run               Run validation and mock generation without calling model APIs

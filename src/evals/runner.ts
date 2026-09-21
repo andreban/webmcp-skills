@@ -20,7 +20,7 @@ export async function runSkillEvals(
   skill: Skill,
   options: RunOptions = {},
 ): Promise<SingleRunResult[]> {
-  const mode = options.mode || 'with-only';
+  const mode = options.mode || 'comparison';
   const filterRegex = options.filter ? new RegExp(options.filter, 'i') : null;
 
   const targetEvals = skill.evals.filter((item) => {
