@@ -22,6 +22,7 @@ WebMCP enables web applications to expose client-side capabilities as structured
 
 ## Quick Reference & Navigation
 
+* [Conversational Design Guide (Stages 1–4)](./references/conversational-design.md)
 * [Use Case Markdown Template](./references/use-case-template.md)
 * [Tool Schema & Evals Specification (`evals.json`)](./references/evals-format.md)
 * [React Integration Guide (`use-webmcp-tool`)](./references/react-patterns.md)
@@ -58,16 +59,23 @@ Before designing or implementing tools, enforce these fundamental principles:
        * ✅ *Do*: `"Updates the progress or completion status of an existing task in the workspace. Use when marking tasks as todo, in-progress, or done."`
 5. **Tool Naming & Initiation vs. Execution**:
    * Use concise action-oriented verbs.
-   * **Distinguish execution from initiation**:
+   * **Distinguish execution from initiation & navigation**:
      * Use `create_event` or `book_flight` when the tool executes immediately.
      * Use `start_event_creation_process` or `initiate_booking` when the tool navigates to a form or wizard for user interaction.
+     * Tools that navigate or switch views mutate the client viewport and unmount active views; they must declare `consequentialHint: true` (Principle 7).
    * **One function per tool**: Avoid overlapping tools. Fewer, well-scoped tools improve agent selection accuracy.
 6. **Accept Raw User Input**:
    * Accept raw dates, natural-language queries, and entity names; do not force the agent to perform manual math or offset calculations. Use natural-language values over opaque database IDs (e.g. `shipping="Express"`, not `shipping_id=1`).
 7. **Complete Tool Annotations Matrix & UGC Mandate**:
    * Agents assume a tool mutates state unless `readOnlyHint: true` is set.
-   * Set `readOnlyHint: true` on query tools that do not modify state.
-   * Set `consequentialHint: true` on irreversible or sensitive actions (payments, bookings, deletions) so the browser/agent demands user confirmation.
+   * **`readOnlyHint: true` (Query Tools Only)**: Set on queries that read data without modifying application state or viewport (e.g. `get_invoice_summary`, `get_active_tab`).
+   * **`consequentialHint: true` (Sensitive Actions & UI Navigation)**:
+     * Set on irreversible, financial, or destructive actions (payments, bookings, deletions) so the browser/agent demands user confirmation.
+     * **Mandatory for UI View Navigation, Tab Switching & Modals**:
+       * Tools that shift the active viewport, route, tab, or modal (`switch_tab`, `navigate_to`, `open_modal`) **must declare `consequentialHint: true` and strictly omit `readOnlyHint: true`**.
+       * **Why**: Client-side navigation alters the active viewport and unmounts active views. If executed autonomously via `readOnlyHint: true`, it startles the user and destroys uncommitted local state (such as unsaved form drafts).
+       * ❌ *Anti-pattern*: `switch_tab` with `readOnlyHint: true` (causes autonomous unmounting and form data loss).
+       * ✅ *Best Practice*: `get_invoices` sets `readOnlyHint: true` (background query); `navigate_to_invoices` sets `consequentialHint: true` (foreground view navigation).
    * **Mandatory `untrustedContentHint: true` for UGC & Third-Party Content**:
      * Any tool querying, searching, or returning content created or edited by users or third parties (workspace notes, task descriptions, comments, reviews, profile bios, uploaded files, external web content) **must** declare `untrustedContentHint: true`, even when stored in your own application database.
      * **Why**: User-authored text is the primary vector for indirect prompt injection. Declaring `untrustedContentHint: true` instructs the consuming browser agent to isolate, spotlight, or delimiter-sandbox (`<untrusted_content>`) the payload defensively rather than executing embedded adversarial instructions.
@@ -110,71 +118,37 @@ Where would you like to start?
 ---
 
 ## Stage 1: User Goals Portfolio (Step a)
-
-### Objective
-Catalog and prioritize the set of user journeys where agentic conversational support offers substantial value over traditional UI clicking.
-
-### Procedure
-1. **Discover Candidate Journeys**:
-   * Inspect the project's routes, navigation menus, API endpoints, and primary UI components.
-   * Focus on high-friction flows: multi-step wizards, filtering large catalogs, support requests, diagnostics.
-2. **Define Each Goal**:
-   * **Ideal Outcome**: What does success look like for the user?
-   * **Context Required**: What data or permissions does the agent need?
-   * **Boundaries**: What must the agent *not* do autonomously?
-3. **Prioritize**:
-   * Rank goals by added value (tasks where natural language saves multiple wizard steps).
-4. **Conversation Isolation Rule**:
-   * Each individual roleplay conversation in Stage 3 isolates **one specific goal** at a time.
+* **Discover Candidate Journeys**: Inspect routes, menus, and high-friction flows; propose prioritized candidate user goals (e.g. flight search, seat selection, booking, check-in).
+* **Define Each Goal**: Explicitly define **ideal outcomes**, **required context**, and **autonomous boundaries** (what the agent must *not* do autonomously).
+* **Isolate Goals**: Each Stage 3 simulation isolates **one specific goal** at a time. See [Conversational Design Guide](./references/conversational-design.md).
 
 ---
 
 ## Stage 2: Starting States Matrix per Goal (Step b)
-
-### Objective
-For each goal in the portfolio, establish the realistic starting points and contexts users might begin from.
-
-### Procedure
-1. **Identify Starting State Dimensions**:
-   * **Application View/Route**: Active URL/route (`/`, `/search`, `/orders/123`, `/settings`).
-   * **Loaded Entities & Filters**: Existing cart items, active filter selections, pre-populated forms.
-   * **Agent Context & History**: Fresh session vs. continuing conversation, authenticated profile, saved user preferences.
-   * **System Constraints**: Catalog restrictions, inventory availability, permissions.
-2. **Aggressive Diagnostic Pruning**:
-   * Prune out irrelevant internal diagnostic state (e.g. hardware metrics, battery level, GPU temperature, screen DPI).
-   * Keep initial state lean to prevent context window bloat and model distraction.
+* **Identify State Dimensions**: Establish realistic starting states across active routes (`/`, `/search`, `/orders/123`), loaded entities, cart items, user profile context, and constraints.
+* **Aggressive Diagnostic Pruning**: Retain relevant application state (URL, cart items) and explicitly prune irrelevant hardware diagnostics (`device_battery`, `gpu_temp`, `screen_dpi`) to prevent context bloat. See [Conversational Design Guide](./references/conversational-design.md).
 
 ---
 
 ## Stage 3: Turn-by-Turn Role-Playing (`Goal × State`) (Step c)
-
-### Objective
-For each `(Goal, Start State)` combination, simulate the complete interaction from initial user prompt to goal completion, documenting required tools and site reactions.
-
-### Procedure
-For each turn, document all **6 core elements**:
+Simulate complete interactions turn-by-turn driving toward goal completion. For **every turn**, document all **6 core elements**:
 1. **User Utterance**: Natural language user request driving toward the goal.
 2. **Agent Intent**: Reasoning, parameter normalization, coreference resolution.
-3. **Agent Tool Invocations**: Tool call with explicit arguments schema respecting character budgets (names ≤ 30 chars).
-4. **Tool Response (to Agent)**: Structured payload returned to the model (enforcing pagination, facet summaries, and the ≤ 1,500 character budget).
-5. **Site Implementation & UI Reaction**: Application-side behavior (routing, Redux/Zustand state updates, drawer toggle, canvas redraw).
-6. **Agent Response (to User)**: Final conversational response to the user.
-
-Consult [Use Case Template](./references/use-case-template.md) for detailed markdown formatting.
+3. **Agent Tool Invocations**: Tool call with arguments respecting character limits (names ≤ 30 chars).
+4. **Tool Response (to Agent)**: Structured JSON payload with pagination (`page`, `page_size`, `total_count`) and ≤ 1,500 characters.
+5. **Site Implementation & UI Reaction**: Application-side behavior (routing, Zustand/Redux state updates, drawer toggle).
+6. **Agent Response (to User)**: Conversational response presenting findings and guiding next steps.
+* Use [Use Case Template](./references/use-case-template.md) for markdown formatting and see [Conversational Design Guide](./references/conversational-design.md).
 
 ---
 
 ## Stage 4: Conversation Variations & Graceful Failure (Step d)
-
-### Objective
-Stress-test each baseline conversation against real-world ambiguity, bad inputs, and system failures.
-
-### Variations to Generate
-1. **Missing Required Parameters**: User provides vague input ("Find flights next week") $\rightarrow$ agent clarifies or tool throws an actionable error listing missing fields.
-2. **Prerequisite Violations**: Agent calls `apply_coupon` before creating an order $\rightarrow$ tool throws an actionable error guiding the agent to start checkout first.
-3. **Over-Constrained Queries**: Search returns 0 results $\rightarrow$ tool provides suggested filter relaxations.
-4. **Conversational Coreference**: User uses shorthand ("the second one", "the red flight") $\rightarrow$ agent resolves reference against previous turn data.
-5. **Human-in-the-Loop Hand-off**: Sensitive actions (payment, account deletion) transition the UI to a confirmation modal or checkout view (`initiate_booking`) with `consequentialHint: true`.
+Stress-test baseline conversations against real-world ambiguity, bad inputs, and system limits:
+1. **Missing Required Parameters**: Clarify with user or throw actionable error listing missing fields.
+2. **Prerequisite Violations**: Downstream calls throw actionable errors guiding the agent to start preliminary setup first.
+3. **Over-Constrained Queries**: Return suggested filter relaxations rather than a dead-end empty array.
+4. **Conversational Coreference**: Resolve shorthand ("the second flight", "the blue one") against previous turn payloads.
+5. **Human-in-the-Loop Hand-off**: Sensitive or financial actions (e.g. confirming a $500 payment) require explicit human confirmation on a dedicated UI (`requires_user_action` / confirmation hand-off) with `consequentialHint: true`, never executing payment autonomously. See [Conversational Design Guide](./references/conversational-design.md).
 
 ---
 
@@ -198,8 +172,8 @@ Reconcile all tools discovered across the various goals and states into a single
   * Strip internal implementation jargon (Zustand, Redux, Axum, SQLite, REST, GraphQL, "mutation handler", "bridge").
 * Verify character budgets: names ≤ 30 chars, descriptions ≤ 500 chars, parameter descriptions ≤ 150 chars.
 * **Tool Annotations Audit**:
-  * Set `readOnlyHint: true` on query tools that do not modify state.
-  * Set `consequentialHint: true` on destructive, financial, or state-altering actions.
+  * Set `readOnlyHint: true` on query tools that do not modify state or viewport (`get_invoice_summary`).
+  * Set `consequentialHint: true` on destructive or financial actions (`delete_account`, `book_flight`), and on client-side UI navigation / tab switching (`switch_tab`, `navigate_to`) that alters the viewport or unmounts active components. Strictly omit `readOnlyHint: true` on navigation tools.
   * **Mandate `untrustedContentHint: true` for UGC**: Any tool querying, searching, or returning user-authored or external text (notes, task descriptions, comments, reviews, profile bios, uploaded files) must declare `untrustedContentHint: true` to instruct the host agent to isolate, spotlight, or delimiter-sandbox (`<untrusted_content>`) the payload against prompt injection. Omit only for pure application settings/metadata (e.g. `get_project_config`, `list_locales`).
 
 #### 2. Generate Consolidated Tool Schema (`schema.json`)
@@ -280,6 +254,7 @@ Use this checklist when evaluating any WebMCP tool implementation:
 - [ ] **Output Budget**: Payloads are ≤ 1,500 characters, structured, and LLM-readable.
 - [ ] **UI Synchronization**: Application state and DOM updates are awaited before the tool resolves.
 - [ ] **Annotations**: `readOnlyHint` and `consequentialHint` are set accurately.
+- [ ] **UI Navigation Verification**: Does this tool shift the active view, route, tab, or modal in the UI? If so, is `consequentialHint: true` declared and `readOnlyHint: true` strictly omitted so autonomous background execution cannot unmount active components or destroy uncommitted form drafts? Pure data queries (e.g. `get_invoice_summary`) declare `readOnlyHint: true` instead.
 - [ ] **Untrusted Content Verification**: Does this tool output text, metadata, or attachments created or edited by users or third parties (notes, tasks, comments, reviews, files)? If so, is `untrustedContentHint: true` set so the host agent isolates, spotlights, and delimiter-sandboxes (`<untrusted_content>`) the payload? Pure system/config tools omit it.
 - [ ] **Cross-Origin Security**: `exposedTo` lists only trusted origins; `allow="tools"` set only on approved iframes; origin isolation preserved.
 - [ ] **Declarative Forms**: `toolname` + `tooldescription` paired; `toolautosubmit` applied appropriately (omitted for sensitive actions); all fields have a unique `name` and label/`toolparamdescription`.

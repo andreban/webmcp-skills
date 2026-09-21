@@ -155,9 +155,26 @@ Grading Rules:
         try {
           parsed = JSON.parse(rawText);
         } catch {
-          // Fallback: repair invalid or unescaped control/escape characters
-          const sanitized = rawText.replace(/\\([^"\\/bfnrtu])/g, '$1');
-          parsed = JSON.parse(sanitized);
+          // Fallback 1: repair invalid or unescaped control/escape characters
+          try {
+            const sanitized = rawText.replace(/\\([^"\\/bfnrtu])/g, '$1');
+            parsed = JSON.parse(sanitized);
+          } catch {
+            // Fallback 2: regex extract results when evidence contains unescaped quotes
+            const extractedResults: AssertionResult[] = [];
+            const blockRegex = /\{\s*"text"\s*:\s*"([^"]+)"[\s\S]*?"passed"\s*:\s*(true|false)[\s\S]*?"evidence"\s*:\s*"([\s\S]*?)"\s*\}/g;
+            let match;
+            while ((match = blockRegex.exec(rawText)) !== null) {
+              extractedResults.push({
+                text: match[1],
+                passed: match[2] === 'true',
+                evidence: match[3],
+              });
+            }
+            if (extractedResults.length > 0) {
+              parsed = { results: extractedResults };
+            }
+          }
         }
         const modelResults: AssertionResult[] = Array.isArray(parsed?.results) ? parsed.results : [];
 
