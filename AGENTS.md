@@ -98,6 +98,9 @@ When adding capabilities, fixing issues, or refining guidance in `SKILL.md` or `
    - **Regression Verification**: Always run `npm test` across all evaluations and `npm run test:unit` across unit tests to confirm zero regressions before committing or presenting code changes as complete.
    - **Re-bundle**: Run `npm run eval:bundle` whenever test suites in `evals/suites/*.json` are added or updated.
    - **Inspect & Review**: Inspect runs and log human review notes using `npm run eval:view` when investigating failures.
+4. **Pull Request Submission & Benchmark Transparency**:
+   - **Include Full Benchmark Table in PR**: When opening a pull request for skill updates, evaluations, or test fixes, always include the complete evaluation benchmark results table (from `npm test` or `npm run eval:full`) in the PR description, along with targeted evaluation deltas.
+   - **Regression Proof for Reviewers**: Transparently publishing the full benchmark table provides reviewers with immediate evidence that the entire evaluation suite was executed and that zero regressions occurred.
 
 ---
 
