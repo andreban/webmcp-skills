@@ -22,6 +22,15 @@
         "The agent recommends querying multiple entity types via types array or list_items",
         "The agent explains avoiding granular single-item tools that require sequential roundtrips"
       ]
+    },
+    {
+      "id": "stage-5-clean-descriptions-audit",
+      "prompt": "During Stage 5 tool consolidation, how should we audit tool and parameter descriptions to ensure they are clean and free of developer implementation jargon?",
+      "expected_output": "The agent explains that descriptions must be audited to strip internal software engineering jargon (such as state management stores like Zustand or Redux, backend frameworks like Axum or Express, transport mechanisms like REST or IPC, and internal patterns like mutation handlers), ensuring descriptions strictly articulate user/agent capabilities within the 500-character budget.",
+      "assertions": [
+        "The agent explains auditing descriptions to eliminate internal implementation jargon (e.g. Zustand, Redux, Axum, REST, GraphQL, IPC)",
+        "The agent emphasizes describing what capability the tool provides to the agent and user within the character budget"
+      ]
     }
   ]
 }

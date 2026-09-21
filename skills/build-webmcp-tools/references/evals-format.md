@@ -25,6 +25,9 @@ Agents are probabilistic; identical prompts can produce different paths. Before 
 
 The consolidated `schema.json` file contains a root object with a `tools` array. Each tool definition includes its `name` (≤ 30 chars), `description` (≤ 500 chars), standard JSON Schema `inputSchema`, optional `outputSchema`, and `annotations`:
 
+> [!IMPORTANT]
+> **Clean Descriptions (No Implementation Jargon)**: Tool descriptions must describe user/agent capabilities in positive phrasing. Strictly omit developer implementation jargon (e.g. Zustand, Redux, Axum, SQLite, REST, GraphQL, IPC, internal mutation handlers). LLMs reason about what the tool accomplishes, not internal architecture or libraries.
+
 ```json
 {
   "tools": [
