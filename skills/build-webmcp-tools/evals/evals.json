@@ -157,7 +157,7 @@
       "assertions": [
         "The output uses useWebMCP from use-webmcp-tool",
         "The output includes readOnlyHint: true",
-        "The output does NOT include deprecated navigator.modelContext",
+        "The output does NOT include navigator.modelContext",
         "The output does NOT include unregisterTool"
       ]
     },
@@ -167,7 +167,7 @@
       "expected_output": "Angular implementation using provideExperimentalWebMcpTools without deprecated navigator.modelContext.",
       "assertions": [
         "The output uses provideExperimentalWebMcpTools",
-        "The output does NOT include deprecated navigator.modelContext"
+        "The output does NOT include navigator.modelContext"
       ]
     },
     {

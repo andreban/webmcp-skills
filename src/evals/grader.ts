@@ -11,28 +11,50 @@ export interface GraderOptions {
 
 /**
  * Checks if an assertion can be deterministically verified against the output.
+ * Only exact quoted strings or single code tokens/key-value pairs are verified deterministically;
+ * natural language descriptions with spaces fall through to semantic model evaluation.
  */
-function tryDeterministicCheck(assertion: string, output: string): AssertionResult | null {
+export function tryDeterministicCheck(assertion: string, output: string): AssertionResult | null {
   const trimmed = assertion.trim();
 
   // Pattern: "The output does NOT include [exact string]" or "does not contain"
-  const notIncludesMatch = trimmed.match(/does NOT (?:include|contain)\s+['"`]?([^'"`]+)['"`]?/i);
-  if (notIncludesMatch) {
-    const target = notIncludesMatch[1].trim();
-    const found = output.includes(target);
+  // 1. Quoted string: does NOT include 'target' or "target" or `target`
+  const quotedNotMatch = trimmed.match(/does NOT (?:include|contain)\s+['"`]([^'"`]+)['"`]/i);
+  // 2. Unquoted single token / identifier (e.g. navigator.modelContext, unregisterTool)
+  const tokenNotMatch = trimmed.match(/does NOT (?:include|contain)\s+(?:deprecated\s+)?([a-zA-Z0-9_$.-]+)$/i);
+  const notTarget = quotedNotMatch ? quotedNotMatch[1].trim() : tokenNotMatch ? tokenNotMatch[1].trim() : null;
+
+  if (notTarget) {
+    const found = output.includes(notTarget);
     return {
       text: assertion,
       passed: !found,
       evidence: found
-        ? `Prohibited string '${target}' was found in the output.`
-        : `Verified that '${target}' does not appear anywhere in the output.`,
+        ? `Prohibited string '${notTarget}' was found in the output.`
+        : `Verified that '${notTarget}' does not appear anywhere in the output.`,
     };
   }
 
   // Pattern: "The output includes [exact token]"
-  const includesMatch = trimmed.match(/^The output includes\s+['"`]?([a-zA-Z0-9_:.\s-]+)['"`]?$/i);
-  if (includesMatch) {
-    const target = includesMatch[1].trim();
+  // 1. Explicitly quoted literal token: The output includes 'exact string'
+  const quotedIncludesMatch = trimmed.match(/^The output includes\s+['"`]([^'"`]+)['"`]$/i);
+  if (quotedIncludesMatch) {
+    const target = quotedIncludesMatch[1].trim();
+    const found = output.includes(target);
+    return {
+      text: assertion,
+      passed: found,
+      evidence: found
+        ? `Found exact substring '${target}' in the output.`
+        : `Target string '${target}' was missing from the output.`,
+    };
+  }
+
+  // 2. Unquoted single identifier (e.g. useWebMCP) or simple key-value pair (e.g. readOnlyHint: true)
+  // Must NOT match natural language sentences like "The output includes the toolname attribute on the form"
+  const tokenIncludesMatch = trimmed.match(/^The output includes\s+([a-zA-Z0-9_$.-]+(?::\s*['"`]?[a-zA-Z0-9_$.-]+['"`]?)?)$/i);
+  if (tokenIncludesMatch) {
+    const target = tokenIncludesMatch[1].trim();
     const found = output.includes(target);
     return {
       text: assertion,
@@ -124,7 +146,19 @@ Grading Rules:
           temperature: 0.1,
         });
 
-        const parsed = JSON.parse(generation.text);
+        let rawText = generation.text.trim();
+        if (rawText.startsWith('```')) {
+          rawText = rawText.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+        }
+
+        let parsed: any;
+        try {
+          parsed = JSON.parse(rawText);
+        } catch {
+          // Fallback: repair invalid or unescaped control/escape characters
+          const sanitized = rawText.replace(/\\([^"\\/bfnrtu])/g, '$1');
+          parsed = JSON.parse(sanitized);
+        }
         const modelResults: AssertionResult[] = Array.isArray(parsed?.results) ? parsed.results : [];
 
         for (const assertion of pendingSemantic) {

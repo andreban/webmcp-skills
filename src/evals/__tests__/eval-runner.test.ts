@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { calculateStats, computeDelta } from '../aggregate-benchmark.js';
-import { gradeAssertions } from '../grader.js';
+import { gradeAssertions, tryDeterministicCheck } from '../grader.js';
 import { discoverSkills, loadSkillEvals, validateEvalItem } from '../loader.js';
 import { packageSkill } from '../package-skill.js';
 import { runTriggerEval } from '../trigger-eval.js';
@@ -105,6 +105,30 @@ describe('Eval Runner - Grader', () => {
     const result = await gradeAssertions(output, 'expected', assertions);
     expect(result.summary.passed).toBe(1);
     expect(result.assertion_results[0].passed).toBe(true);
+  });
+
+  it('distinguishes deterministic tokens from semantic descriptive assertions', () => {
+    const output = '<form toolname="search" toolautosubmit>';
+
+    // Quoted token
+    const quoted = tryDeterministicCheck("The output includes 'toolname'", output);
+    expect(quoted).not.toBeNull();
+    expect(quoted?.passed).toBe(true);
+
+    // Key-value pair
+    const kv = tryDeterministicCheck('The output includes readOnlyHint: true', 'readOnlyHint: true');
+    expect(kv).not.toBeNull();
+    expect(kv?.passed).toBe(true);
+
+    // Multi-word descriptive sentence must fall through (return null) for semantic evaluation
+    const descriptive1 = tryDeterministicCheck('The output includes the toolname attribute on the form', output);
+    expect(descriptive1).toBeNull();
+
+    const descriptive2 = tryDeterministicCheck(
+      'The output includes AbortController or signal lifecycle management',
+      output,
+    );
+    expect(descriptive2).toBeNull();
   });
 });
 
