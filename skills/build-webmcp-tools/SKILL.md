@@ -49,16 +49,11 @@ Before designing or implementing tools, enforce these fundamental principles:
    * **Tool Output Payload**: ≤ 1,500 characters (~400 tokens; concise, LLM-readable summary).
    * Paginate collections (`page`, `page_size: 12`, `total_count`, `total_pages`) and provide high-level facet summaries.
    * **Strictly Omit Developer Implementation Jargon**: Descriptions must strictly describe **what** capability the tool provides to the agent and user, never internal implementation details:
-     * **Forbidden Jargon Categories**:
-       * *State Management & UI Stores*: Zustand, Redux, TanStack, React Query, Signals, Pinia, Vuex.
-       * *Backend & Transport Protocols*: Axum, Express, SQLite, Postgres, REST, GraphQL, IPC, RPC, WebSocket.
-       * *Internal Architecture & Code Patterns*: "polymorphic mutation handler", "optimistic mutation helper", "REST bridge", "IPC wrapper", "bridge dispatch".
-     * **Why**: LLMs operating in the browser have no context or need for internal architectural plumbing. Jargon wastes strict character budgets, confuses model reasoning, and induces hallucinated arguments (e.g. attempting to pass `invalidate_cache: true` or checking if a REST server is reachable).
+     * **Forbidden Categories**: State stores (Zustand, Redux, TanStack, Signals), backends/transports (Axum, SQLite, Postgres, REST, GraphQL, IPC), internal patterns ("mutation handler", "REST bridge", "IPC wrapper").
+     * **Why**: LLMs have no need for internal plumbing. Jargon wastes character budget, confuses models, and induces hallucinated arguments.
      * **Do / Don't Examples**:
        * ❌ *Don't*: `"Polymorphic Zustand-backed mutation handler that dispatches to the internal Axum REST bridge to update task state and invalidate TanStack cache."`
        * ✅ *Do*: `"Updates the progress or completion status of an existing task in the workspace. Use when marking tasks as todo, in-progress, or done."`
-       * ❌ *Don't*: `"Axum REST query bridge fetching SQLite product catalog entries into Redux store."`
-       * ✅ *Do*: `"Searches the product catalog by keyword and category. Returns matching products with price and stock availability."`
 5. **Tool Naming & Initiation vs. Execution**:
    * Use concise action-oriented verbs.
    * **Distinguish execution from initiation**:
@@ -67,11 +62,16 @@ Before designing or implementing tools, enforce these fundamental principles:
    * **One function per tool**: Avoid overlapping tools. Fewer, well-scoped tools improve agent selection accuracy.
 6. **Accept Raw User Input**:
    * Accept raw dates, natural-language queries, and entity names; do not force the agent to perform manual math or offset calculations. Use natural-language values over opaque database IDs (e.g. `shipping="Express"`, not `shipping_id=1`).
-7. **Complete Tool Annotations Matrix**:
+7. **Complete Tool Annotations Matrix & UGC Mandate**:
    * Agents assume a tool mutates state unless `readOnlyHint: true` is set.
    * Set `readOnlyHint: true` on query tools that do not modify state.
    * Set `consequentialHint: true` on irreversible or sensitive actions (payments, bookings, deletions) so the browser/agent demands user confirmation.
-   * Set `untrustedContentHint: true` when output includes third-party or user-generated content susceptible to prompt injection.
+   * **Mandatory `untrustedContentHint: true` for UGC & Third-Party Content**:
+     * Any tool querying, searching, or returning content created or edited by users or third parties (workspace notes, task descriptions, comments, reviews, profile bios, uploaded files, external web content) **must** declare `untrustedContentHint: true`, even when stored in your own application database.
+     * **Why**: User-authored text is the primary vector for indirect prompt injection. Declaring `untrustedContentHint: true` instructs the consuming browser agent to isolate, spotlight, or delimiter-sandbox (`<untrusted_content>`) the payload defensively rather than executing embedded adversarial instructions.
+     * **UGC vs Application Configuration**:
+       * ❌ *Requires `untrustedContentHint: true`*: `get_note`, `search_tasks`, `list_comments`, `read_document` (contains user-generated text).
+       * ✅ *Omit `untrustedContentHint`*: `get_user_preferences`, `get_app_config`, `list_system_locales` (trusted system settings and flags without user-authored text).
 8. **Errors Are Guides, Not Dead Ends**:
    * **Deliver actionable error guidance so the agent can self-correct and proceed**:
      * **React (`useWebMCP`)**: Throw `new Error(...)` with clear remediation instructions. The hook catches thrown errors and internally resolves `{ content: [...], isError: true }` so the agent receives the error text without an unhandled browser crash.
@@ -199,7 +199,10 @@ Reconcile all tools discovered across the various goals and states into a single
   * Audit all tool and parameter descriptions to ensure they strictly describe agent/user capabilities without internal software engineering jargon.
   * Strip any references to internal state libraries (Zustand, Redux, Pinia), backend frameworks/databases (Axum, SQLite, Postgres), transport mechanisms (REST, GraphQL, IPC, RPC), or internal architecture ("mutation handler", "optimistic helper", "bridge").
 * Verify character budgets: names ≤ 30 chars, descriptions ≤ 500 chars, parameter descriptions ≤ 150 chars.
-* Verify annotations: `readOnlyHint`, `consequentialHint`, `untrustedContentHint`.
+* **Tool Annotations Audit**:
+  * Set `readOnlyHint: true` on query tools that do not modify state.
+  * Set `consequentialHint: true` on destructive, financial, or state-altering actions.
+  * **Mandate `untrustedContentHint: true` for UGC**: Any tool querying, searching, or returning user-authored or external text (notes, task descriptions, comments, reviews, profile bios, uploaded files) must declare `untrustedContentHint: true` to instruct the host agent to isolate, spotlight, or delimiter-sandbox (`<untrusted_content>`) the payload against prompt injection. Omit only for pure application settings/metadata (e.g. `get_project_config`, `list_locales`).
 
 #### 2. Generate Consolidated Tool Schema (`schema.json`)
 * Output standard WebMCP JSON schema definitions matching [Evals Specification](./references/evals-format.md).
@@ -277,7 +280,8 @@ Use this checklist when evaluating any WebMCP tool implementation:
 - [ ] **Actionable Errors**: Errors provide remediation guidance; React tools throw `Error` (normalized to `isError: true`), declarative forms return structured validation arrays via `event.respondWith`, and native tools return actionable error payloads rather than empty rejections.
 - [ ] **Output Budget**: Payloads are ≤ 1,500 characters, structured, and LLM-readable.
 - [ ] **UI Synchronization**: Application state and DOM updates are awaited before the tool resolves.
-- [ ] **Annotations**: `readOnlyHint`, `consequentialHint`, and `untrustedContentHint` are set accurately.
+- [ ] **Annotations**: `readOnlyHint` and `consequentialHint` are set accurately.
+- [ ] **Untrusted Content Verification**: Does this tool output text, metadata, or attachments created or edited by users or third parties (notes, tasks, comments, reviews, files)? If so, is `untrustedContentHint: true` set so the host agent isolates, spotlights, and delimiter-sandboxes (`<untrusted_content>`) the payload? Pure system/config tools omit it.
 - [ ] **Cross-Origin Security**: `exposedTo` lists only trusted origins; `allow="tools"` set only on approved iframes; origin isolation preserved.
 - [ ] **Declarative Forms**: `toolname` + `tooldescription` paired; `toolautosubmit` applied appropriately (omitted for sensitive actions); all fields have a unique `name` and label/`toolparamdescription`.
 - [ ] **Declarative Submissions**: `event.agentInvoked` and `event.respondWith` handled; `toolactivated`/`toolcancel` events update UI; focus styles present.

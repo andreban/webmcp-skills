@@ -50,6 +50,16 @@
       ]
     },
     {
+      "id": "core-annotations-untrusted-ugc",
+      "prompt": "A developer is implementing a WebMCP tool `get_note` that retrieves the markdown content of a user's note from their workspace database. The developer sets `annotations: { readOnlyHint: true }` reasoning that the data comes from their own database and doesn't mutate state. What security vulnerability or annotation mistake exists here, and how should it be fixed?",
+      "expected_output": "The agent explains that user-generated content (UGC) such as notes, tasks, comments, or external content must declare untrustedContentHint: true, even if it comes from the application's own database. User-authored text is a primary vector for indirect prompt injection. Omitting untrustedContentHint allows untrusted text to be treated as trusted instructions by host agents instead of being isolated via spotlighting or delimiter sandboxing (such as <untrusted_content> tags). The tool must declare annotations: { readOnlyHint: true, untrustedContentHint: true }.",
+      "assertions": [
+        "The agent identifies that untrustedContentHint: true is required for user-generated or third-party content",
+        "The agent explains the risk of indirect prompt injection from user-authored text",
+        "The agent explains that untrustedContentHint instructs the agent to isolate, spotlight, or delimiter-sandbox the payload"
+      ]
+    },
+    {
       "id": "stage-0-router-existing-tools",
       "prompt": "I already have a schema.json defining tools for my pizza maker application. I want to generate evals.json for automated testing.",
       "expected_output": "The agent routes directly to Stage 5 (Tool Specs & Evals Generation) or asks to view the existing schema.json, rather than forcing the user to redo Stage 1 (Goal Ideation) or Stage 2.",
@@ -118,6 +128,16 @@
       "assertions": [
         "The agent explains auditing descriptions to eliminate internal implementation jargon (e.g. Zustand, Redux, Axum, REST, GraphQL, IPC)",
         "The agent emphasizes describing what capability the tool provides to the agent and user within the character budget"
+      ]
+    },
+    {
+      "id": "stage-5-untrusted-content-annotation",
+      "prompt": "During Stage 5 tool specification, we are defining tools for a collaborative task management app: `get_project_config` (returns application workspace settings and feature flags) and `search_tasks` (returns task titles, descriptions, and user comments). How should `annotations` be configured for each tool, and why?",
+      "expected_output": "The agent configures `get_project_config` with `readOnlyHint: true` (system/application configuration data without user-authored text) and `search_tasks` with both `readOnlyHint: true` and `untrustedContentHint: true`. It explains that user-generated content (task titles, descriptions, comments) carries indirect prompt injection risk and must be flagged with `untrustedContentHint: true` so the agent framework isolates or spotlights the content, whereas trusted application configuration does not.",
+      "assertions": [
+        "The agent specifies readOnlyHint: true for both query tools",
+        "The agent mandates untrustedContentHint: true for search_tasks because it contains user-generated content",
+        "The agent distinguishes user-generated content from trusted application configuration (get_project_config does not require untrustedContentHint)"
       ]
     },
     {
