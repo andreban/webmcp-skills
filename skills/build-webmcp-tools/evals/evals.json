@@ -60,6 +60,16 @@
       ]
     },
     {
+      "id": "core-intent-focused-descriptions",
+      "prompt": "A developer wrote this WebMCP tool description: \"Searches items with query string, directory_id string, author_id string, tags array, and date_range object.\" What is wrong with this description, and how should it be rewritten to optimize model tool selection?",
+      "expected_output": "The agent identifies that duplicating parameter names, types, and schema structures already defined in inputSchema wastes character budget and creates tool selection ambiguity. It explains that descriptions should focus on what the tool does and when to use it (intent matching), and provides a clean rewrite such as \"Searches the workspace for items by meaning, keywords, or metadata. Use when locating existing notes, tasks, or documents across folders.\"",
+      "assertions": [
+        "The agent identifies that repeating schema parameters and types in the description is an anti-pattern",
+        "The agent explains that descriptions should prioritize intent matching ('what' it does and 'when' to use it)",
+        "The agent provides an intent-focused rewrite without parameter enumeration"
+      ]
+    },
+    {
       "id": "stage-0-router-existing-tools",
       "prompt": "I already have a schema.json defining tools for my pizza maker application. I want to generate evals.json for automated testing.",
       "expected_output": "The agent routes directly to Stage 5 (Tool Specs & Evals Generation) or asks to view the existing schema.json, rather than forcing the user to redo Stage 1 (Goal Ideation) or Stage 2.",
