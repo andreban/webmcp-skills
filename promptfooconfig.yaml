@@ -179,3 +179,28 @@ tests:
     assert:
       - type: llm-rubric
         value: 'The agent must instruct throwing an Error (e.g. throw new Error(...)) so the tool result receives isError: true, and advise against returning error objects as successful responses.'
+
+  # -------------------------------------------------------------
+  # Core Principle & Stage 5: Polymorphic Tool Consolidation Over Entity Bloat
+  # -------------------------------------------------------------
+  - description: 'Core Principle: Recommends polymorphic tool consolidation with batch mutations over entity-specific tool bloat'
+    vars:
+      user_input: 'In our workspace app with tasks, notes, and folders, the user wants to "Find my tasks and notes about migration and move them to Migration folder". How should we design the WebMCP tools to avoid multi-turn roundtrips and tool bloat?'
+    assert:
+      - type: javascript
+        value: 'output.includes("move_items") && (output.includes("types") || output.includes("list_items"))'
+      - type: llm-rubric
+        value: 'The agent must recommend a consolidated polymorphic tool design supporting querying multiple entity types (e.g. list_items with types array) and batch moving items in a single turn (e.g. move_items with an array of items [{ type, id }]), rather than single-item move_item or granular tools that require sequential turns.'
+
+  # -------------------------------------------------------------
+  # Stage 6: React Polymorphic Tool Pattern with Concurrent Fetching
+  # -------------------------------------------------------------
+  - description: 'Stage 6 React polymorphic tool implementation uses Promise.all for concurrent fetching'
+    vars:
+      user_input: 'Write the implementation code for a polymorphic tool list_items in a React component that queries across multiple entity types (tasks and notes).'
+    assert:
+      - type: javascript
+        value: 'output.includes("useWebMCP") && output.includes("Promise.all")'
+      - type: javascript
+        value: 'output.includes("readOnlyHint: true")'
+

@@ -73,6 +73,8 @@ npm test
 npm run test:view
 ```
 
+For guidelines on repository conventions and eval-driven skill development, see the [Agent Guide (AGENTS.md)](AGENTS.md).
+
 ---
 
 ## License

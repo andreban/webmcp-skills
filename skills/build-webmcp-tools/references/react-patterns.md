@@ -207,6 +207,119 @@ useWebMCP({
 });
 ```
 
+### Pattern D: Polymorphic Tool Consolidation & Concurrent Fetching
+
+When an application manages multiple entity types (e.g. notes, tasks, documents), do not register granular tools per entity type (`list_notes`, `list_tasks`, `move_note`, `move_task`). Instead, register consolidated polymorphic tools that query or mutate across entity types in a single turn using `Promise.all`:
+
+```tsx
+import React, { useState } from 'react';
+import { useWebMCP } from 'use-webmcp-tool';
+
+export function WorkspaceView() {
+  const [items, setItems] = useState<any[]>([]);
+
+  // 1. Consolidated polymorphic query tool
+  useWebMCP({
+    name: 'list_items',
+    description: 'Searches and lists items across tasks, notes, and documents with optional type filtering.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        types: {
+          type: 'array',
+          items: { type: 'string', enum: ['tasks', 'notes', 'docs'] },
+          description: 'Entity types to query. Defaults to all types if omitted.',
+        },
+        query: {
+          type: 'string',
+          description: 'Natural language keyword query to search across titles and descriptions.',
+        },
+        page: {
+          type: 'integer',
+          description: 'Page number for pagination (starts at 1).',
+        },
+      },
+    },
+    annotations: {
+      readOnlyHint: true,
+      untrustedContentHint: true,
+    },
+    async execute({ types = ['tasks', 'notes', 'docs'], query = '', page = 1 }) {
+      // Execute sub-queries concurrently with Promise.all to avoid multi-turn roundtrips
+      const fetchers = types.map(async (type) => {
+        const params = new URLSearchParams({ q: query, page: String(page), limit: '10' });
+        const res = await fetch(`/api/${type}?${params}`);
+        if (!res.ok) throw new Error(`Failed to fetch ${type} (${res.status})`);
+        const data = await res.json();
+        return data.items.map((item: any) => ({ ...item, entityType: type }));
+      });
+
+      const resultsPerType = await Promise.all(fetchers);
+      const combined = resultsPerType.flat();
+
+      // Synchronize React state
+      setItems(combined);
+
+      // Output formatted within the 1,500 char budget
+      return {
+        total_found: combined.length,
+        items: combined.slice(0, 10).map((i) => ({
+          id: i.id,
+          type: i.entityType,
+          title: i.title,
+        })),
+      };
+    },
+  });
+
+  // 2. Consolidated polymorphic batch mutation tool
+  useWebMCP({
+    name: 'move_items',
+    description: 'Moves a batch of items (tasks, notes, or docs) to a target folder or project.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', enum: ['task', 'note', 'doc'] },
+              id: { type: 'string', description: 'Item identifier' },
+            },
+            required: ['type', 'id'],
+          },
+          description: 'Array of items to move.',
+        },
+        target_folder_id: {
+          type: 'string',
+          description: 'Target destination folder ID or path.',
+        },
+      },
+      required: ['items', 'target_folder_id'],
+    },
+    annotations: {
+      consequentialHint: true,
+    } as any,
+    async execute({ items, target_folder_id }) {
+      const response = await fetch('/api/batch-move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, targetFolderId: target_folder_id }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Batch move failed: ${response.statusText}. Verify item IDs and target folder.`);
+      }
+
+      return `Successfully moved ${items.length} items to folder "${target_folder_id}".`;
+    },
+  });
+
+  return <div>{/* Workspace UI */}</div>;
+}
+```
+
 ---
 
 ## 6. `use-webmcp-tool` v0.2.0 Gotchas

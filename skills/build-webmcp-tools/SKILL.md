@@ -73,6 +73,15 @@ Before designing or implementing tools, enforce these fundamental principles:
     * Tools are same-origin by default and gated by Permissions Policy `tools` (default `self`).
     * Expose tools to cross-origin iframes only with `<iframe allow="tools">` and `{ exposedTo: ['https://trusted.origin'] }`.
     * Requires an origin-isolated document (`Origin-Agent-Cluster: ?0` disables WebMCP).
+11. **Polymorphic Tool Consolidation Over Granular Tool Bloat**:
+    * **Reject entity-specific tool proliferation**: Never create separate CRUD tools for every entity type in your application (e.g. avoid `list_tasks`, `list_notes`, `list_todos`, `get_note`, `get_task`, `move_note`, `move_task`). Granular tool bloat leads to:
+      * **Prompt Token Explosion**: 10–20 tool schemas waste thousands of context tokens on every turn.
+      * **Model Selection Paralysis & Hallucination**: Models struggle to pick among near-identical tools and mix up parameter schemas.
+      * **Multi-Turn Roundtrips**: Cross-domain tasks (e.g., "Find my tasks and notes about migration and move them to Migration folder") force 5+ sequential roundtrips instead of 1.
+    * **Consolidated Polymorphic Pattern**:
+      * **Parameterize entity types**: Consolidate into polymorphic tools like `list_items({ types: ['tasks', 'notes'], query: 'migration' })` and `get_item({ item_type: 'task', id: 't1' })`.
+      * **Batch mutations in a single turn**: Use batch signatures like `move_items({ items: [{ type: 'task', id: 't1' }, { type: 'note', id: 'n1' }], target_folder_id: 'f1' })`.
+      * **Concurrent In-Tool Execution**: Tool implementations should query/mutate multiple data sources concurrently via `Promise.all` inside the tool handler, returning unified results in a single turn.
 
 ---
 
@@ -170,6 +179,11 @@ Reconcile all tools discovered across the various goals and states into a single
 
 #### 1. Tool Consolidation & Deduplication
 * Merge overlapping tools into cohesive, parameterized tools (e.g., single `search_catalog` tool with category filters rather than distinct tools per category).
+* **Enforce Polymorphic Tool Consolidation**: Where domain entities share common operational lifecycles (e.g. tasks, notes, documents, files, folders):
+  * **Consolidated Listing**: Expose `list_items` accepting an array of `types` (e.g. `types: ['tasks', 'notes']`), keyword `query`, and pagination parameters rather than individual `list_tasks`, `list_notes`, `list_folders`.
+  * **Consolidated Detail Retrieval**: Expose `get_item` accepting `item_type` and `id` rather than per-entity getter tools.
+  * **Batch Mutation Operations**: Expose `move_items` (or `delete_items`, `tag_items`) accepting an array of items `items: [{ type: string, id: string }]` and target destination, enabling the agent to relocate multiple entities across categories in a single turn without sequential roundtrips.
+  * **Concurrent Execution**: Implementations must query or mutate across entity types concurrently using `Promise.all` inside the tool handler, keeping turn latency low and returning consolidated LLM-readable payloads.
 * Verify character budgets: names ≤ 30 chars, descriptions ≤ 500 chars, parameter descriptions ≤ 150 chars.
 * Verify annotations: `readOnlyHint`, `consequentialHint`, `untrustedContentHint`.
 
@@ -201,6 +215,7 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 * Use `enabled` for state-gated tools (e.g. `enabled: step === 'payment'`).
 * Throw `Error` instances on failure to trigger `onError` and pass `isError: true`.
 * Keep `inputSchema` and `annotations` literals stable to avoid re-registration churn.
+* Consolidate cross-domain tools polymorphically (`list_items`, `move_items`) and execute concurrently using `Promise.all`.
 * Consult [React Patterns](./references/react-patterns.md).
 
 #### Pathway B: Angular Applications
@@ -239,6 +254,7 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 Use this checklist when evaluating any WebMCP tool implementation:
 
 - [ ] **Single Responsibility**: Each tool performs one task; no overlapping tools; tool count is minimal.
+- [ ] **Polymorphic Tool Consolidation**: Entities sharing operational lifecycles (e.g., tasks, notes, documents, files) use consolidated polymorphic signatures (`list_items`, `get_item`, `move_items`) with batching (`items: [{ type, id }]`) and concurrent execution (`Promise.all`), avoiding entity-specific tool bloat, prompt token explosion, and multi-turn roundtrips.
 - [ ] **Naming Conventions**: Names are ≤ 30-char action verbs; initiation (`start_...` / `initiate_...`) is distinct from execution (`create_...` / `book_...`).
 - [ ] **Description Budgets**: Descriptions are ≤ 500 chars, positive phrasing, explaining *what* it does and *when* to use it.
 - [ ] **Parameter Schemas**: Specific types, `enum` arrays with descriptions, property descriptions ≤ 150 chars, required fields marked.
