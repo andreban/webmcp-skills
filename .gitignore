@@ -5,9 +5,10 @@ node_modules/
 .env
 .env.local
 
-# Promptfoo outputs & cache
+# Promptfoo & Evals workspace outputs & cache
 .promptfoo/
 output/
+evals-workspace/
 
 # Logs & OS artifacts
 *.log

@@ -1,0 +1,16 @@
+{
+  "skill_name": "build-webmcp-tools",
+  "suite": "stage-1-ideation",
+  "description": "Evaluates Stage 1 User Goals Portfolio & Journey Prioritization",
+  "evals": [
+    {
+      "id": "stage-1-journey-prioritization",
+      "prompt": "I am building an airline ticketing website. Help me create my portfolio of user goals for WebMCP.",
+      "expected_output": "Prioritized candidate user goals with defined outcomes, required context, and boundaries for each goal.",
+      "assertions": [
+        "The agent proposes prioritized candidate user goals (such as flight search, seat selection, booking, or check-in)",
+        "The agent defines outcomes, required context, or boundaries for each proposed goal"
+      ]
+    }
+  ]
+}
