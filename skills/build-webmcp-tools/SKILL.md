@@ -16,9 +16,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # WebMCP Tool Development Workflow (`build-webmcp-tools`)
 
-WebMCP (Web Model Context Protocol) is an emerging web standard that enables web applications to expose client-side capabilities as structured "tools" directly to in-browser AI agents. It runs **client-side within the browser tab on `document.modelContext`**, avoiding brittle DOM scraping, screenshots, or robotic clicking.
-
-This skill guides developers through the complete lifecycle of creating WebMCP tools for their product. It supports both **end-to-end design** and **direct jumping into any stage** depending on what the developer has already prepared.
+WebMCP enables web applications to expose client-side capabilities as structured tools directly to in-browser AI agents on `document.modelContext`, eliminating brittle DOM scraping. This skill guides developers through designing, evaluating, and implementing WebMCP tools across all lifecycle stages.
 
 ---
 
@@ -42,12 +40,16 @@ Before designing or implementing tools, enforce these fundamental principles:
 1. **Client-Side Tab Execution Only**: WebMCP runs client-side in the browser tab on `document.modelContext`. It is **not** a backend server (like backend MCP over `stdio`/SSE); it uses the active authenticated browser session.
 2. **Tools Only**: Current WebMCP specifications support Tools only (no Resources or Prompts).
 3. **Direct Programmatic Actions**: Tools execute direct application logic (state stores, APIs, client routers). They do **not** simulate typing into DOM inputs or clicking buttons.
-4. **Character & Token Budgets and Clean Descriptions**:
-   * **Tool Name & Parameter Names**: ≤ 30 characters (action-oriented).
-   * **Tool Description**: ≤ 500 characters (what it does, when to use it, positive phrasing).
-   * **Parameter Description**: ≤ 150 characters (meaning, format, constraints).
-   * **Tool Output Payload**: ≤ 1,500 characters (~400 tokens; concise, LLM-readable summary).
-   * Paginate collections (`page`, `page_size: 12`, `total_count`, `total_pages`) and provide high-level facet summaries.
+4. **Character & Token Budgets and Intent-Focused Descriptions**:
+   * **Character Limits**: Tool Name & Parameter Names ≤ 30 chars; Tool Description ≤ 500 chars; Parameter Description ≤ 150 chars; Output Payload ≤ 1,500 chars (~400 tokens). Paginate collections (`page`, `page_size: 12`, `total_count`, `total_pages`) with facet summaries.
+   * **The "What + When" Description Formula**:
+     * **What**: Concise high-level summary of what the tool accomplishes.
+     * **When**: Explicit triggering conditions explaining when the model should select this tool over alternatives (e.g., *"Use when searching by meaning or topic rather than exact keywords"*).
+   * **Never Repeat `inputSchema` in Descriptions**:
+     * Parameter names, data types, enum options, and structural constraints are already declared in `inputSchema.properties` and sent to the LLM.
+     * Repeating them in the description wastes prompt tokens, exhausts the 500-char budget, and causes tool selection ambiguity instead of clarifying triggering intent.
+     * ❌ *Don't*: `"Searches items with query string, directory_id string, author_id string, tags array, and date_range object."`
+     * ✅ *Do*: `"Searches workspace items by meaning, keywords, or metadata. Use when locating existing notes, tasks, or documents across folders."`
    * **Strictly Omit Developer Implementation Jargon**: Descriptions must strictly describe **what** capability the tool provides to the agent and user, never internal implementation details:
      * **Forbidden Categories**: State stores (Zustand, Redux, TanStack, Signals), backends/transports (Axum, SQLite, Postgres, REST, GraphQL, IPC), internal patterns ("mutation handler", "REST bridge", "IPC wrapper").
      * **Why**: LLMs have no need for internal plumbing. Jargon wastes character budget, confuses models, and induces hallucinated arguments.
@@ -85,14 +87,9 @@ Before designing or implementing tools, enforce these fundamental principles:
     * Expose tools to cross-origin iframes only with `<iframe allow="tools">` and `{ exposedTo: ['https://trusted.origin'] }`.
     * Requires an origin-isolated document (`Origin-Agent-Cluster: ?0` disables WebMCP).
 11. **Polymorphic Tool Consolidation Over Granular Tool Bloat**:
-    * **Reject entity-specific tool proliferation**: Never create separate CRUD tools for every entity type in your application (e.g. avoid `list_tasks`, `list_notes`, `list_todos`, `get_note`, `get_task`, `move_note`, `move_task`). Granular tool bloat leads to:
-      * **Prompt Token Explosion**: 10–20 tool schemas waste thousands of context tokens on every turn.
-      * **Model Selection Paralysis & Hallucination**: Models struggle to pick among near-identical tools and mix up parameter schemas.
-      * **Multi-Turn Roundtrips**: Cross-domain tasks (e.g., "Find my tasks and notes about migration and move them to Migration folder") force 5+ sequential roundtrips instead of 1.
-    * **Consolidated Polymorphic Pattern**:
-      * **Parameterize entity types**: Consolidate into polymorphic tools like `list_items({ types: ['tasks', 'notes'], query: 'migration' })` and `get_item({ item_type: 'task', id: 't1' })`.
-      * **Batch mutations in a single turn**: Use batch signatures like `move_items({ items: [{ type: 'task', id: 't1' }, { type: 'note', id: 'n1' }], target_folder_id: 'f1' })`.
-      * **Concurrent In-Tool Execution**: Tool implementations should query/mutate multiple data sources concurrently via `Promise.all` inside the tool handler, returning unified results in a single turn.
+    * **Reject entity-specific tool proliferation**: Avoid separate CRUD tools per entity (e.g. `list_tasks`, `list_notes`, `get_note`, `move_task`). Granular tool bloat causes prompt token explosion, selection paralysis, and multi-turn roundtrips.
+    * **Consolidate polymorphically**: Parameterize entity types (e.g. `list_items({ types: ['tasks', 'notes'] })`, `get_item({ item_type, id })`).
+    * **Batch mutations in a single turn**: Use batch signatures (`move_items({ items: [{ type, id }] })`) and query/mutate data sources concurrently via `Promise.all` inside the tool handler.
 
 ---
 
@@ -195,9 +192,10 @@ Reconcile all tools discovered across the various goals and states into a single
   * **Consolidated Detail Retrieval**: Expose `get_item` accepting `item_type` and `id` rather than per-entity getter tools.
   * **Batch Mutation Operations**: Expose `move_items` (or `delete_items`, `tag_items`) accepting an array of items `items: [{ type: string, id: string }]` and target destination, enabling the agent to relocate multiple entities across categories in a single turn without sequential roundtrips.
   * **Concurrent Execution**: Implementations must query or mutate across entity types concurrently using `Promise.all` inside the tool handler, keeping turn latency low and returning consolidated LLM-readable payloads.
-* **Clean Descriptions & Jargon Audit**:
-  * Audit all tool and parameter descriptions to ensure they strictly describe agent/user capabilities without internal software engineering jargon.
-  * Strip any references to internal state libraries (Zustand, Redux, Pinia), backend frameworks/databases (Axum, SQLite, Postgres), transport mechanisms (REST, GraphQL, IPC, RPC), or internal architecture ("mutation handler", "optimistic helper", "bridge").
+* **Intent-Focused Descriptions & Schema Deduplication Audit**:
+  * Enforce the "What + When" formula: describe what capability the tool provides and when the agent should select it over alternatives.
+  * Omit repeated parameter names, data types, and schema constraints already declared in `inputSchema.properties` (avoids token bloat and selection ambiguity).
+  * Strip internal implementation jargon (Zustand, Redux, Axum, SQLite, REST, GraphQL, "mutation handler", "bridge").
 * Verify character budgets: names ≤ 30 chars, descriptions ≤ 500 chars, parameter descriptions ≤ 150 chars.
 * **Tool Annotations Audit**:
   * Set `readOnlyHint: true` on query tools that do not modify state.
@@ -273,7 +271,8 @@ Use this checklist when evaluating any WebMCP tool implementation:
 - [ ] **Single Responsibility**: Each tool performs one task; no overlapping tools; tool count is minimal.
 - [ ] **Polymorphic Tool Consolidation**: Entities sharing operational lifecycles (e.g., tasks, notes, documents, files) use consolidated polymorphic signatures (`list_items`, `get_item`, `move_items`) with batching (`items: [{ type, id }]`) and concurrent execution (`Promise.all`), avoiding entity-specific tool bloat, prompt token explosion, and multi-turn roundtrips.
 - [ ] **Naming Conventions**: Names are ≤ 30-char action verbs; initiation (`start_...` / `initiate_...`) is distinct from execution (`create_...` / `book_...`).
-- [ ] **Description Budgets**: Descriptions are ≤ 500 chars, positive phrasing, explaining *what* it does and *when* to use it.
+- [ ] **Description Budgets & "What + When" Formula**: Descriptions are ≤ 500 chars, positive phrasing, defining *what* the tool does and *when* to select it over alternatives.
+- [ ] **No Schema Duplication in Descriptions**: Descriptions omit parameter names, data types, and constraints already declared in `inputSchema.properties`.
 - [ ] **No Implementation Jargon**: Descriptions describe user/agent capability without referencing internal frameworks, stores, or backend architecture (e.g., Zustand, REST, Redux, Axum, GraphQL, IPC, TanStack).
 - [ ] **Parameter Schemas**: Specific types, `enum` arrays with descriptions, property descriptions ≤ 150 chars, required fields marked.
 - [ ] **Accept Raw Input**: Tools accept raw user strings and dates; no arithmetic or manual transformations forced onto the model.
