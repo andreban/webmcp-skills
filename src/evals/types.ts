@@ -78,6 +78,7 @@ export interface GradingOutput {
 export interface SingleRunResult {
   eval_id: string;
   config: 'with_skill' | 'without_skill';
+  run_number?: number;
   output: string;
   timing: Timing;
   grading: GradingOutput;
@@ -141,9 +142,26 @@ export interface EvalBenchmarkResult {
 }
 
 /**
+ * Metadata for benchmark execution matching agentskills.io schema.
+ */
+export interface BenchmarkMetadata {
+  skill_name: string;
+  skill_path?: string;
+  iteration: number;
+  model?: string;
+  executor_model?: string;
+  grader_model?: string;
+  timestamp: string;
+  evals_run: string[];
+  runs_per_configuration: number;
+  total_runs: number;
+}
+
+/**
  * Root benchmark.json structure.
  */
 export interface BenchmarkReport {
+  metadata?: BenchmarkMetadata;
   skill_name: string;
   iteration: number;
   timestamp: string;

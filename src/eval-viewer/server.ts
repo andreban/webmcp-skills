@@ -44,9 +44,18 @@ function loadWorkspaceData() {
           const configPath = path.join(evalBasePath, config);
           if (!fs.existsSync(configPath)) return undefined;
 
-          const responsePath = path.join(configPath, 'outputs', 'response.md');
-          const timingPath = path.join(configPath, 'timing.json');
-          const gradingPath = path.join(configPath, 'grading.json');
+          // Check for run-1 directory if files are not at configPath root
+          let targetPath = configPath;
+          if (!fs.existsSync(path.join(configPath, 'outputs', 'response.md'))) {
+            const runDirs = fs.readdirSync(configPath).filter((d) => d.startsWith('run-'));
+            if (runDirs.length > 0) {
+              targetPath = path.join(configPath, runDirs.sort()[0]);
+            }
+          }
+
+          const responsePath = path.join(targetPath, 'outputs', 'response.md');
+          const timingPath = path.join(targetPath, 'timing.json');
+          const gradingPath = path.join(targetPath, 'grading.json');
 
           return {
             output: fs.existsSync(responsePath) ? fs.readFileSync(responsePath, 'utf8') : '',

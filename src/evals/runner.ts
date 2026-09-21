@@ -11,6 +11,7 @@ export interface RunOptions {
   model?: string;
   concurrency?: number;
   mock?: boolean;
+  runs?: number;
 }
 
 /**
@@ -21,6 +22,7 @@ export async function runSkillEvals(
   options: RunOptions = {},
 ): Promise<SingleRunResult[]> {
   const mode = options.mode || 'comparison';
+  const runsPerConfig = Math.max(1, options.runs ?? 1);
   const filterRegex = options.filter ? new RegExp(options.filter, 'i') : null;
 
   const targetEvals = skill.evals.filter((item) => {
@@ -36,50 +38,58 @@ export async function runSkillEvals(
   const results: SingleRunResult[] = [];
 
   for (const item of targetEvals) {
-    console.log(`  ▶ Running [${item.id}] (with_skill)...`);
-
     // 1. Run with_skill
-    const withGen = await generateContent(item.prompt, {
-      model: options.model,
-      systemInstruction: skill.systemInstruction,
-      mock: options.mock,
-    });
+    for (let r = 1; r <= runsPerConfig; r++) {
+      const runLabel = runsPerConfig > 1 ? ` run ${r}/${runsPerConfig}` : '';
+      console.log(`  ▶ Running [${item.id}] (with_skill${runLabel})...`);
 
-    const withGrading = await gradeAssertions(withGen.text, item.expected_output, item.assertions, {
-      model: options.model,
-      mock: options.mock,
-    });
-
-    results.push({
-      eval_id: item.id,
-      config: 'with_skill',
-      output: withGen.text,
-      timing: withGen.timing,
-      grading: withGrading,
-    });
-
-    // 2. Run without_skill if in comparison mode
-    if (mode === 'comparison') {
-      console.log(`  ▶ Running [${item.id}] (without_skill)...`);
-
-      const withoutGen = await generateContent(item.prompt, {
+      const withGen = await generateContent(item.prompt, {
         model: options.model,
-        systemInstruction: undefined,
+        systemInstruction: skill.systemInstruction,
         mock: options.mock,
       });
 
-      const withoutGrading = await gradeAssertions(withoutGen.text, item.expected_output, item.assertions, {
+      const withGrading = await gradeAssertions(withGen.text, item.expected_output, item.assertions, {
         model: options.model,
         mock: options.mock,
       });
 
       results.push({
         eval_id: item.id,
-        config: 'without_skill',
-        output: withoutGen.text,
-        timing: withoutGen.timing,
-        grading: withoutGrading,
+        config: 'with_skill',
+        run_number: r,
+        output: withGen.text,
+        timing: withGen.timing,
+        grading: withGrading,
       });
+    }
+
+    // 2. Run without_skill if in comparison mode
+    if (mode === 'comparison') {
+      for (let r = 1; r <= runsPerConfig; r++) {
+        const runLabel = runsPerConfig > 1 ? ` run ${r}/${runsPerConfig}` : '';
+        console.log(`  ▶ Running [${item.id}] (without_skill${runLabel})...`);
+
+        const withoutGen = await generateContent(item.prompt, {
+          model: options.model,
+          systemInstruction: undefined,
+          mock: options.mock,
+        });
+
+        const withoutGrading = await gradeAssertions(withoutGen.text, item.expected_output, item.assertions, {
+          model: options.model,
+          mock: options.mock,
+        });
+
+        results.push({
+          eval_id: item.id,
+          config: 'without_skill',
+          run_number: r,
+          output: withoutGen.text,
+          timing: withoutGen.timing,
+          grading: withoutGrading,
+        });
+      }
     }
   }
 

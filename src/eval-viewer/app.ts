@@ -20,6 +20,11 @@ interface IterationData {
   iteration: number;
   skill_name: string;
   benchmark: {
+    metadata?: {
+      runs_per_configuration?: number;
+      total_runs?: number;
+      model?: string;
+    };
     run_summary: {
       with_skill: { pass_rate: { mean: number }; time_seconds: { mean: number }; tokens: { mean: number } };
       without_skill?: { pass_rate: { mean: number }; time_seconds: { mean: number }; tokens: { mean: number } };
@@ -49,8 +54,14 @@ async function loadData() {
   function renderIteration(iterationNum: number) {
     const it = data.iterations.find((i) => i.iteration === iterationNum) || data.iterations[0];
     const summary = it.benchmark.run_summary;
+    const runsPerConfig = it.benchmark.metadata?.runs_per_configuration;
 
     stats.innerHTML = `
+      ${runsPerConfig ? `
+      <div class="metric">
+        <span class="metric-label">Runs / Config</span>
+        <span class="metric-val">${runsPerConfig}</span>
+      </div>` : ''}
       <div class="metric">
         <span class="metric-label">With Skill Pass Rate</span>
         <span class="metric-val">${Math.round(summary.with_skill.pass_rate.mean * 100)}%</span>
