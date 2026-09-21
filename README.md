@@ -84,16 +84,16 @@ export GEMINI_API_KEY="your-gemini-api-key"
 # Run unit tests for the runner, loader, and assertion grader
 npm run test:unit
 
-# Run modular evaluations for all skills (fast mode)
+# Run modular evaluations for all skills (always runs with_skill vs without_skill baseline delta)
 npm test
 
-# Run full comparative benchmark (with_skill vs without_skill delta)
+# Run full comparative benchmark across all skills
 npm run eval:full
 
-# Filter by eval ID or topic
+# Filter by eval ID or topic (always runs with & without)
 npm run eval -- --filter "react"
 
-# Offline dry-run / schema validation (runs without API key)
+# Offline dry-run / schema validation (runs without API key, runs with & without)
 npm run eval:dry-run
 
 # Re-bundle modular suites into evals/evals.json

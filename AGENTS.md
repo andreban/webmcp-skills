@@ -57,19 +57,19 @@ echo "GEMINI_API_KEY=your-gemini-api-key" >> .env
 # Run unit tests for the runner, loader, and grader
 npm run test:unit
 
-# Run evaluations for all skills (fast mode: with_skill only)
+# Run modular evaluations for all skills (always runs with_skill vs without_skill baseline delta)
 npm test
 
-# Run full comparative benchmark (with_skill vs without_skill baseline delta)
+# Run full comparative benchmark across all skills
 npm run eval:full
 
-# Filter for specific tests by ID or substring regex
+# Filter for specific tests by ID or substring regex (always runs with & without)
 npm run eval -- --filter "react"
 
-# Target a specific skill directory
+# Target a specific skill directory (always runs with & without)
 npm run eval -- --skill build-webmcp-tools
 
-# Offline dry-run / schema validation (runs without API key)
+# Offline dry-run / schema validation (runs without API key, runs with & without)
 npm run eval:dry-run
 
 # Re-bundle modular suites into evals/evals.json
@@ -88,12 +88,13 @@ When adding capabilities, fixing issues, or refining guidance in `SKILL.md` or `
 1. **Reproduce via Evals First (TDD)**:
    - Before modifying skill prompts, add a test case in the appropriate `skills/<skill-name>/evals/suites/<topic>.json`.
    - Specify `id`, `prompt`, `expected_output`, and observable `assertions`.
-   - Run `npm run eval -- --filter "<test-id>"` and verify failure or baseline gap.
+   - Run `npm run eval -- --filter "<test-id>"` (which runs both `with_skill` and `without_skill` by default) and verify failure or the baseline gap.
 2. **Implement Skill Changes**:
    - Update `skills/<skill-name>/SKILL.md` (Core Principles, Stage workflows, Review Checklist).
    - If relevant, add or update code patterns in `references/*.md`.
 3. **Verify Compliance & Measure Delta (Mandatory Pre-Commit Gate)**:
-   - **Measure Value-Add Delta**: Always run `npm run eval:full -- --filter "<test-id>"` on new or modified evaluations to verify that `with_skill` demonstrates positive value-add over `without_skill`.
+   - **Always Run Both Configurations (With & Without Skill)**: Evaluations MUST ALWAYS run both `with_skill` and `without_skill` baselines. Never run single-sided ("with-only") evaluations. Comparing against an unprompted baseline is required to calculate value-add deltas and populate the side-by-side comparison in the evaluation viewer.
+   - **Measure Value-Add Delta**: Always run `npm run eval -- --filter "<test-id>"` on new or modified evaluations to verify that `with_skill` demonstrates positive value-add over `without_skill`.
    - **Regression Verification**: Always run `npm test` across all evaluations and `npm run test:unit` across unit tests to confirm zero regressions before committing or presenting code changes as complete.
    - **Re-bundle**: Run `npm run eval:bundle` whenever test suites in `evals/suites/*.json` are added or updated.
    - **Inspect & Review**: Inspect runs and log human review notes using `npm run eval:view` when investigating failures.
@@ -134,8 +135,8 @@ To maintain high skill quality and prevent regressions:
 2. **Hybrid Assertion Strategy**:
    - **Deterministic assertions**: Use specific phrases like `"The output does NOT include navigator.modelContext"` or `"The output includes readOnlyHint: true"` for immediate programmatic validation.
    - **Semantic assertions**: Evaluated by the model judge requiring concrete textual citations and evidence for a PASS.
-3. **Comparative Benchmarking (`benchmark.json`)**:
-   - Run both `with_skill` and `without_skill` baselines to calculate statistical deltas across pass rates, token consumption, and latency.
+3. **Mandatory Comparative Benchmarking (`benchmark.json`)**:
+   - **Always run both configurations**: Every evaluation run MUST execute both `with_skill` and `without_skill` baselines to calculate statistical deltas across pass rates, token consumption, and latency. Single-sided ("with-only") runs without baselines are prohibited; evaluations must always run with and without the skill to demonstrate value-add and populate comparative dashboard panes.
 4. **Zero-Regression Policy**:
    - All unit tests (`npm run test:unit`) and skill evaluations (`npm test`) must pass before submitting pull requests.
 
