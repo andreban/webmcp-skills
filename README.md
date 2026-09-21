@@ -14,6 +14,7 @@ A collection of agent skills designed to help developers design, build, evaluate
 | Skill Name | Description | Link |
 | :--- | :--- | :--- |
 | **`build-webmcp-tools`** | Comprehensive guide and workflow for the complete WebMCP lifecycle: user goals portfolio, starting states matrix, turn-by-turn roleplay, edge-case variations, schema & evals generation, and framework integration (React, Angular, Vanilla JS, Declarative HTML). Enforces official Chrome character budgets, annotations, agent security guardrails, DevTools/Lighthouse inspection, and an exhaustive review checklist. | [SKILL.md](skills/build-webmcp-tools/SKILL.md) |
+| **`skill-creator`** *(meta-skill)* | Meta-skill for authoring, evaluating, benchmarking, and optimizing Agent Skills following the [agentskills.io](https://agentskills.io/skill-creation/evaluating-skills) standard using TypeScript and Vite. Includes schema validation, packaging, and trigger evaluation. | [SKILL.md](.agents/skills/skill-creator/SKILL.md) |
 
 ### Technical References in `build-webmcp-tools`
 
@@ -49,9 +50,23 @@ cp -r skills/build-webmcp-tools <your-project>/.cursor/skills/
 
 ---
 
+## Skill Authoring, Validation & Packaging
+
+This repository includes built-in TypeScript utilities for validating and packaging Agent Skills according to the open standard:
+
+```bash
+# Validate skill frontmatter and directory structure
+npm run skill:validate
+
+# Package skill into a distributable .skill zip archive
+npm run skill:package
+```
+
+---
+
 ## Running Skill Evaluations
 
-This repository uses [Promptfoo](https://www.promptfoo.dev/) to evaluate skill adherence, stage routing accuracy, and code generation compliance.
+This repository uses a modular **TypeScript & Vite evaluation engine** conforming to the [Agent Skills Evaluation Standard](https://agentskills.io/skill-creation/evaluating-skills) to benchmark skill adherence, baseline value-add (`delta`), and code generation compliance.
 
 ### 1. Install Dependencies
 ```bash
@@ -64,13 +79,28 @@ Set your Google AI API key:
 export GEMINI_API_KEY="your-gemini-api-key"
 ```
 
-### 3. Run Evaluations
+### 3. Run Evaluations & Tests
 ```bash
-# Run evaluations against the skills
+# Run unit tests for the runner, loader, and assertion grader
+npm run test:unit
+
+# Run modular evaluations for all skills (fast mode)
 npm test
 
-# Open interactive HTML report
-npm run test:view
+# Run full comparative benchmark (with_skill vs without_skill delta)
+npm run eval:full
+
+# Filter by eval ID or topic
+npm run eval -- --filter "react"
+
+# Offline dry-run / schema validation (runs without API key)
+npm run eval:dry-run
+
+# Re-bundle modular suites into evals/evals.json
+npm run eval:bundle
+
+# Open interactive Vite evaluation viewer to review runs & enter feedback
+npm run eval:view
 ```
 
 For guidelines on repository conventions and eval-driven skill development, see the [Agent Guide (AGENTS.md)](AGENTS.md).

@@ -1,0 +1,163 @@
+{
+  "skill_name": "build-webmcp-tools",
+  "evals": [
+    {
+      "id": "core-intab-vs-stdio",
+      "prompt": "How do I configure the stdio transport for WebMCP in my Express backend?",
+      "expected_output": "The agent clarifies that WebMCP runs client-side in the browser tab via document.modelContext and does not use stdio, SSE, or Node.js backend server transports.",
+      "assertions": [
+        "The agent clarifies that WebMCP runs client-side in the browser tab via document.modelContext",
+        "The agent clarifies that WebMCP does not use stdio, SSE, or Node.js backend server transports"
+      ]
+    },
+    {
+      "id": "core-character-budgets",
+      "prompt": "What are the official Chrome character and token budget limits for WebMCP tools?",
+      "expected_output": "The agent specifies character budgets: tool name <= 30 chars, tool description <= 500 chars, parameter description <= 150 chars, and tool output <= 1,500 chars (or ~1.5KB).",
+      "assertions": [
+        "The agent specifies that tool names must be 30 characters or fewer",
+        "The agent specifies that tool descriptions must be 500 characters or fewer",
+        "The agent specifies that parameter descriptions must be 150 characters or fewer",
+        "The agent specifies that tool output should be 1,500 characters (~1.5KB) or fewer"
+      ]
+    },
+    {
+      "id": "core-naming-initiation-vs-execution",
+      "prompt": "How should I name a tool that navigates the user to a flight checkout form vs one that executes the booking immediately?",
+      "expected_output": "The agent distinguishes execution (e.g. book_flight or create_event) from initiation (e.g. initiate_booking or start_event_creation_process) rather than treating them identically.",
+      "assertions": [
+        "The agent distinguishes initiation actions (e.g. initiate_booking) from execution actions (e.g. book_flight)"
+      ]
+    },
+    {
+      "id": "core-annotations-matrix",
+      "prompt": "Which annotations can I attach to a WebMCP tool and what do they mean?",
+      "expected_output": "The agent explains all three WebMCP annotations: readOnlyHint, consequentialHint, and untrustedContentHint.",
+      "assertions": [
+        "The output explains readOnlyHint",
+        "The output explains consequentialHint",
+        "The output explains untrustedContentHint"
+      ]
+    },
+    {
+      "id": "stage-0-router-existing-tools",
+      "prompt": "I already have a schema.json defining tools for my pizza maker application. I want to generate evals.json for automated testing.",
+      "expected_output": "The agent routes directly to Stage 5 (Tool Specs & Evals Generation) or asks to view the existing schema.json, rather than forcing the user to redo Stage 1 (Goal Ideation) or Stage 2.",
+      "assertions": [
+        "The agent routes directly to Stage 5 (Tool Specs & Evals Generation) or asks to view the existing schema.json, rather than forcing the user to redo Stage 1 (Goal Ideation) or Stage 2."
+      ]
+    },
+    {
+      "id": "stage-1-journey-prioritization",
+      "prompt": "I am building an airline ticketing website. Help me create my portfolio of user goals for WebMCP.",
+      "expected_output": "Prioritized candidate user goals with defined outcomes, required context, and boundaries for each goal.",
+      "assertions": [
+        "The agent proposes prioritized candidate user goals (such as flight search, seat selection, booking, or check-in)",
+        "The agent defines outcomes, required context, or boundaries for each proposed goal"
+      ]
+    },
+    {
+      "id": "stage-2-context-pruning",
+      "prompt": "The user wants to search for shoes on an e-commerce site. The application state is: current_url=/products, device_battery=87%, gpu_temp=68C, screen_dpi=2.0, cart_items=[]. Establish the starting state.",
+      "expected_output": "Relevant application state is retained while irrelevant hardware diagnostics are pruned.",
+      "assertions": [
+        "The agent retains relevant application state such as URL and cart items",
+        "The agent explicitly prunes or excludes irrelevant diagnostics like device_battery, gpu_temp, and screen_dpi"
+      ]
+    },
+    {
+      "id": "stage-3-roleplay-structure",
+      "prompt": "Role-play the first turn where a user asks for available hotel rooms in Paris next Friday.",
+      "expected_output": "A complete role-play turn documenting 6 turn elements including pagination in tool response.",
+      "assertions": [
+        "The role-play turn documents user utterance, agent intent, tool invocation, structured JSON tool response with pagination (page_size, total_count), site UI reaction, and agent response"
+      ]
+    },
+    {
+      "id": "stage-4-hitl-boundaries",
+      "prompt": "Design the roleplay turn where the user confirms payment for a $500 hotel booking.",
+      "expected_output": "The roleplay or tool design explicitly requires human confirmation on dedicated UI (e.g. requires_user_action status or confirmation hand-off) rather than autonomously executing payment without user action.",
+      "assertions": [
+        "The roleplay or tool design explicitly requires human confirmation on dedicated UI (e.g. requires_user_action status or confirmation hand-off) rather than autonomously executing payment without user action."
+      ]
+    },
+    {
+      "id": "stage-5-evals-cli",
+      "prompt": "I have finalized our roleplay conversations. How do I test them automatically?",
+      "expected_output": "The agent guides developer to test tools locally using webmcp-evals CLI with schema.json and evals.json.",
+      "assertions": [
+        "The output references the webmcp-evals CLI",
+        "The output references schema.json",
+        "The output references evals.json"
+      ]
+    },
+    {
+      "id": "stage-5-polymorphic-consolidation",
+      "prompt": "In our workspace app with tasks, notes, and folders, the user wants to \"Find my tasks and notes about migration and move them to Migration folder\". How should we design the WebMCP tools to avoid multi-turn roundtrips and tool bloat?",
+      "expected_output": "The agent recommends a consolidated polymorphic tool design supporting querying multiple entity types (e.g. list_items with types array) and batch moving items in a single turn (e.g. move_items with an array of items [{ type, id }]), rather than single-item move_item or granular tools that require sequential turns.",
+      "assertions": [
+        "The agent recommends a polymorphic tool design such as move_items for batch mutation",
+        "The agent recommends querying multiple entity types via types array or list_items",
+        "The agent explains avoiding granular single-item tools that require sequential roundtrips"
+      ]
+    },
+    {
+      "id": "stage-6-react-implementation",
+      "prompt": "Write the implementation code for search_hotels tool in a React component.",
+      "expected_output": "React implementation using useWebMCP from use-webmcp-tool with readOnlyHint: true and no deprecated APIs.",
+      "assertions": [
+        "The output uses useWebMCP from use-webmcp-tool",
+        "The output includes readOnlyHint: true",
+        "The output does NOT include deprecated navigator.modelContext",
+        "The output does NOT include unregisterTool"
+      ]
+    },
+    {
+      "id": "stage-6-angular-implementation",
+      "prompt": "Write the implementation code for search_hotels tool in an Angular application config.",
+      "expected_output": "Angular implementation using provideExperimentalWebMcpTools without deprecated navigator.modelContext.",
+      "assertions": [
+        "The output uses provideExperimentalWebMcpTools",
+        "The output does NOT include deprecated navigator.modelContext"
+      ]
+    },
+    {
+      "id": "stage-6-vanilla-abortcontroller",
+      "prompt": "Write the implementation code for search_hotels tool in vanilla JavaScript.",
+      "expected_output": "Vanilla JS implementation registering on document.modelContext with AbortController/signal lifecycle management.",
+      "assertions": [
+        "The output registers tools on document.modelContext using registerTool",
+        "The output includes AbortController or signal lifecycle management"
+      ]
+    },
+    {
+      "id": "stage-6-declarative-forms",
+      "prompt": "How do I expose a search tool using declarative HTML forms?",
+      "expected_output": "Declarative HTML form using standard toolname and toolautosubmit attributes, handling submission with event.respondWith.",
+      "assertions": [
+        "The output includes the toolname attribute on the form",
+        "The output includes the toolautosubmit attribute",
+        "The output uses event.respondWith to return the tool result"
+      ]
+    },
+    {
+      "id": "stage-6-react-error-handling",
+      "prompt": "In useWebMCP, how should I handle a validation error when the user provides an invalid flight date?",
+      "expected_output": "Instructs throwing an Error instance (throw new Error) so the tool result receives isError: true, and advises against returning error objects.",
+      "assertions": [
+        "The agent instructs throwing an Error (e.g. throw new Error) so the tool result receives isError: true",
+        "The agent advises against returning error objects as successful responses"
+      ]
+    },
+    {
+      "id": "stage-6-react-polymorphic",
+      "prompt": "Write the implementation code for a polymorphic tool list_items in a React component that queries across multiple entity types (tasks and notes).",
+      "expected_output": "React implementation using useWebMCP and Promise.all for concurrent fetching with readOnlyHint: true.",
+      "assertions": [
+        "The output uses useWebMCP from use-webmcp-tool",
+        "The output uses Promise.all for concurrent entity fetching",
+        "The output includes readOnlyHint: true"
+      ]
+    }
+  ]
+}

@@ -23,18 +23,18 @@ webmcp-skills/
 ├── skills/
 │   └── build-webmcp-tools/          # Primary skill for the end-to-end WebMCP tool lifecycle
 │       ├── SKILL.md                 # Main workflow: 6-stage lifecycle, core principles, review checklist
-│       └── references/              # Specialized technical guides
-│           ├── react-patterns.md    # React integration with use-webmcp-tool (`useWebMCP`)
-│           ├── angular-patterns.md  # Angular integration with provideExperimentalWebMcpTools
-│           ├── vanilla-patterns.md  # Native imperative document.modelContext API & lifecycle
-│           ├── declarative-patterns.md # Declarative HTML forms (<form toolname toolautosubmit>)
-│           ├── evals-format.md      # schema.json & evals.json format, webmcp-evals CLI
-│           ├── agent-security.md    # Injection defense, spotlighting, untrustedContentHint
-│           ├── use-case-template.md # Standard markdown template for user goals and roleplay
-│           └── sources.md           # Official Chrome & W3C spec index
-├── promptfooconfig.yaml             # Promptfoo evaluation suite for skill compliance & adherence
-├── package.json                     # Scripts & devDependencies (Promptfoo)
-├── .github/workflows/evals.yaml     # CI workflow for running skill evaluations
+│       ├── references/              # Specialized technical guides
+│       └── evals/                   # Modular evaluations conforming to agentskills.io
+│           ├── evals.json           # Aggregated test suite (auto-generated)
+│           └── suites/              # Topic/Stage-specific test suites (*.json)
+├── .agents/skills/
+│   └── skill-creator/               # Meta-skill for authoring, evaluating & improving skills
+├── src/
+│   ├── evals/                       # TypeScript evaluation runner, grader & benchmark aggregator
+│   └── eval-viewer/                 # Vite-based interactive eval review dashboard
+├── evals-workspace/                 # Evaluation run outputs & benchmark iterations (gitignored)
+├── package.json                     # Scripts & devDependencies (Vite, Vitest, TypeScript)
+├── .github/workflows/evals.yaml     # CI workflow for running unit tests and skill evaluations
 ├── AGENTS.md                        # This agent guide
 └── README.md                        # Project documentation
 ```
@@ -43,7 +43,7 @@ webmcp-skills/
 
 ## Development & Evaluation Commands
 
-This project uses [Promptfoo](https://www.promptfoo.dev/) to test and evaluate skill adherence, stage routing, and code generation compliance.
+This project uses a native **TypeScript and Vite evaluation engine** (`src/evals/`) conforming to the [Agent Skills Evaluation Standard](https://agentskills.io/skill-creation/evaluating-skills).
 
 ### 1. Environment Setup
 ```bash
@@ -51,19 +51,31 @@ npm install
 export GEMINI_API_KEY="your-gemini-api-key"
 ```
 
-### 2. Running Evals
+### 2. Running Evals & Tests
 ```bash
-# Run the entire Promptfoo evaluation suite
+# Run unit tests for the runner, loader, and grader
+npm run test:unit
+
+# Run evaluations for all skills (fast mode: with_skill only)
 npm test
 
-# Filter for specific tests by description regex
-npx promptfoo eval --filter-pattern "polymorphic"
+# Run full comparative benchmark (with_skill vs without_skill baseline delta)
+npm run eval:full
 
-# Run tests bypassing cache (required when verifying prompt/skill changes)
-npx promptfoo eval --no-cache
+# Filter for specific tests by ID or substring regex
+npm run eval -- --filter "react"
 
-# Open interactive HTML results viewer
-npm run test:view
+# Target a specific skill directory
+npm run eval -- --skill build-webmcp-tools
+
+# Offline dry-run / schema validation (runs without API key)
+npm run eval:dry-run
+
+# Re-bundle modular suites into evals/evals.json
+npm run eval:bundle
+
+# Open interactive Vite evaluation viewer to review outputs & record feedback
+npm run eval:view
 ```
 
 ---
@@ -73,15 +85,17 @@ npm run test:view
 When adding capabilities, fixing issues, or refining guidance in `SKILL.md` or `references/`:
 
 1. **Reproduce via Evals First (TDD)**:
-   - Before modifying skill prompts, write an evaluation test case in `promptfooconfig.yaml`.
-   - Include both semantic (`llm-rubric`) and deterministic (`javascript` / regex) assertions.
-   - Run `npx promptfoo eval --filter-pattern "<test-name>" --no-cache` and verify that it fails (reproducing the gap).
+   - Before modifying skill prompts, add a test case in the appropriate `skills/<skill-name>/evals/suites/<topic>.json`.
+   - Specify `id`, `prompt`, `expected_output`, and observable `assertions`.
+   - Run `npm run eval -- --filter "<test-id>"` and verify failure or baseline gap.
 2. **Implement Skill Changes**:
-   - Update `skills/build-webmcp-tools/SKILL.md` (Core Principles, Stage workflows, Review Checklist).
-   - If relevant, add code patterns to `references/*.md` (e.g. `react-patterns.md`).
-3. **Verify Compliance**:
+   - Update `skills/<skill-name>/SKILL.md` (Core Principles, Stage workflows, Review Checklist).
+   - If relevant, add or update code patterns in `references/*.md`.
+3. **Verify Compliance & Measure Delta**:
    - Re-run the targeted eval to ensure it passes.
-   - Run `npm test` to confirm 100% pass rate across all evaluations with zero regressions.
+   - Run `npm run eval:full` to measure the with-skill vs without-skill value-add delta.
+   - Inspect runs and log human review notes using `npm run eval:view`.
+   - Run `npm test` and `npm run test:unit` to confirm 100% pass rate with zero regressions.
 
 ---
 
@@ -108,20 +122,21 @@ Skills in this repository follow the open standard ([agentskills.io](https://age
 
 ---
 
-## Promptfoo Test Authoring Standards
+## Agent Skills Evaluation & Benchmark Standards
 
-To maintain high skill adherence and prevent regressions:
+To maintain high skill quality and prevent regressions:
 
-1. **Test Case Structure**:
-   - Place all tests in `promptfooconfig.yaml` organized under stage or topic section headers.
-   - Use clear, searchable `description` fields to allow targeting with `--filter-pattern`.
+1. **Modular Suite Organization**:
+   - Store test cases in modular JSON files under `skills/<skill-name>/evals/suites/<topic>.json`.
+   - Keep test cases categorized by lifecycle stage or architectural topic.
+   - Automated bundling generates the standard `evals/evals.json` for external tools.
 2. **Hybrid Assertion Strategy**:
-   - **Deterministic assertions (`javascript`)**: Use for strict syntactic requirements, API names, annotations, and negative invariants (e.g., verifying deprecated APIs like `navigator.modelContext` are absent).
-   - **Semantic assertions (`llm-rubric`)**: Use for assessing conversational routing, structural roleplay completeness, and adherence to design principles.
-3. **Cache Invalidation**:
-   - Always run evaluations with `--no-cache` when verifying prompt changes in `SKILL.md`, as promptfoo caches responses based on input hashes.
+   - **Deterministic assertions**: Use specific phrases like `"The output does NOT include navigator.modelContext"` or `"The output includes readOnlyHint: true"` for immediate programmatic validation.
+   - **Semantic assertions**: Evaluated by the model judge requiring concrete textual citations and evidence for a PASS.
+3. **Comparative Benchmarking (`benchmark.json`)**:
+   - Run both `with_skill` and `without_skill` baselines to calculate statistical deltas across pass rates, token consumption, and latency.
 4. **Zero-Regression Policy**:
-   - All test cases in `promptfooconfig.yaml` must pass (`npm test`) before submitting pull requests.
+   - All unit tests (`npm run test:unit`) and skill evaluations (`npm test`) must pass before submitting pull requests.
 
 ---
 

@@ -9,10 +9,22 @@
   },
   "type": "module",
   "scripts": {
-    "test": "promptfoo eval",
-    "test:view": "promptfoo view"
+    "test": "vite-node src/evals/cli.ts",
+    "test:unit": "vitest run",
+    "eval": "vite-node src/evals/cli.ts",
+    "eval:full": "vite-node src/evals/cli.ts --mode comparison",
+    "eval:dry-run": "vite-node src/evals/cli.ts --dry-run",
+    "eval:bundle": "vite-node src/evals/cli.ts --bundle-only",
+    "eval:view": "vite-node src/eval-viewer/server.ts",
+    "skill:validate": "vite-node src/evals/cli.ts --validate skills/build-webmcp-tools",
+    "skill:package": "vite-node src/evals/cli.ts --package skills/build-webmcp-tools"
   },
   "devDependencies": {
-    "promptfoo": "^0.122.2"
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vite-node": "^6.0.0",
+    "vitest": "^4.1.11",
+    "yaml": "^2.9.1"
   }
 }

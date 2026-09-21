@@ -19,6 +19,20 @@ jobs:
   evals:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Unit Tests
+        run: npm run test:unit
+
       - name: Check for Gemini API key
         id: check_key
         env:
@@ -26,26 +40,16 @@ jobs:
         run: |
           if [ -z "$GEMINI_API_KEY" ]; then
             echo "has_key=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::GEMINI_API_KEY is not set. Skipping promptfoo evaluations."
+            echo "::notice::GEMINI_API_KEY is not set. Running dry-run schema validation."
           else
             echo "has_key=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@v4
-        if: steps.check_key.outputs.has_key == 'true'
+      - name: Run Modular Skill Evals (Dry-Run)
+        if: steps.check_key.outputs.has_key != 'true'
+        run: npm run eval:dry-run
 
-      - name: Set up Node.js
-        if: steps.check_key.outputs.has_key == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Install dependencies
-        if: steps.check_key.outputs.has_key == 'true'
-        run: npm ci
-
-      - name: Run Promptfoo Skill Evals
+      - name: Run Modular Skill Evals
         if: steps.check_key.outputs.has_key == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || inputs.gemini_api_key }}

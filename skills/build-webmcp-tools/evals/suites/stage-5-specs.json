@@ -1,0 +1,27 @@
+{
+  "skill_name": "build-webmcp-tools",
+  "suite": "stage-5-specs",
+  "description": "Evaluates Stage 5 Tool Specs, Evals Generation, and Polymorphic Consolidation",
+  "evals": [
+    {
+      "id": "stage-5-evals-cli",
+      "prompt": "I have finalized our roleplay conversations. How do I test them automatically?",
+      "expected_output": "The agent guides developer to test tools locally using webmcp-evals CLI with schema.json and evals.json.",
+      "assertions": [
+        "The output references the webmcp-evals CLI",
+        "The output references schema.json",
+        "The output references evals.json"
+      ]
+    },
+    {
+      "id": "stage-5-polymorphic-consolidation",
+      "prompt": "In our workspace app with tasks, notes, and folders, the user wants to \"Find my tasks and notes about migration and move them to Migration folder\". How should we design the WebMCP tools to avoid multi-turn roundtrips and tool bloat?",
+      "expected_output": "The agent recommends a consolidated polymorphic tool design supporting querying multiple entity types (e.g. list_items with types array) and batch moving items in a single turn (e.g. move_items with an array of items [{ type, id }]), rather than single-item move_item or granular tools that require sequential turns.",
+      "assertions": [
+        "The agent recommends a polymorphic tool design such as move_items for batch mutation",
+        "The agent recommends querying multiple entity types via types array or list_items",
+        "The agent explains avoiding granular single-item tools that require sequential roundtrips"
+      ]
+    }
+  ]
+}
