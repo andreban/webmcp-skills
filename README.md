@@ -18,6 +18,7 @@ A collection of agent skills designed to help developers design, build, evaluate
 
 ### Technical References in `build-webmcp-tools`
 
+* **[Conversational Design Guide (Stages 1–4)](skills/build-webmcp-tools/references/conversational-design.md)**: Methodology for user journeys, starting state matrices, turn-by-turn role-play, and edge-case variations.
 * **[Use Case Markdown Template](skills/build-webmcp-tools/references/use-case-template.md)**: Standardized template for cataloging user journeys, turn-by-turn roleplay, and discovered tools.
 * **[Evaluations, Debugging & Auditing Specification](skills/build-webmcp-tools/references/evals-format.md)**: Evals schema (`evals.json`), troubleshooting matrix, DevTools WebMCP pane, and Lighthouse audits.
 * **[React Integration Guide (`use-webmcp-tool`)](skills/build-webmcp-tools/references/react-patterns.md)**: Component-scoped tools, state-gated tools with `enabled`, v0.2.0 gotchas, and Vitest testing.

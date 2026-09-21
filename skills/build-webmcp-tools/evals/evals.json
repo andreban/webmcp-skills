@@ -70,6 +70,34 @@
       ]
     },
     {
+      "id": "core-navigation-consequential-actions",
+      "prompt": "A developer is writing a `switch_tab` tool for an accounting dashboard that switches the active tab between 'Expenses', 'Invoices', and 'Payroll'. The developer sets `annotations: { readOnlyHint: true }` because 'it only changes what is visible and doesn't write to the backend database'. What is the problem with this annotation, and how should it be configured?",
+      "expected_output": "The agent explains that client-side UI navigation, tab switching, and route changes mutate active client state and can unmount active components, destroying uncommitted form state or disrupting user workflow. Therefore, navigation tools must not be marked as read-only; they should declare `consequentialHint: true` (and omit `readOnlyHint: true`) so agents do not execute them autonomously in the background without user confirmation.",
+      "assertions": [
+        "The agent explains that UI navigation or tab switching mutates active client viewport state and can destroy unsaved form state",
+        "The agent states that readOnlyHint must NOT be set to true on UI navigation tools",
+        "The agent recommends declaring consequentialHint: true (or requiring user confirmation)"
+      ]
+    },
+    {
+      "id": "core-tools-only-no-prompts",
+      "prompt": "Can I register pre-baked system prompt templates or context resources on `document.modelContext` alongside my tools in WebMCP?",
+      "expected_output": "The agent clarifies that the current WebMCP specification supports Tools only (no Prompts or Resources), and that tools execute direct application logic rather than simulating DOM interaction.",
+      "assertions": [
+        "The agent clarifies that WebMCP supports Tools only",
+        "The agent explicitly states that Resources or Prompts are not supported in current WebMCP"
+      ]
+    },
+    {
+      "id": "core-accept-raw-user-input",
+      "prompt": "We are designing a flight search tool. Should the tool accept `departure_date` as an ISO string / natural string, or require the model to calculate milliseconds since unix epoch and pass `epoch_ms` and `shipping_id=3`?",
+      "expected_output": "The agent instructs accepting raw natural-language inputs (e.g. YYYY-MM-DD dates, airport codes, natural names) rather than forcing the model to calculate manual timestamps, math offsets, or opaque database IDs.",
+      "assertions": [
+        "The agent instructs accepting natural or standard string dates rather than forcing manual epoch calculations",
+        "The agent recommends natural values over opaque numeric database IDs"
+      ]
+    },
+    {
       "id": "stage-0-router-existing-tools",
       "prompt": "I already have a schema.json defining tools for my pizza maker application. I want to generate evals.json for automated testing.",
       "expected_output": "The agent routes directly to Stage 5 (Tool Specs & Evals Generation) or asks to view the existing schema.json, rather than forcing the user to redo Stage 1 (Goal Ideation) or Stage 2.",

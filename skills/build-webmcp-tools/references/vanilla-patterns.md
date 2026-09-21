@@ -98,8 +98,8 @@ Every imperative tool should explicitly set annotations:
 
 | Annotation | Set `true` When | Agent / Browser Behavior |
 | :--- | :--- | :--- |
-| **`readOnlyHint`** | Tool only reads data (e.g. search, check status) and does not mutate application state. | Agents assume tools mutate state unless `readOnlyHint: true` is present. Read-only tools skip confirmation prompts. |
-| **`consequentialHint`** | Tool executes irreversible, financial, or destructive changes (payments, bookings, deletions). | Informs the browser and agent to demand explicit user confirmation before execution. |
+| **`readOnlyHint`** | Tool only reads data (e.g. search, check status) and does not mutate application state or UI viewport. | Agents assume tools mutate state unless `readOnlyHint: true` is present. Read-only tools skip confirmation prompts. |
+| **`consequentialHint`** | Tool executes irreversible/financial/destructive changes (payments, bookings, deletions) OR client-side UI navigation/tab switching. | Informs browser and agent to demand explicit user confirmation before execution to prevent unmounting active views or data loss. |
 | **`untrustedContentHint`** | Output includes third-party data, customer reviews, or external markup. | Tells the agent to spotlight and sanitize the payload to defend against indirect prompt injection. |
 
 ---
