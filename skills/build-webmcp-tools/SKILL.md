@@ -42,12 +42,23 @@ Before designing or implementing tools, enforce these fundamental principles:
 1. **Client-Side Tab Execution Only**: WebMCP runs client-side in the browser tab on `document.modelContext`. It is **not** a backend server (like backend MCP over `stdio`/SSE); it uses the active authenticated browser session.
 2. **Tools Only**: Current WebMCP specifications support Tools only (no Resources or Prompts).
 3. **Direct Programmatic Actions**: Tools execute direct application logic (state stores, APIs, client routers). They do **not** simulate typing into DOM inputs or clicking buttons.
-4. **Character & Token Budgets**:
+4. **Character & Token Budgets and Clean Descriptions**:
    * **Tool Name & Parameter Names**: ≤ 30 characters (action-oriented).
    * **Tool Description**: ≤ 500 characters (what it does, when to use it, positive phrasing).
    * **Parameter Description**: ≤ 150 characters (meaning, format, constraints).
    * **Tool Output Payload**: ≤ 1,500 characters (~400 tokens; concise, LLM-readable summary).
    * Paginate collections (`page`, `page_size: 12`, `total_count`, `total_pages`) and provide high-level facet summaries.
+   * **Strictly Omit Developer Implementation Jargon**: Descriptions must strictly describe **what** capability the tool provides to the agent and user, never internal implementation details:
+     * **Forbidden Jargon Categories**:
+       * *State Management & UI Stores*: Zustand, Redux, TanStack, React Query, Signals, Pinia, Vuex.
+       * *Backend & Transport Protocols*: Axum, Express, SQLite, Postgres, REST, GraphQL, IPC, RPC, WebSocket.
+       * *Internal Architecture & Code Patterns*: "polymorphic mutation handler", "optimistic mutation helper", "REST bridge", "IPC wrapper", "bridge dispatch".
+     * **Why**: LLMs operating in the browser have no context or need for internal architectural plumbing. Jargon wastes strict character budgets, confuses model reasoning, and induces hallucinated arguments (e.g. attempting to pass `invalidate_cache: true` or checking if a REST server is reachable).
+     * **Do / Don't Examples**:
+       * ❌ *Don't*: `"Polymorphic Zustand-backed mutation handler that dispatches to the internal Axum REST bridge to update task state and invalidate TanStack cache."`
+       * ✅ *Do*: `"Updates the progress or completion status of an existing task in the workspace. Use when marking tasks as todo, in-progress, or done."`
+       * ❌ *Don't*: `"Axum REST query bridge fetching SQLite product catalog entries into Redux store."`
+       * ✅ *Do*: `"Searches the product catalog by keyword and category. Returns matching products with price and stock availability."`
 5. **Tool Naming & Initiation vs. Execution**:
    * Use concise action-oriented verbs.
    * **Distinguish execution from initiation**:
@@ -184,6 +195,9 @@ Reconcile all tools discovered across the various goals and states into a single
   * **Consolidated Detail Retrieval**: Expose `get_item` accepting `item_type` and `id` rather than per-entity getter tools.
   * **Batch Mutation Operations**: Expose `move_items` (or `delete_items`, `tag_items`) accepting an array of items `items: [{ type: string, id: string }]` and target destination, enabling the agent to relocate multiple entities across categories in a single turn without sequential roundtrips.
   * **Concurrent Execution**: Implementations must query or mutate across entity types concurrently using `Promise.all` inside the tool handler, keeping turn latency low and returning consolidated LLM-readable payloads.
+* **Clean Descriptions & Jargon Audit**:
+  * Audit all tool and parameter descriptions to ensure they strictly describe agent/user capabilities without internal software engineering jargon.
+  * Strip any references to internal state libraries (Zustand, Redux, Pinia), backend frameworks/databases (Axum, SQLite, Postgres), transport mechanisms (REST, GraphQL, IPC, RPC), or internal architecture ("mutation handler", "optimistic helper", "bridge").
 * Verify character budgets: names ≤ 30 chars, descriptions ≤ 500 chars, parameter descriptions ≤ 150 chars.
 * Verify annotations: `readOnlyHint`, `consequentialHint`, `untrustedContentHint`.
 
@@ -257,6 +271,7 @@ Use this checklist when evaluating any WebMCP tool implementation:
 - [ ] **Polymorphic Tool Consolidation**: Entities sharing operational lifecycles (e.g., tasks, notes, documents, files) use consolidated polymorphic signatures (`list_items`, `get_item`, `move_items`) with batching (`items: [{ type, id }]`) and concurrent execution (`Promise.all`), avoiding entity-specific tool bloat, prompt token explosion, and multi-turn roundtrips.
 - [ ] **Naming Conventions**: Names are ≤ 30-char action verbs; initiation (`start_...` / `initiate_...`) is distinct from execution (`create_...` / `book_...`).
 - [ ] **Description Budgets**: Descriptions are ≤ 500 chars, positive phrasing, explaining *what* it does and *when* to use it.
+- [ ] **No Implementation Jargon**: Descriptions describe user/agent capability without referencing internal frameworks, stores, or backend architecture (e.g., Zustand, REST, Redux, Axum, GraphQL, IPC, TanStack).
 - [ ] **Parameter Schemas**: Specific types, `enum` arrays with descriptions, property descriptions ≤ 150 chars, required fields marked.
 - [ ] **Accept Raw Input**: Tools accept raw user strings and dates; no arithmetic or manual transformations forced onto the model.
 - [ ] **Actionable Errors**: Errors provide remediation guidance; React tools throw `Error` (normalized to `isError: true`), declarative forms return structured validation arrays via `event.respondWith`, and native tools return actionable error payloads rather than empty rejections.

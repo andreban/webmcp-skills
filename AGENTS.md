@@ -48,7 +48,8 @@ This project uses a native **TypeScript and Vite evaluation engine** (`src/evals
 ### 1. Environment Setup
 ```bash
 npm install
-export GEMINI_API_KEY="your-gemini-api-key"
+# Set your Gemini API key in .env (automatically loaded by the eval runner via dotenvy)
+echo "GEMINI_API_KEY=your-gemini-api-key" >> .env
 ```
 
 ### 2. Running Evals & Tests
@@ -91,11 +92,11 @@ When adding capabilities, fixing issues, or refining guidance in `SKILL.md` or `
 2. **Implement Skill Changes**:
    - Update `skills/<skill-name>/SKILL.md` (Core Principles, Stage workflows, Review Checklist).
    - If relevant, add or update code patterns in `references/*.md`.
-3. **Verify Compliance & Measure Delta**:
-   - Re-run the targeted eval to ensure it passes.
-   - Run `npm run eval:full` to measure the with-skill vs without-skill value-add delta.
-   - Inspect runs and log human review notes using `npm run eval:view`.
-   - Run `npm test` and `npm run test:unit` to confirm 100% pass rate with zero regressions.
+3. **Verify Compliance & Measure Delta (Mandatory Pre-Commit Gate)**:
+   - **Measure Value-Add Delta**: Always run `npm run eval:full -- --filter "<test-id>"` on new or modified evaluations to verify that `with_skill` demonstrates positive value-add over `without_skill`.
+   - **Regression Verification**: Always run `npm test` across all evaluations and `npm run test:unit` across unit tests to confirm zero regressions before committing or presenting code changes as complete.
+   - **Re-bundle**: Run `npm run eval:bundle` whenever test suites in `evals/suites/*.json` are added or updated.
+   - **Inspect & Review**: Inspect runs and log human review notes using `npm run eval:view` when investigating failures.
 
 ---
 

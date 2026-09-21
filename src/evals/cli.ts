@@ -11,6 +11,9 @@ import { runTriggerEval, type TriggerQuery } from './trigger-eval.js';
 import { runTriggerOptimizationLoop } from './trigger-loop.js';
 import type { Skill } from './types.js';
 import { validateSkill } from './validate-skill.js';
+import dotenvy from 'dotenvy';
+
+dotenvy();
 
 interface CliArgs {
   skill?: string;
