@@ -60,11 +60,14 @@ npm run test:unit
 # Run modular evaluations for all skills (always runs with_skill vs without_skill baseline delta)
 npm test
 
-# Run full comparative benchmark across all skills
+# Run full comparative benchmark across all skills (defaults to 3 runs per configuration for variance analysis)
 npm run eval:full
 
 # Filter for specific tests by ID or substring regex (always runs with & without)
 npm run eval -- --filter "react"
+
+# Custom number of runs per configuration (e.g. 5 runs for deeper statistical distribution)
+npm run eval -- --runs 5
 
 # Target a specific skill directory (always runs with & without)
 npm run eval -- --skill build-webmcp-tools
@@ -140,6 +143,7 @@ To maintain high skill quality and prevent regressions:
    - **Semantic assertions**: Evaluated by the model judge requiring concrete textual citations and evidence for a PASS.
 3. **Mandatory Comparative Benchmarking (`benchmark.json`)**:
    - **Always run both configurations**: Every evaluation run MUST execute both `with_skill` and `without_skill` baselines to calculate statistical deltas across pass rates, token consumption, and latency. Single-sided ("with-only") runs without baselines are prohibited; evaluations must always run with and without the skill to demonstrate value-add and populate comparative dashboard panes.
+   - **Configurable Multi-Trial Benchmarks**: The runner supports `--runs <N>` (or `-r <N>`) to repeat evaluations across multiple trials per configuration. All benchmark outputs (`benchmark.json`) record execution metadata including `runs_per_configuration`, `total_runs`, and executor model to enable rigorous variance analysis and detect flaky assertions.
 4. **Zero-Regression Policy**:
    - All unit tests (`npm run test:unit`) and skill evaluations (`npm test`) must pass before submitting pull requests.
 

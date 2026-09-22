@@ -13,13 +13,16 @@ import type { Skill } from './types.js';
 import { validateSkill } from './validate-skill.js';
 import dotenvy from 'dotenvy';
 
-dotenvy();
+if (fs.existsSync(path.resolve('.env'))) {
+  dotenvy();
+}
 
 interface CliArgs {
   skill?: string;
   filter?: string;
   mode: 'with-only' | 'comparison';
   iteration?: number;
+  runs?: number;
   model?: string;
   dryRun: boolean;
   bundleOnly: boolean;
@@ -47,6 +50,14 @@ function parseArgs(): CliArgs {
       result.mode = args[++i] as 'with-only' | 'comparison';
     } else if (arg === '--iteration' && args[i + 1]) {
       result.iteration = parseInt(args[++i], 10);
+    } else if ((arg === '--runs' || arg === '-r') && args[i + 1]) {
+      const parsed = parseInt(args[++i], 10);
+      if (Number.isInteger(parsed) && parsed > 0) {
+        result.runs = parsed;
+      } else {
+        console.error(`Invalid --runs value: "${args[i]}". Must be a positive integer.`);
+        process.exit(1);
+      }
     } else if (arg === '--model' && args[i + 1]) {
       result.model = args[++i];
     } else if (arg === '--dry-run') {
@@ -73,8 +84,9 @@ Evaluation & Benchmarking:
   --skill <name>          Target a specific skill directory (default: all in skills/)
   --filter <regex>        Filter evals by ID or prompt substring/regex
   --mode <mode>           Run mode: 'comparison' (default, with vs without skill) or 'with-only'
+  --runs <N>, -r <N>      Number of runs per configuration (default: 1)
   --iteration <N>         Explicit iteration folder number
-  --model <model>         Gemini model identifier (default: gemini-2.5-flash)
+  --model <model>         Gemini model identifier (default: gemini-3.5-flash-lite)
   --dry-run               Run validation and mock generation without calling model APIs
   --bundle-only           Bundle modular evals/suites/*.json into evals/evals.json and exit
 
@@ -212,6 +224,7 @@ async function main(): Promise<void> {
       mode: args.mode,
       filter: args.filter,
       model: args.model,
+      runs: args.runs,
       mock: isMock,
     });
 
@@ -219,6 +232,8 @@ async function main(): Promise<void> {
 
     const { benchmarkPath, report } = saveBenchmarkWorkspace(skill.name, runs, {
       iteration: args.iteration,
+      model: args.model,
+      runsPerConfiguration: args.runs,
     });
 
     printConsoleSummary(report);

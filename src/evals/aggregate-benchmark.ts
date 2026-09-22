@@ -62,6 +62,14 @@ export function computeDelta(withSkill: ConfigStats, withoutSkill: ConfigStats):
   };
 }
 
+export interface BuildBenchmarkOptions {
+  model?: string;
+  executorModel?: string;
+  graderModel?: string;
+  skillPath?: string;
+  runsPerConfiguration?: number;
+}
+
 /**
  * Aggregates all runs into a BenchmarkReport adhering to agentskills.io standard.
  */
@@ -69,6 +77,7 @@ export function buildBenchmarkReport(
   skillName: string,
   iteration: number,
   runs: SingleRunResult[],
+  options: BuildBenchmarkOptions = {},
 ): BenchmarkReport {
   const withSkillRuns = runs.filter((r) => r.config === 'with_skill');
   const withoutSkillRuns = runs.filter((r) => r.config === 'without_skill');
@@ -88,26 +97,26 @@ export function buildBenchmarkReport(
   const evalResults: EvalBenchmarkResult[] = [];
 
   for (const id of evalIds) {
-    const withRun = withSkillRuns.find((r) => r.eval_id === id);
-    const withoutRun = withoutSkillRuns.find((r) => r.eval_id === id);
+    const targetWithRuns = withSkillRuns.filter((r) => r.eval_id === id);
+    const targetWithoutRuns = withoutSkillRuns.filter((r) => r.eval_id === id);
 
-    if (withRun) {
+    if (targetWithRuns.length > 0) {
       const withSummary = {
-        passed: withRun.grading.summary.failed === 0,
-        pass_rate: withRun.grading.summary.pass_rate,
-        time_seconds: Number((withRun.timing.duration_ms / 1000).toFixed(2)),
-        tokens: withRun.timing.total_tokens,
+        passed: targetWithRuns.every((r) => r.grading.summary.failed === 0),
+        pass_rate: Number((targetWithRuns.reduce((sum, r) => sum + r.grading.summary.pass_rate, 0) / targetWithRuns.length).toFixed(4)),
+        time_seconds: Number((targetWithRuns.reduce((sum, r) => sum + r.timing.duration_ms, 0) / (targetWithRuns.length * 1000)).toFixed(2)),
+        tokens: Math.round(targetWithRuns.reduce((sum, r) => sum + r.timing.total_tokens, 0) / targetWithRuns.length),
       };
 
       let withoutSummary: EvalBenchmarkResult['without_skill'] = undefined;
       let deltaPassRate: number | undefined = undefined;
 
-      if (withoutRun) {
+      if (targetWithoutRuns.length > 0) {
         withoutSummary = {
-          passed: withoutRun.grading.summary.failed === 0,
-          pass_rate: withoutRun.grading.summary.pass_rate,
-          time_seconds: Number((withoutRun.timing.duration_ms / 1000).toFixed(2)),
-          tokens: withoutRun.timing.total_tokens,
+          passed: targetWithoutRuns.every((r) => r.grading.summary.failed === 0),
+          pass_rate: Number((targetWithoutRuns.reduce((sum, r) => sum + r.grading.summary.pass_rate, 0) / targetWithoutRuns.length).toFixed(4)),
+          time_seconds: Number((targetWithoutRuns.reduce((sum, r) => sum + r.timing.duration_ms, 0) / (targetWithoutRuns.length * 1000)).toFixed(2)),
+          tokens: Math.round(targetWithoutRuns.reduce((sum, r) => sum + r.timing.total_tokens, 0) / targetWithoutRuns.length),
         };
         deltaPassRate = Number((withSummary.pass_rate - withoutSummary.pass_rate).toFixed(4));
       }
@@ -121,10 +130,33 @@ export function buildBenchmarkReport(
     }
   }
 
+  const runsPerConfig =
+    typeof options.runsPerConfiguration === 'number' && options.runsPerConfiguration > 0
+      ? options.runsPerConfiguration
+      : (evalIds.length > 0 && withSkillRuns.length > 0
+        ? Math.max(1, Math.round(withSkillRuns.length / evalIds.length))
+        : 1);
+
+  const timestamp = new Date().toISOString();
+  const defaultModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+  const resolvedModel = options.model || defaultModel;
+
   return {
+    metadata: {
+      skill_name: skillName,
+      skill_path: options.skillPath,
+      iteration,
+      model: resolvedModel,
+      executor_model: options.executorModel || resolvedModel,
+      grader_model: options.graderModel || resolvedModel,
+      timestamp,
+      evals_run: evalIds,
+      runs_per_configuration: runsPerConfig,
+      total_runs: runs.length,
+    },
     skill_name: skillName,
     iteration,
-    timestamp: new Date().toISOString(),
+    timestamp,
     run_summary: runSummary,
     eval_results: evalResults,
   };

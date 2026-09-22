@@ -9,6 +9,8 @@ import type { BenchmarkReport, SingleRunResult } from './types.js';
 export interface ReporterOptions {
   workspaceDir?: string;
   iteration?: number;
+  model?: string;
+  runsPerConfiguration?: number;
 }
 
 /**
@@ -50,24 +52,42 @@ export function saveBenchmarkWorkspace(
 
   fs.mkdirSync(iterationDir, { recursive: true });
 
+  const runsPerConfig =
+    typeof options.runsPerConfiguration === 'number' && options.runsPerConfiguration > 0
+      ? options.runsPerConfiguration
+      : (runs.some((r) => (r.run_number || 1) > 1) ? Math.max(...runs.map((r) => r.run_number || 1)) : 1);
+
   // Save individual run artifacts
   for (const run of runs) {
-    const evalDir = path.join(iterationDir, `eval-${run.eval_id}`, run.config);
-    const outputsDir = path.join(evalDir, 'outputs');
-    fs.mkdirSync(outputsDir, { recursive: true });
+    const runNum = run.run_number || 1;
+    const baseConfigDir = path.join(iterationDir, `eval-${run.eval_id}`, run.config);
 
-    // 1. Output response
-    fs.writeFileSync(path.join(outputsDir, 'response.md'), run.output, 'utf8');
+    // Store in run-N if multi-run, and also at baseConfigDir for run 1 for compatibility
+    const targetDirs = [
+      ...(runsPerConfig > 1 ? [path.join(baseConfigDir, `run-${runNum}`)] : []),
+      ...(runNum === 1 || runsPerConfig === 1 ? [baseConfigDir] : []),
+    ];
 
-    // 2. Timing
-    fs.writeFileSync(path.join(evalDir, 'timing.json'), JSON.stringify(run.timing, null, 2) + '\n', 'utf8');
+    for (const dir of targetDirs) {
+      const outputsDir = path.join(dir, 'outputs');
+      fs.mkdirSync(outputsDir, { recursive: true });
 
-    // 3. Grading
-    fs.writeFileSync(path.join(evalDir, 'grading.json'), JSON.stringify(run.grading, null, 2) + '\n', 'utf8');
+      // 1. Output response
+      fs.writeFileSync(path.join(outputsDir, 'response.md'), run.output, 'utf8');
+
+      // 2. Timing
+      fs.writeFileSync(path.join(dir, 'timing.json'), JSON.stringify(run.timing, null, 2) + '\n', 'utf8');
+
+      // 3. Grading
+      fs.writeFileSync(path.join(dir, 'grading.json'), JSON.stringify(run.grading, null, 2) + '\n', 'utf8');
+    }
   }
 
   // 4. Aggregated benchmark.json
-  const report = buildBenchmarkReport(skillName, iteration, runs);
+  const report = buildBenchmarkReport(skillName, iteration, runs, {
+    model: options.model,
+    runsPerConfiguration: runsPerConfig,
+  });
   const benchmarkPath = path.join(iterationDir, 'benchmark.json');
   fs.writeFileSync(benchmarkPath, JSON.stringify(report, null, 2) + '\n', 'utf8');
 
@@ -82,6 +102,11 @@ export function printConsoleSummary(report: BenchmarkReport): void {
 
   console.log('\n' + '='.repeat(84));
   console.log(`  SKILL EVALUATION BENCHMARK: ${skill_name} (Iteration ${iteration})`);
+  if (report.metadata) {
+    console.log(
+      `  Runs/Config: ${report.metadata.runs_per_configuration} | Total Runs: ${report.metadata.total_runs} | Model: ${report.metadata.model || 'default'}`,
+    );
+  }
   console.log('='.repeat(84));
 
   const hasWithout = Boolean(run_summary.without_skill);
@@ -122,6 +147,11 @@ export function printConsoleSummary(report: BenchmarkReport): void {
 
   console.log('-'.repeat(84));
   console.log('Benchmark Summary:');
+  if (report.metadata) {
+    console.log(
+      `  • Runs per Config:         ${report.metadata.runs_per_configuration} (Total runs: ${report.metadata.total_runs})`,
+    );
+  }
   console.log(
     `  • With Skill Pass Rate:    ${Math.round(run_summary.with_skill.pass_rate.mean * 100)}% (mean: ${run_summary.with_skill.pass_rate.mean}, stddev: ${run_summary.with_skill.pass_rate.stddev})`,
   );

@@ -4,12 +4,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { calculateStats, computeDelta } from '../aggregate-benchmark.js';
+import { calculateStats, computeDelta, buildBenchmarkReport } from '../aggregate-benchmark.js';
 import { gradeAssertions, tryDeterministicCheck } from '../grader.js';
 import { discoverSkills, loadSkillEvals, validateEvalItem } from '../loader.js';
 import { packageSkill } from '../package-skill.js';
+import { saveBenchmarkWorkspace } from '../reporter.js';
+import { runSkillEvals } from '../runner.js';
 import { runTriggerEval } from '../trigger-eval.js';
-import type { ConfigStats, EvalCase } from '../types.js';
+import type { ConfigStats, EvalCase, SingleRunResult } from '../types.js';
 import { validateSkill } from '../validate-skill.js';
 
 describe('Eval Runner - Loader', () => {
@@ -78,6 +80,90 @@ describe('Eval Runner - Aggregate Benchmark', () => {
     expect(delta.pass_rate).toBe(0.5);
     expect(delta.time_seconds).toBe(0.5);
     expect(delta.tokens).toBe(400);
+  });
+
+  it('populates metadata with runs_per_configuration and total_runs', () => {
+    const runs: SingleRunResult[] = [
+      {
+        eval_id: 'case-1',
+        config: 'with_skill',
+        run_number: 1,
+        output: 'test 1',
+        timing: { duration_ms: 1000, total_tokens: 100 },
+        grading: { assertion_results: [], summary: { passed: 1, failed: 0, total: 1, pass_rate: 1.0 } },
+      },
+      {
+        eval_id: 'case-1',
+        config: 'without_skill',
+        run_number: 1,
+        output: 'test 1 without',
+        timing: { duration_ms: 800, total_tokens: 80 },
+        grading: { assertion_results: [], summary: { passed: 0, failed: 1, total: 1, pass_rate: 0.0 } },
+      },
+    ];
+
+    const report = buildBenchmarkReport('test-skill', 1, runs, {
+      model: 'gemini-2.5-flash',
+      runsPerConfiguration: 1,
+    });
+
+    expect(report.metadata).toBeDefined();
+    expect(report.metadata?.runs_per_configuration).toBe(1);
+    expect(report.metadata?.total_runs).toBe(2);
+    expect(report.metadata?.model).toBe('gemini-2.5-flash');
+    expect(report.metadata?.evals_run).toEqual(['case-1']);
+  });
+
+  it('averages multi-trial runs per eval_id accurately', () => {
+    const runs: SingleRunResult[] = [
+      {
+        eval_id: 'case-1',
+        config: 'with_skill',
+        run_number: 1,
+        output: 'trial 1',
+        timing: { duration_ms: 1000, total_tokens: 100 },
+        grading: { assertion_results: [], summary: { passed: 2, failed: 0, total: 2, pass_rate: 1.0 } },
+      },
+      {
+        eval_id: 'case-1',
+        config: 'with_skill',
+        run_number: 2,
+        output: 'trial 2',
+        timing: { duration_ms: 2000, total_tokens: 200 },
+        grading: { assertion_results: [], summary: { passed: 1, failed: 1, total: 2, pass_rate: 0.5 } },
+      },
+      {
+        eval_id: 'case-1',
+        config: 'without_skill',
+        run_number: 1,
+        output: 'trial 1 without',
+        timing: { duration_ms: 1000, total_tokens: 100 },
+        grading: { assertion_results: [], summary: { passed: 0, failed: 2, total: 2, pass_rate: 0.0 } },
+      },
+      {
+        eval_id: 'case-1',
+        config: 'without_skill',
+        run_number: 2,
+        output: 'trial 2 without',
+        timing: { duration_ms: 1000, total_tokens: 100 },
+        grading: { assertion_results: [], summary: { passed: 0, failed: 2, total: 2, pass_rate: 0.0 } },
+      },
+    ];
+
+    const report = buildBenchmarkReport('test-skill', 1, runs, {
+      runsPerConfiguration: 2,
+    });
+
+    expect(report.metadata?.runs_per_configuration).toBe(2);
+    expect(report.metadata?.total_runs).toBe(4);
+    const evalRes = report.eval_results[0];
+    expect(evalRes.id).toBe('case-1');
+    expect(evalRes.with_skill.pass_rate).toBe(0.75);
+    expect(evalRes.with_skill.passed).toBe(false); // not all passed
+    expect(evalRes.with_skill.time_seconds).toBe(1.5);
+    expect(evalRes.with_skill.tokens).toBe(150);
+    expect(evalRes.without_skill?.pass_rate).toBe(0.0);
+    expect(evalRes.delta_pass_rate).toBe(0.75);
   });
 });
 
@@ -176,5 +262,161 @@ describe('Skill Authoring - Trigger Evaluation', () => {
     expect(report.metrics.precision).toBe(1.0);
     expect(report.metrics.recall).toBe(1.0);
     expect(report.metrics.f1).toBe(1.0);
+  });
+});
+
+describe('Eval Runner - Multi-Trial Execution', () => {
+  it('executes multiple trials per configuration when runs option is specified', async () => {
+    const mockSkill = {
+      name: 'test-mock-skill',
+      dir: '/fake/dir',
+      skillPath: '/fake/dir/SKILL.md',
+      systemInstruction: 'Test instruction',
+      evals: [
+        {
+          id: 'test-multi-1',
+          prompt: 'Test prompt',
+          expected_output: 'Expected output',
+          assertions: ['The output includes MOCK OUTPUT'],
+        },
+      ],
+      suites: ['mock-suite'],
+    };
+
+    const results = await runSkillEvals(mockSkill, {
+      mock: true,
+      runs: 2,
+      mode: 'comparison',
+    });
+
+    // 1 eval * 2 configurations * 2 runs = 4 results
+    expect(results).toHaveLength(4);
+
+    const withRuns = results.filter((r) => r.config === 'with_skill');
+    const withoutRuns = results.filter((r) => r.config === 'without_skill');
+
+    expect(withRuns).toHaveLength(2);
+    expect(withoutRuns).toHaveLength(2);
+
+    expect(withRuns[0].run_number).toBe(1);
+    expect(withRuns[1].run_number).toBe(2);
+    expect(withoutRuns[0].run_number).toBe(1);
+    expect(withoutRuns[1].run_number).toBe(2);
+  });
+
+  it('saves multi-trial directory structure and benchmark metadata', () => {
+    const testWorkspace = path.resolve('node_modules/.cache/test-workspace');
+
+    const runs: SingleRunResult[] = [
+      {
+        eval_id: 'sample-eval',
+        config: 'with_skill',
+        run_number: 1,
+        output: 'response 1',
+        timing: { duration_ms: 100, total_tokens: 50 },
+        grading: { assertion_results: [], summary: { passed: 1, failed: 0, total: 1, pass_rate: 1.0 } },
+      },
+      {
+        eval_id: 'sample-eval',
+        config: 'with_skill',
+        run_number: 2,
+        output: 'response 2',
+        timing: { duration_ms: 120, total_tokens: 60 },
+        grading: { assertion_results: [], summary: { passed: 1, failed: 0, total: 1, pass_rate: 1.0 } },
+      },
+      {
+        eval_id: 'sample-eval',
+        config: 'without_skill',
+        run_number: 1,
+        output: 'response without 1',
+        timing: { duration_ms: 80, total_tokens: 40 },
+        grading: { assertion_results: [], summary: { passed: 0, failed: 1, total: 1, pass_rate: 0.0 } },
+      },
+      {
+        eval_id: 'sample-eval',
+        config: 'without_skill',
+        run_number: 2,
+        output: 'response without 2',
+        timing: { duration_ms: 90, total_tokens: 45 },
+        grading: { assertion_results: [], summary: { passed: 0, failed: 1, total: 1, pass_rate: 0.0 } },
+      },
+    ];
+
+    const { iterationDir, benchmarkPath, report } = saveBenchmarkWorkspace('mock-skill', runs, {
+      workspaceDir: testWorkspace,
+      iteration: 99,
+      runsPerConfiguration: 2,
+    });
+
+    expect(report.metadata?.runs_per_configuration).toBe(2);
+    expect(report.metadata?.total_runs).toBe(4);
+    expect(fs.existsSync(benchmarkPath)).toBe(true);
+
+    // Verify multi-run subdirectories exist
+    expect(fs.existsSync(path.join(iterationDir, 'eval-sample-eval', 'with_skill', 'run-1', 'outputs', 'response.md'))).toBe(true);
+    expect(fs.existsSync(path.join(iterationDir, 'eval-sample-eval', 'with_skill', 'run-2', 'outputs', 'response.md'))).toBe(true);
+    // Verify fallback canonical path exists for backwards compatibility
+    expect(fs.existsSync(path.join(iterationDir, 'eval-sample-eval', 'with_skill', 'outputs', 'response.md'))).toBe(true);
+
+    // Clean up test workspace
+    fs.rmSync(iterationDir, { recursive: true, force: true });
+  });
+
+  it('safely falls back to 1 run when invalid runs (NaN or negative) is passed to runSkillEvals', async () => {
+    const mockSkill = {
+      name: 'test-mock-skill',
+      dir: '/fake/dir',
+      skillPath: '/fake/dir/SKILL.md',
+      systemInstruction: 'Test instruction',
+      evals: [
+        {
+          id: 'test-guard-1',
+          prompt: 'Test prompt',
+          expected_output: 'Expected output',
+          assertions: ['The output includes MOCK OUTPUT'],
+        },
+      ],
+      suites: ['mock-suite'],
+    };
+
+    const nanResults = await runSkillEvals(mockSkill, {
+      mock: true,
+      runs: NaN,
+      mode: 'comparison',
+    });
+    expect(nanResults).toHaveLength(2); // 1 with + 1 without
+
+    const negResults = await runSkillEvals(mockSkill, {
+      mock: true,
+      runs: -5,
+      mode: 'comparison',
+    });
+    expect(negResults).toHaveLength(2);
+  });
+
+  it('safely guards runsPerConfiguration against negative numbers in buildBenchmarkReport and saveBenchmarkWorkspace', () => {
+    const runs: SingleRunResult[] = [
+      {
+        eval_id: 'case-1',
+        config: 'with_skill',
+        run_number: 1,
+        output: 'test 1',
+        timing: { duration_ms: 1000, total_tokens: 100 },
+        grading: { assertion_results: [], summary: { passed: 1, failed: 0, total: 1, pass_rate: 1.0 } },
+      },
+    ];
+
+    const report = buildBenchmarkReport('test-skill', 1, runs, {
+      runsPerConfiguration: -2,
+    });
+    expect(report.metadata?.runs_per_configuration).toBe(1);
+
+    const testWorkspace = path.resolve('node_modules/.cache/test-workspace-guard');
+    const { iterationDir, report: savedReport } = saveBenchmarkWorkspace('test-skill', runs, {
+      workspaceDir: testWorkspace,
+      runsPerConfiguration: -2,
+    });
+    expect(savedReport.metadata?.runs_per_configuration).toBe(1);
+    fs.rmSync(iterationDir, { recursive: true, force: true });
   });
 });

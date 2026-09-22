@@ -12,7 +12,7 @@
     "test": "vite-node src/evals/cli.ts",
     "test:unit": "vitest run",
     "eval": "vite-node src/evals/cli.ts",
-    "eval:full": "vite-node src/evals/cli.ts --mode comparison",
+    "eval:full": "vite-node src/evals/cli.ts --mode comparison --runs 3",
     "eval:dry-run": "vite-node src/evals/cli.ts --dry-run",
     "eval:bundle": "vite-node src/evals/cli.ts --bundle-only",
     "eval:view": "vite-node src/eval-viewer/server.ts",

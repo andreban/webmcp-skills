@@ -20,11 +20,32 @@ interface IterationData {
   iteration: number;
   skill_name: string;
   benchmark: {
+    metadata?: {
+      runs_per_configuration?: number;
+      total_runs?: number;
+      model?: string;
+    };
     run_summary: {
       with_skill: { pass_rate: { mean: number }; time_seconds: { mean: number }; tokens: { mean: number } };
       without_skill?: { pass_rate: { mean: number }; time_seconds: { mean: number }; tokens: { mean: number } };
       delta?: { pass_rate: number; time_seconds: number; tokens: number };
     };
+    eval_results?: Array<{
+      id: string;
+      with_skill: {
+        passed: boolean;
+        pass_rate: number;
+        time_seconds: number;
+        tokens: number;
+      };
+      without_skill?: {
+        passed: boolean;
+        pass_rate: number;
+        time_seconds: number;
+        tokens: number;
+      };
+      delta_pass_rate?: number;
+    }>;
   };
   evals: EvalCardData[];
   feedback: Record<string, string>;
@@ -49,8 +70,14 @@ async function loadData() {
   function renderIteration(iterationNum: number) {
     const it = data.iterations.find((i) => i.iteration === iterationNum) || data.iterations[0];
     const summary = it.benchmark.run_summary;
+    const runsPerConfig = it.benchmark.metadata?.runs_per_configuration;
 
     stats.innerHTML = `
+      ${runsPerConfig ? `
+      <div class="metric">
+        <span class="metric-label">Runs / Config</span>
+        <span class="metric-val">${runsPerConfig}</span>
+      </div>` : ''}
       <div class="metric">
         <span class="metric-label">With Skill Pass Rate</span>
         <span class="metric-val">${Math.round(summary.with_skill.pass_rate.mean * 100)}%</span>
@@ -73,8 +100,10 @@ async function loadData() {
     `;
 
     container.innerHTML = it.evals.map((e) => {
+      const evalReport = it.benchmark.eval_results?.find((r) => r.id === e.id);
       const withSummary = e.with_skill?.grading?.summary;
-      const passed = withSummary ? withSummary.failed === 0 : false;
+      const passed = evalReport ? evalReport.with_skill.passed : (withSummary ? withSummary.failed === 0 : false);
+      const passRate = evalReport ? evalReport.with_skill.pass_rate : (withSummary ? withSummary.pass_rate : 0);
       const currentFeedback = it.feedback[e.id] || '';
 
       return `
@@ -82,7 +111,7 @@ async function loadData() {
           <div class="eval-header">
             <span class="eval-title">${e.id}</span>
             <span class="badge ${passed ? 'badge-pass' : 'badge-fail'}">
-              ${passed ? 'PASS' : 'FAIL'} (${withSummary ? Math.round(withSummary.pass_rate * 100) : 0}%)
+              ${passed ? 'PASS' : 'FAIL'} (${Math.round(passRate * 100)}%)
             </span>
           </div>
           <div class="eval-body">
