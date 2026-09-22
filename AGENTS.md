@@ -60,14 +60,14 @@ npm run test:unit
 # Run modular evaluations for all skills (always runs with_skill vs without_skill baseline delta)
 npm test
 
-# Run full comparative benchmark across all skills
+# Run full comparative benchmark across all skills (defaults to 3 runs per configuration for variance analysis)
 npm run eval:full
-
-# Run multi-trial benchmark with multiple runs per configuration (e.g. 3 runs for variance analysis)
-npm run eval:full -- --runs 3
 
 # Filter for specific tests by ID or substring regex (always runs with & without)
 npm run eval -- --filter "react"
+
+# Custom number of runs per configuration (e.g. 5 runs for deeper statistical distribution)
+npm run eval -- --runs 5
 
 # Target a specific skill directory (always runs with & without)
 npm run eval -- --skill build-webmcp-tools
