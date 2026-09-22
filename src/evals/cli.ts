@@ -13,7 +13,9 @@ import type { Skill } from './types.js';
 import { validateSkill } from './validate-skill.js';
 import dotenvy from 'dotenvy';
 
-dotenvy();
+if (fs.existsSync(path.resolve('.env'))) {
+  dotenvy();
+}
 
 interface CliArgs {
   skill?: string;
