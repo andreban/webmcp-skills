@@ -53,8 +53,9 @@ export function saveBenchmarkWorkspace(
   fs.mkdirSync(iterationDir, { recursive: true });
 
   const runsPerConfig =
-    options.runsPerConfiguration ||
-    (runs.some((r) => (r.run_number || 1) > 1) ? Math.max(...runs.map((r) => r.run_number || 1)) : 1);
+    typeof options.runsPerConfiguration === 'number' && options.runsPerConfiguration > 0
+      ? options.runsPerConfiguration
+      : (runs.some((r) => (r.run_number || 1) > 1) ? Math.max(...runs.map((r) => r.run_number || 1)) : 1);
 
   // Save individual run artifacts
   for (const run of runs) {

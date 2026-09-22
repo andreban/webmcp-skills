@@ -22,7 +22,10 @@ export async function runSkillEvals(
   options: RunOptions = {},
 ): Promise<SingleRunResult[]> {
   const mode = options.mode || 'comparison';
-  const runsPerConfig = Math.max(1, options.runs ?? 1);
+  const runsPerConfig =
+    typeof options.runs === 'number' && Number.isInteger(options.runs) && options.runs > 0
+      ? options.runs
+      : 1;
   const filterRegex = options.filter ? new RegExp(options.filter, 'i') : null;
 
   const targetEvals = skill.evals.filter((item) => {

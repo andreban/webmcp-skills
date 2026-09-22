@@ -361,4 +361,62 @@ describe('Eval Runner - Multi-Trial Execution', () => {
     // Clean up test workspace
     fs.rmSync(iterationDir, { recursive: true, force: true });
   });
+
+  it('safely falls back to 1 run when invalid runs (NaN or negative) is passed to runSkillEvals', async () => {
+    const mockSkill = {
+      name: 'test-mock-skill',
+      dir: '/fake/dir',
+      skillPath: '/fake/dir/SKILL.md',
+      systemInstruction: 'Test instruction',
+      evals: [
+        {
+          id: 'test-guard-1',
+          prompt: 'Test prompt',
+          expected_output: 'Expected output',
+          assertions: ['The output includes MOCK OUTPUT'],
+        },
+      ],
+      suites: ['mock-suite'],
+    };
+
+    const nanResults = await runSkillEvals(mockSkill, {
+      mock: true,
+      runs: NaN,
+      mode: 'comparison',
+    });
+    expect(nanResults).toHaveLength(2); // 1 with + 1 without
+
+    const negResults = await runSkillEvals(mockSkill, {
+      mock: true,
+      runs: -5,
+      mode: 'comparison',
+    });
+    expect(negResults).toHaveLength(2);
+  });
+
+  it('safely guards runsPerConfiguration against negative numbers in buildBenchmarkReport and saveBenchmarkWorkspace', () => {
+    const runs: SingleRunResult[] = [
+      {
+        eval_id: 'case-1',
+        config: 'with_skill',
+        run_number: 1,
+        output: 'test 1',
+        timing: { duration_ms: 1000, total_tokens: 100 },
+        grading: { assertion_results: [], summary: { passed: 1, failed: 0, total: 1, pass_rate: 1.0 } },
+      },
+    ];
+
+    const report = buildBenchmarkReport('test-skill', 1, runs, {
+      runsPerConfiguration: -2,
+    });
+    expect(report.metadata?.runs_per_configuration).toBe(1);
+
+    const testWorkspace = path.resolve('node_modules/.cache/test-workspace-guard');
+    const { iterationDir, report: savedReport } = saveBenchmarkWorkspace('test-skill', runs, {
+      workspaceDir: testWorkspace,
+      runsPerConfiguration: -2,
+    });
+    expect(savedReport.metadata?.runs_per_configuration).toBe(1);
+    fs.rmSync(iterationDir, { recursive: true, force: true });
+  });
 });

@@ -131,10 +131,11 @@ export function buildBenchmarkReport(
   }
 
   const runsPerConfig =
-    options.runsPerConfiguration ||
-    (evalIds.length > 0 && withSkillRuns.length > 0
-      ? Math.max(1, Math.round(withSkillRuns.length / evalIds.length))
-      : 1);
+    typeof options.runsPerConfiguration === 'number' && options.runsPerConfiguration > 0
+      ? options.runsPerConfiguration
+      : (evalIds.length > 0 && withSkillRuns.length > 0
+        ? Math.max(1, Math.round(withSkillRuns.length / evalIds.length))
+        : 1);
 
   const timestamp = new Date().toISOString();
   const defaultModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';

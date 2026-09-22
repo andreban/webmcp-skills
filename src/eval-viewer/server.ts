@@ -47,9 +47,14 @@ function loadWorkspaceData() {
           // Check for run-1 directory if files are not at configPath root
           let targetPath = configPath;
           if (!fs.existsSync(path.join(configPath, 'outputs', 'response.md'))) {
-            const runDirs = fs.readdirSync(configPath).filter((d) => d.startsWith('run-'));
+            const runDirs = fs.readdirSync(configPath).filter(
+              (d) => /^run-\d+$/.test(d) && fs.statSync(path.join(configPath, d)).isDirectory(),
+            );
             if (runDirs.length > 0) {
-              targetPath = path.join(configPath, runDirs.sort()[0]);
+              targetPath = path.join(
+                configPath,
+                runDirs.sort((a, b) => parseInt(a.slice(4), 10) - parseInt(b.slice(4), 10))[0],
+              );
             }
           }
 
