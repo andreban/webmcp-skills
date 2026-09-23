@@ -118,8 +118,8 @@ Where would you like to start?
 ---
 
 ## Stage 1: User Goals Portfolio (Step a)
-* **Discover Candidate Journeys**: Inspect routes, menus, and high-friction flows; propose prioritized candidate user goals (e.g. flight search, seat selection, booking, check-in).
-* **Define Each Goal**: When presenting candidate goals, define their **ideal outcomes**, **required context**, and **autonomous boundaries** (what the agent must *not* do autonomously).
+* **Discover Candidate Journeys**: Inspect routes, menus, and high-friction flows; immediately propose prioritized candidate user goals (e.g. flight search, seat selection, booking, check-in) rather than asking open-ended preliminary questions.
+* **Define Each Goal**: For every proposed candidate goal, explicitly define its **ideal outcomes**, **required context**, and **autonomous boundaries** (what the agent must *not* do autonomously without confirmation).
 * **Isolate Goals**: Each Stage 3 simulation isolates **one specific goal** at a time. See [Conversational Design Guide](./references/conversational-design.md).
 
 ---
@@ -204,7 +204,8 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 * **Mandatory Rule**: Use [`use-webmcp-tool`](https://www.npmjs.com/package/use-webmcp-tool) (`useWebMCP`). Never hand-roll `useEffect` + `AbortController` in components.
 * Use `enabled` for state-gated tools (e.g. `enabled: step === 'payment'`).
 * Throw `Error` instances on failure to trigger `onError` and pass `isError: true`.
-* Keep `inputSchema` and `annotations` literals stable to avoid re-registration churn.
+* Keep `inputSchema` and `annotations` literals stable or hoist outside the component: `useWebMCP` compares dependencies via `JSON.stringify()`, so unstable key ordering or inline recreation triggers re-registration churn.
+* Write deterministic unit tests in Vitest and React Testing Library by mocking `document.modelContext.registerTool` and invoking `tool.execute()` directly.
 * Consolidate cross-domain tools polymorphically (`list_items`, `move_items`) and execute concurrently using `Promise.all`.
 * Consult [React Patterns](./references/react-patterns.md).
 
@@ -261,7 +262,7 @@ Use this checklist when evaluating any WebMCP tool implementation:
 - [ ] **Declarative Forms**: `toolname` + `tooldescription` paired; `toolautosubmit` applied appropriately (omitted for sensitive actions); all fields have a unique `name` and label/`toolparamdescription`.
 - [ ] **Declarative Submissions**: `event.agentInvoked` and `event.respondWith` handled; `toolactivated`/`toolcancel` events update UI; focus styles present.
 - [ ] **Imperative Lifecycle**: Unregister on unmount via `AbortController`; `execute` honors `{ signal }`.
-- [ ] **React Compliance**: Every imperative tool registered through `useWebMCP` from `use-webmcp-tool`; `enabled` used for state gating; schema literals stable.
+- [ ] **React Compliance**: Every imperative tool registered through `useWebMCP` from `use-webmcp-tool`; `enabled` used for state gating; schema literals stable or hoisted (preventing `JSON.stringify` re-registration churn); unit tests mock `registerTool`.
 - [ ] **Evals Suite**: Deterministic unit tests mock `registerTool`; probabilistic evals cover direct queries, ambiguous queries, and mid-chain failures.
 - [ ] **DevTools & Lighthouse Verification**: Verified in Chrome DevTools WebMCP pane and Lighthouse Agentic browsing audit.
 - [ ] **Page Readiness**: Accessibility tree valid; CLS within bounds; `/llms.txt` present if applicable.

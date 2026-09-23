@@ -19,10 +19,10 @@ export function tryDeterministicCheck(assertion: string, output: string): Assert
 
   // Pattern: "The output does NOT include [exact string]" or "does not contain"
   // 1. Quoted string: does NOT include 'target' or "target" or `target`
-  const quotedNotMatch = trimmed.match(/does NOT (?:include|contain)\s+['"`]([^'"`]+)['"`]/i);
+  const quotedNotMatch = trimmed.match(/does NOT (?:include|contain)\s+(['"`])([\s\S]+?)\1/i);
   // 2. Unquoted single token / identifier (e.g. navigator.modelContext, unregisterTool)
   const tokenNotMatch = trimmed.match(/does NOT (?:include|contain)\s+(?:deprecated\s+)?([a-zA-Z0-9_$.-]+)$/i);
-  const notTarget = quotedNotMatch ? quotedNotMatch[1].trim() : tokenNotMatch ? tokenNotMatch[1].trim() : null;
+  const notTarget = quotedNotMatch ? quotedNotMatch[2].trim() : tokenNotMatch ? tokenNotMatch[1].trim() : null;
 
   if (notTarget) {
     const found = output.includes(notTarget);
@@ -37,9 +37,9 @@ export function tryDeterministicCheck(assertion: string, output: string): Assert
 
   // Pattern: "The output includes [exact token]"
   // 1. Explicitly quoted literal token: The output includes 'exact string'
-  const quotedIncludesMatch = trimmed.match(/^The output includes\s+['"`]([^'"`]+)['"`]$/i);
+  const quotedIncludesMatch = trimmed.match(/^The output includes\s+(['"`])([\s\S]+?)\1$/i);
   if (quotedIncludesMatch) {
-    const target = quotedIncludesMatch[1].trim();
+    const target = quotedIncludesMatch[2].trim();
     const found = output.includes(target);
     return {
       text: assertion,
@@ -179,7 +179,9 @@ Grading Rules:
         const modelResults: AssertionResult[] = Array.isArray(parsed?.results) ? parsed.results : [];
 
         for (const assertion of pendingSemantic) {
-          const matched = modelResults.find((r) => r.text === assertion);
+          const matched = modelResults.find(
+            (r) => r.text === assertion || r.text.replace(/['"`\\]/g, '') === assertion.replace(/['"`\\]/g, '')
+          );
           if (matched) {
             results.push({
               text: assertion,

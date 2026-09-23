@@ -60,6 +60,36 @@
         "The output uses Promise.all for concurrent entity fetching",
         "The output includes readOnlyHint: true"
       ]
+    },
+    {
+      "id": "stage-6-react-enabled-gating",
+      "prompt": "In a multi-step checkout wizard React component that handles 'cart', 'shipping', and 'payment' steps, how do we expose the `apply_coupon` tool only during the 'payment' step without unmounting the wizard component?",
+      "expected_output": "The agent uses the `enabled` option of `useWebMCP` (e.g. `enabled: currentStep === 'payment'`), explaining that this conditionally registers the tool with the browser model context only during the valid wizard step and unregisters it when leaving that step.",
+      "assertions": [
+        "The output uses useWebMCP from use-webmcp-tool",
+        "The output configures the enabled property (e.g. enabled: currentStep === 'payment')",
+        "The agent explains that enabled conditionally registers and unregisters the tool based on component state"
+      ]
+    },
+    {
+      "id": "stage-6-react-schema-stability",
+      "prompt": "A developer notices that their React component re-registers its WebMCP tool on every re-render even though the tool name didn't change. Why does `useWebMCP` do this, and how can the developer prevent registration churn?",
+      "expected_output": "The agent explains that `useWebMCP` checks registration dependencies using `JSON.stringify()` for `inputSchema` and `annotations`. If inline schema objects are recreated with different key ordering or dynamically constructed on each render, it triggers unnecessary unregister and re-register cycles. The fix is to hoist schema objects outside the component or ensure stable object literal key ordering.",
+      "assertions": [
+        "The output includes 'JSON.stringify'",
+        "The agent identifies key-order sensitivity or inline object recreation as the cause of re-registration churn",
+        "The agent recommends hoisting schema definitions outside the component to keep them stable"
+      ]
+    },
+    {
+      "id": "stage-6-react-unit-testing",
+      "prompt": "How do we write a deterministic unit test in Vitest and React Testing Library to verify that our React component's WebMCP tool executes and updates component state, without calling any AI models?",
+      "expected_output": "The agent writes a test that mocks `document.modelContext.registerTool`, renders the component, captures the registered tool definition and options from the mock, executes `tool.execute(...)` directly, and asserts expected return values and DOM/state updates.",
+      "assertions": [
+        "The test mocks document.modelContext.registerTool",
+        "The test renders the React component and inspects mock calls to registerTool",
+        "The test directly invokes tool.execute with test parameters and asserts the result or state update"
+      ]
     }
   ]
 }
