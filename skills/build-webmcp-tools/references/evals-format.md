@@ -157,6 +157,51 @@ When some steps must occur sequentially while others can execute in any order (s
 * **Regex Pattern Matching**: Enclose strings in regex slashes (e.g. `"departure_date": "/^202[0-9]-[0-1][0-9]-[0-3][0-9]$/"`).
 * **Realistic Tool Sets**: When evaluating tool selection, always supply the **complete tool catalog for that page state** so the agent must choose between competing tools.
 
+### Mid-Chain Failure Testing & Graceful Recovery
+Automated evaluations must verify that when intermediate tool calls fail (e.g., invalid coupon, seat already reserved, or item out of stock), the agent recovers gracefully rather than aborting the session or hallucinating success.
+
+In `evals.json`, author multi-turn test cases that simulate the prior dialogue—including the failing tool response with actionable error guidance—and assert that the agent selects an alternative tool, requests user clarification, or executes a fallback path:
+
+```json
+[
+  {
+    "name": "Mid-chain coupon expiration recovery",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Apply promo code SAVE50 and checkout."
+      },
+      {
+        "role": "assistant",
+        "type": "function_call",
+        "name": "apply_coupon",
+        "arguments": { "code": "SAVE50" }
+      },
+      {
+        "role": "tool",
+        "type": "function_response",
+        "name": "apply_coupon",
+        "content": "{\"error\": \"Promo code SAVE50 has expired. Please enter an active discount code or proceed without coupon.\", \"code\": \"COUPON_EXPIRED\", \"retryable\": true}"
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "request_user_input",
+        "arguments": {
+          "prompt": "/expired.*alternative|different/i"
+        }
+      }
+    ]
+  }
+]
+```
+
+Key authoring rules for mid-chain failure tests:
+1. **Pre-seed Failed State in `messages`**: Simulate the initial user prompt, the agent's function call, and the tool's error response directly in the `messages` array.
+2. **Actionable Error Responses**: Emulate Core Principle 8 ("Errors Are Guides") by providing structured, actionable feedback (e.g. `{ error: "...", code: "...", retryable: true }`) in the tool response.
+3. **Verify Graceful Recovery**: Assert in `expectedCall` that the agent invokes a fallback tool (e.g. `list_available_coupons`, `proceed_without_discount`) or asks the user for clarification, rather than crashing or repeating the invalid call.
+
 ---
 
 ## 4. Failure-Mode Troubleshooting Matrix

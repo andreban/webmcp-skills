@@ -207,6 +207,26 @@
       ]
     },
     {
+      "id": "stage-5-ordered-unordered-chains",
+      "prompt": "We want to write an automated evaluation in `evals.json` for a user request: 'Find black running shoes and red water bottles, and show details for both'. Navigating to the catalog must happen first, but looking up shoes and water bottles can happen in any order. How do we structure the `expectedCall` array in `evals.json`?",
+      "expected_output": "The agent shows the `evals.json` structure using nested `ordered` and `unordered` blocks within `expectedCall`, where the root array has the navigation tool call followed by an `unordered` object containing two `ordered` sub-chains for each product search and detail lookup.",
+      "assertions": [
+        "The output includes '\"unordered\":'",
+        "The output includes '\"ordered\":'",
+        "The agent explains how ordered vs unordered constraints enforce multi-turn trajectory validation"
+      ]
+    },
+    {
+      "id": "stage-5-midchain-failure-testing",
+      "prompt": "In our WebMCP evals suite, how do we write a test in `evals.json` to verify that an agent recovers gracefully when a mid-chain tool call fails (for example, when `apply_coupon` returns an expired discount error) rather than aborting the entire conversation?",
+      "expected_output": "The agent explains that mid-chain failure tests simulate intermediate failure states in evals.json messages (pre-seeding the user message, prior tool call, and a mock tool error response with actionable guidance) and assert that the subsequent agent expectedCall validates graceful recovery (e.g. asking the user for a replacement code or invoking an alternative fallback tool).",
+      "assertions": [
+        "The agent demonstrates structuring the mid-chain failure in evals.json messages with a simulated tool failure response",
+        "The agent asserts that the expected trajectory validates graceful recovery or alternative tool invocation",
+        "The agent explains that simulated error payloads must provide actionable guidance to enable agent self-correction"
+      ]
+    },
+    {
       "id": "stage-6-react-implementation",
       "prompt": "Write the implementation code for search_hotels tool in a React component.",
       "expected_output": "React implementation using useWebMCP from use-webmcp-tool with readOnlyHint: true and no deprecated APIs.",
