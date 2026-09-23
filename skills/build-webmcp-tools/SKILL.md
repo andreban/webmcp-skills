@@ -119,7 +119,7 @@ Where would you like to start?
 
 ## Stage 1: User Goals Portfolio (Step a)
 * **Discover Candidate Journeys**: Inspect routes, menus, and high-friction flows; propose prioritized candidate user goals (e.g. flight search, seat selection, booking, check-in).
-* **Define Each Goal**: Explicitly define **ideal outcomes**, **required context**, and **autonomous boundaries** (what the agent must *not* do autonomously).
+* **Define Each Goal**: When presenting candidate goals, define their **ideal outcomes**, **required context**, and **autonomous boundaries** (what the agent must *not* do autonomously).
 * **Isolate Goals**: Each Stage 3 simulation isolates **one specific goal** at a time. See [Conversational Design Guide](./references/conversational-design.md).
 
 ---
@@ -180,8 +180,9 @@ Reconcile all tools discovered across the various goals and states into a single
 * Output standard WebMCP JSON schema definitions matching [Evals Specification](./references/evals-format.md).
 
 #### 3. Generate Automated Evals Suite (`evals.json`)
-* Compile baseline and variation trajectories into `evals.json` using exact match, regex patterns, and nested `ordered` / `unordered` blocks.
-* Include mid-chain failure tests.
+* Compile baseline and variation trajectories into `evals.json` using exact match, regex patterns, and nested `ordered` / `unordered` blocks for multi-item or independent sub-chains.
+* Author mid-chain failure tests: simulate intermediate failure responses in conversation `messages` (returning actionable error guidance) and assert graceful recovery or alternative tool selection in subsequent turns.
+* See [Evals Specification](./references/evals-format.md) for full JSON examples.
 
 #### 4. Run Evals & Diagnostics
 * Guide the developer to run local schema evaluations:
