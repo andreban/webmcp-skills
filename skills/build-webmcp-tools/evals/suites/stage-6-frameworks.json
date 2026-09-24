@@ -24,6 +24,26 @@
       ]
     },
     {
+      "id": "stage-6-angular-route-auto-cleanup",
+      "prompt": "How do we configure WebMCP tools in Angular so they are only available on the `/dashboard` route and automatically clean up when the user navigates away?",
+      "expected_output": "The agent shows configuring `provideRouter(routes, withExperimentalAutoCleanupInjectors())` in `appConfig`, and declaring `providers: [provideExperimentalWebMcpTools([...])]` on the `/dashboard` route in `app.routes.ts`.",
+      "assertions": [
+        "The output uses withExperimentalAutoCleanupInjectors with provideRouter",
+        "The output declares provideExperimentalWebMcpTools in route providers",
+        "The agent explains that this automatically cleans up tools upon route navigation"
+      ]
+    },
+    {
+      "id": "stage-6-angular-signal-forms",
+      "prompt": "How do we expose an Angular Signal Form as an AI-callable WebMCP tool without manually authoring a JSON Schema?",
+      "expected_output": "The agent provides `provideExperimentalWebMcpForms()` in root providers, and adds `experimentalWebMcpTool: { name: '...', description: '...' }` to the `form()` configuration, noting that types are inferred from the initial model signals.",
+      "assertions": [
+        "The output includes provideExperimentalWebMcpForms",
+        "The output configures experimentalWebMcpTool in the form() setup",
+        "The agent notes that parameter types are inferred automatically from initial signal values"
+      ]
+    },
+    {
       "id": "stage-6-vanilla-abortcontroller",
       "prompt": "Write the implementation code for search_hotels tool in vanilla JavaScript.",
       "expected_output": "Vanilla JS implementation registering on document.modelContext with AbortController/signal lifecycle management.",

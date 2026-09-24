@@ -212,8 +212,8 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 #### Pathway B: Angular Applications
 * Follow the [Angular WebMCP Guide](https://angular.dev/ai/webmcp).
 * Register application-level tools using `provideExperimentalWebMcpTools` with `inject()`.
-* Register route-scoped tools with `withExperimentalAutoCleanupInjectors()`.
-* Expose implicit tools directly from Signal Forms via `provideExperimentalWebMcpForms()`.
+* Register route-scoped tools by declaring `providers: [provideExperimentalWebMcpTools([...])]` on route definitions and configuring `provideRouter(routes, withExperimentalAutoCleanupInjectors())` in router config to automatically clean up tools upon route navigation.
+* Expose implicit tools directly from Signal Forms via `provideExperimentalWebMcpForms()` at root and configure `experimentalWebMcpTool: { name, description }` on `form()`, where parameter types are inferred automatically from initial signal values.
 * Consult [Angular Patterns](./references/angular-patterns.md).
 
 #### Pathway C: Vanilla JS & Other Frameworks (Vue, Svelte)
