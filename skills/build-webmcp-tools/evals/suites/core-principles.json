@@ -98,6 +98,26 @@
         "The agent instructs accepting natural or standard string dates rather than forcing manual epoch calculations",
         "The agent recommends natural values over opaque numeric database IDs"
       ]
+    },
+    {
+      "id": "core-security-cross-origin-permissions",
+      "prompt": "We have an embedded partner iframe on `https://partner.example.com` and want to allow it to invoke our WebMCP tool `shareable_cart_lookup`. How do we securely configure the iframe, Permissions Policy, and tool registration?",
+      "expected_output": "The agent explains that WebMCP tools are same-origin by default and gated by the `tools` Permissions Policy. To share a tool with a cross-origin partner, the host page must embed the iframe with `<iframe allow=\"tools\">` and register the tool with `{ exposedTo: ['https://partner.example.com'] }`. Additionally, origin isolation must not be disabled.",
+      "assertions": [
+        "The output specifies `<iframe allow=\"tools\">` for iframe permission delegation",
+        "The output specifies `{ exposedTo: [...] }` with the permitted origin in `registerTool` options",
+        "The output mentions the `tools` Permissions Policy or origin isolation requirement"
+      ]
+    },
+    {
+      "id": "core-security-spotlighting-delimiters",
+      "prompt": "When our agent framework receives a response from a WebMCP tool that declared `untrustedContentHint: true`, how should the host agent process and sandbox the output before feeding it into the LLM context to prevent indirect prompt injection?",
+      "expected_output": "The agent explains that consuming agent frameworks must route outputs with `untrustedContentHint: true` into a defensive spotlighting pipeline, such as wrapping the payload in structural delimiters like `<untrusted_content>...</untrusted_content>` or Base64 encoding, and applying anchoring system prompt instructions directing the model to treat the content strictly as data rather than executable directives.",
+      "assertions": [
+        "The agent explains using structural delimiters (e.g. `<untrusted_content>`) or Base64 spotlighting to sandbox the payload",
+        "The agent mentions applying system prompt anchoring directives to treat tool output as passive data",
+        "The agent explains that this prevents indirect prompt injection from user-generated content"
+      ]
     }
   ]
 }
