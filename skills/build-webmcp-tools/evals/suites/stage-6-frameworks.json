@@ -91,6 +91,34 @@
       ]
     },
     {
+      "id": "stage-6-declarative-structured-validation",
+      "prompt": "In a declarative WebMCP `<form>`, how should our submit event listener return field validation errors back to the AI agent when required form fields are missing or invalid?",
+      "expected_output": "The agent explains checking `event.agentInvoked`, collecting field-level errors (e.g. `[{ field, message }]`), and resolving them via `event.respondWith(Promise.resolve(errors))` rather than calling `Promise.reject()`, ensuring the model receives specific field correction guidance.",
+      "assertions": [
+        "The output checks event.agentInvoked",
+        "The output resolves structured field validation errors via event.respondWith",
+        "The agent explains that resolving errors prevents them from being swallowed as generic DOMException errors"
+      ]
+    },
+    {
+      "id": "stage-6-declarative-lifecycle-and-styling",
+      "prompt": "How can a web application provide visual feedback to users when an AI agent is actively populating and submitting a declarative WebMCP form?",
+      "expected_output": "The agent explains listening to `window` events `toolactivated` and `toolcancel` to toggle UI banners or indicators, and styling `:tool-form-active` and `:tool-submit-active` pseudo-classes to highlight the form and submit buttons.",
+      "assertions": [
+        "The output references window events toolactivated and toolcancel",
+        "The output references CSS pseudo-classes :tool-form-active or :tool-submit-active"
+      ]
+    },
+    {
+      "id": "stage-6-declarative-autosubmit-policy",
+      "prompt": "When should the `toolautosubmit` attribute be omitted from a declarative WebMCP `<form>` element, and what behavior does omitting it trigger?",
+      "expected_output": "The agent explains that `toolautosubmit` must be omitted for financial transactions, deletions, or high-risk actions to keep the human in the loop. Omitting it causes the browser to pre-fill the form fields and highlight the submit button (`:tool-submit-active`), leaving the final submit click to the user.",
+      "assertions": [
+        "The agent specifies omitting toolautosubmit for financial, destructive, or high-risk actions",
+        "The agent explains that omitting toolautosubmit pre-fills the form and requires the human user to confirm submission"
+      ]
+    },
+    {
       "id": "stage-6-react-error-handling",
       "prompt": "In useWebMCP, how should I handle a validation error when the user provides an invalid flight date?",
       "expected_output": "Instructs throwing an Error instance (throw new Error) so the tool result receives isError: true, and advises against returning error objects.",
