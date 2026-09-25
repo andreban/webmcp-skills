@@ -226,10 +226,10 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 
 #### Pathway D: Declarative HTML Forms
 * Pair `toolname` AND `tooldescription` on `<form>`. (Missing either fails Lighthouse audits).
-* Apply `toolautosubmit` for safe, read-only queries or low-risk actions; omit `toolautosubmit` for sensitive or financial actions to enforce human-in-the-loop confirmation.
+* Apply `toolautosubmit` for safe, read-only queries or low-risk actions; omit `toolautosubmit` for sensitive, financial, or destructive actions to keep the human in the loop (omitting causes the browser to pre-fill fields, highlight `:tool-submit-active`, and leave submit confirmation to the user).
 * Ensure every field has a unique `name` and `<label>` or `toolparamdescription`.
-* Handle `event.agentInvoked` and respond with `event.respondWith(promise)`.
-* Listen to `window` events `toolactivated` and `toolcancel` to update UI state.
+* Handle `event.agentInvoked` and resolve structured field validation errors (`[{ field, value, message }]`) via `event.respondWith(Promise.resolve(errors))` rather than calling `Promise.reject()` (which causes the browser to discard field details into a generic `DOMException: UnknownError`).
+* Listen to `window` events `toolactivated` and `toolcancel` to toggle UI banners/indicators.
 * Add `:tool-form-active` and `:tool-submit-active` CSS styles.
 * Consult [Declarative Patterns](./references/declarative-patterns.md).
 
@@ -262,7 +262,7 @@ Use this checklist when evaluating any WebMCP tool implementation:
 - [ ] **Untrusted Content Verification**: Does this tool output text, metadata, or attachments created or edited by users or third parties (notes, tasks, comments, reviews, files)? If so, is `untrustedContentHint: true` set so the host agent isolates, spotlights, and delimiter-sandboxes (`<untrusted_content>`) the payload? Pure system/config tools omit it.
 - [ ] **Cross-Origin Security**: `exposedTo` lists only trusted origins; `allow="tools"` set only on approved iframes; origin isolation preserved.
 - [ ] **Declarative Forms**: `toolname` + `tooldescription` paired; `toolautosubmit` applied appropriately (omitted for sensitive actions); all fields have a unique `name` and label/`toolparamdescription`.
-- [ ] **Declarative Submissions**: `event.agentInvoked` and `event.respondWith` handled; `toolactivated`/`toolcancel` events update UI; focus styles present.
+- [ ] **Declarative Submissions**: `event.agentInvoked` and `event.respondWith` handled; structured validation errors resolved via `event.respondWith(Promise.resolve(errors))` rather than rejected; `toolactivated`/`toolcancel` events update UI; `:tool-form-active` and `:tool-submit-active` styles present.
 - [ ] **Imperative Lifecycle & Discovery**: Unregister on unmount via `AbortController.abort()`; forward execution `{ signal }` to `fetch()`; resolve structured error payloads (`{ error, code, retryable }`) instead of rejecting; consumer panels use `getTools()`, `executeTool()`, and listen to `toolchange`.
 - [ ] **React Compliance**: Every imperative tool registered through `useWebMCP` from `use-webmcp-tool`; `enabled` used for state gating; schema literals stable or hoisted (preventing `JSON.stringify` re-registration churn); unit tests mock `registerTool`.
 - [ ] **Evals Suite**: Deterministic unit tests mock `registerTool`; probabilistic evals cover direct queries, ambiguous queries, and mid-chain failures.
