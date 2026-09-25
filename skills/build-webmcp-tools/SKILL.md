@@ -180,7 +180,7 @@ Reconcile all tools discovered across the various goals and states into a single
 * Output standard WebMCP JSON schema definitions matching [Evals Specification](./references/evals-format.md).
 
 #### 3. Generate Automated Evals Suite (`evals.json`)
-* Compile baseline and variation trajectories into `evals.json` using exact match, regex patterns, and nested `ordered` / `unordered` blocks for multi-item or independent sub-chains.
+* Compile baseline and variation trajectories into `evals.json` using exact match, regex patterns, and nested `ordered` and `unordered` blocks (e.g. `{"unordered": [{"ordered": [...]}, ...]}`) for multi-item or independent sub-chains.
 * Author mid-chain failure tests: simulate intermediate failure responses in conversation `messages` (returning actionable error guidance) and assert graceful recovery or alternative tool selection in subsequent turns.
 * See [Evals Specification](./references/evals-format.md) for full JSON examples.
 
