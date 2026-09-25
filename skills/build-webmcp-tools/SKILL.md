@@ -219,7 +219,9 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 #### Pathway C: Vanilla JS & Other Frameworks (Vue, Svelte)
 * Register tools directly on `document.modelContext.registerTool(tool, { signal, exposedTo })`.
 * Manage lifecycle unregistration using `AbortController.abort()`.
-* Forward `{ signal }` inside `execute(input, { signal })` to background network requests.
+* Forward `{ signal }` received in `execute(input, { signal })` to `fetch()` and abortable async operations so in-flight requests cancel immediately.
+* Return actionable structured error payloads (e.g. `{ error, code, retryable }`) rather than rejecting or throwing unhandled errors; unhandled rejections in native WebMCP map to generic `DOMException: UnknownError` and discard failure details.
+* Discover and execute tools in consumer assistant panels via `document.modelContext.getTools()`, `document.modelContext.executeTool(tool, jsonPayload, { signal })`, and listen for catalog updates with `document.modelContext.addEventListener('toolchange', ...)`.
 * Consult [Vanilla Patterns](./references/vanilla-patterns.md).
 
 #### Pathway D: Declarative HTML Forms
@@ -261,7 +263,7 @@ Use this checklist when evaluating any WebMCP tool implementation:
 - [ ] **Cross-Origin Security**: `exposedTo` lists only trusted origins; `allow="tools"` set only on approved iframes; origin isolation preserved.
 - [ ] **Declarative Forms**: `toolname` + `tooldescription` paired; `toolautosubmit` applied appropriately (omitted for sensitive actions); all fields have a unique `name` and label/`toolparamdescription`.
 - [ ] **Declarative Submissions**: `event.agentInvoked` and `event.respondWith` handled; `toolactivated`/`toolcancel` events update UI; focus styles present.
-- [ ] **Imperative Lifecycle**: Unregister on unmount via `AbortController`; `execute` honors `{ signal }`.
+- [ ] **Imperative Lifecycle & Discovery**: Unregister on unmount via `AbortController.abort()`; forward execution `{ signal }` to `fetch()`; resolve structured error payloads (`{ error, code, retryable }`) instead of rejecting; consumer panels use `getTools()`, `executeTool()`, and listen to `toolchange`.
 - [ ] **React Compliance**: Every imperative tool registered through `useWebMCP` from `use-webmcp-tool`; `enabled` used for state gating; schema literals stable or hoisted (preventing `JSON.stringify` re-registration churn); unit tests mock `registerTool`.
 - [ ] **Evals Suite**: Deterministic unit tests mock `registerTool`; probabilistic evals cover direct queries, ambiguous queries, and mid-chain failures.
 - [ ] **DevTools & Lighthouse Verification**: Verified in Chrome DevTools WebMCP pane and Lighthouse Agentic browsing audit.
