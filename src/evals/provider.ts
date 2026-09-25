@@ -70,7 +70,7 @@ export async function generateContent(
     };
   }
 
-  const maxRetries = 3;
+  const maxRetries = 5;
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -85,7 +85,11 @@ export async function generateContent(
       const durationMs = Math.round(performance.now() - startTime);
 
       if (response.status === 429 || response.status === 503) {
-        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+        const errorText = await response.text().catch(() => '');
+        lastError = new Error(`Gemini API rate limit or service unavailable (${response.status}): ${errorText}`);
+        const retryAfterHeader = response.headers.get('retry-after');
+        const retryAfterMs = retryAfterHeader ? parseInt(retryAfterHeader, 10) * 1000 : 0;
+        const delay = Math.max(retryAfterMs, Math.pow(2, attempt) * 2000 + Math.random() * 1000);
         await sleep(delay);
         continue;
       }

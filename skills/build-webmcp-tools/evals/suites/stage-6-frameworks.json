@@ -53,6 +53,34 @@
       ]
     },
     {
+      "id": "stage-6-vanilla-cancellation-signal",
+      "prompt": "When authoring a native WebMCP tool on `document.modelContext.registerTool`, how should the `execute` callback handle cancellation when the user or agent aborts the call midway through a long fetch?",
+      "expected_output": "The agent explains that `execute(input, { signal })` receives an `AbortSignal` in its second argument, and code must forward `{ signal }` to `fetch()` or async operations so in-flight HTTP requests abort immediately upon cancellation.",
+      "assertions": [
+        "The agent explains that the execute callback receives { signal } in its second argument",
+        "The agent demonstrates forwarding the signal to fetch() or abortable async operations"
+      ]
+    },
+    {
+      "id": "stage-6-vanilla-consumer-discovery",
+      "prompt": "We are building an in-browser assistant panel. How do we discover available WebMCP tools on the current page, execute one programmatically, and listen for dynamic tool additions or removals?",
+      "expected_output": "The agent shows calling `document.modelContext.getTools()` to list tools, `document.modelContext.executeTool(tool, jsonPayload, { signal })` to run a tool, and listening to `document.modelContext.addEventListener('toolchange', ...)` for catalog changes.",
+      "assertions": [
+        "The output uses document.modelContext.getTools()",
+        "The output uses document.modelContext.executeTool()",
+        "The output listens to the toolchange event on document.modelContext"
+      ]
+    },
+    {
+      "id": "stage-6-vanilla-structured-errors",
+      "prompt": "In native `document.modelContext.registerTool`, what happens if the `execute` function rejects or throws an unhandled error, and how should recoverable errors be returned so the agent can self-correct?",
+      "expected_output": "The agent explains that unhandled throws/rejections in native WebMCP are converted by the browser into a generic `DOMException: UnknownError`, discarding error details. To allow the agent to self-correct, the tool should resolve with a structured error payload (e.g. `{ error, code, retryable }`).",
+      "assertions": [
+        "The agent explains that unhandled rejections map to a generic UnknownError in native WebMCP",
+        "The agent instructs resolving with a structured error payload rather than rejecting"
+      ]
+    },
+    {
       "id": "stage-6-declarative-forms",
       "prompt": "How do I expose a search tool using declarative HTML forms?",
       "expected_output": "Declarative HTML form using standard toolname and toolautosubmit attributes, handling submission with event.respondWith.",
