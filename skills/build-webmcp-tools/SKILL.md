@@ -144,7 +144,7 @@ Simulate complete interactions turn-by-turn driving toward goal completion. For 
 
 ## Stage 4: Conversation Variations & Graceful Failure (Step d)
 Stress-test baseline conversations against real-world ambiguity, bad inputs, and system limits:
-1. **Missing Required Parameters**: Clarify with user or throw actionable error listing missing fields.
+1. **Missing Required Parameters**: Ask the user directly to clarify required fields; strictly avoid guessing or hallucinating critical booking or entity parameters.
 2. **Prerequisite Violations**: Downstream calls throw actionable errors guiding the agent to start preliminary setup first.
 3. **Over-Constrained Queries**: Return suggested filter relaxations rather than a dead-end empty array.
 4. **Conversational Coreference**: Resolve shorthand ("the second flight", "the blue one") against previous turn payloads.
@@ -228,8 +228,8 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 * Pair `toolname` AND `tooldescription` on `<form>`. (Missing either fails Lighthouse audits).
 * Apply `toolautosubmit` for safe, read-only queries or low-risk actions; omit `toolautosubmit` for sensitive, financial, or destructive actions to keep the human in the loop (omitting causes the browser to pre-fill fields, highlight `:tool-submit-active`, and leave submit confirmation to the user).
 * Ensure every field has a unique `name` and `<label>` or `toolparamdescription`.
-* Handle `event.agentInvoked` and resolve structured field validation errors (`[{ field, value, message }]`) via `event.respondWith(Promise.resolve(errors))` rather than calling `Promise.reject()` (which causes the browser to discard field details into a generic `DOMException: UnknownError`).
-* Listen to `window` events `toolactivated` and `toolcancel` to toggle UI banners/indicators.
+* In form submit listeners, check `if (event.agentInvoked)` before intercepting; resolve structured field validation errors (`[{ field, value, message }]`) via `event.respondWith(Promise.resolve(errors))` rather than calling `Promise.reject()` (which causes the browser to discard field details into a generic `DOMException: UnknownError`).
+* Listen to lifecycle events on `window` (`window.addEventListener('toolactivated', ...)`, `window.addEventListener('toolcancel', ...)`) to toggle UI banners/indicators (events fire on `window`, not the `<form>`).
 * Add `:tool-form-active` and `:tool-submit-active` CSS styles.
 * Consult [Declarative Patterns](./references/declarative-patterns.md).
 
@@ -237,8 +237,8 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 1. **Accessibility Tree**: Interactive elements must have programmatic names and valid roles; nothing interactive hidden from the accessibility tree.
 2. **Layout Stability (CLS)**: Avoid layout shifts that cause agent coordinate misclicks.
 3. **`llms.txt`**: Provide a concise Markdown summary at `/llms.txt` per [llmstxt.org](https://llmstxt.org/).
-4. **DevTools Inspection**: Inspect registered tools live in Chrome DevTools (Application $\rightarrow$ WebMCP).
-5. **Lighthouse Audit**: Run the "Agentic browsing" category in Lighthouse (Chrome 150+).
+4. **DevTools Inspection**: Inspect registered tools live in Chrome DevTools under the **Application > WebMCP pane** (`Application` panel $\rightarrow$ `WebMCP` section, not the top-level tab bar) to view active tools, check invocation counters, execute tools manually with custom parameters via the Play icon (bypassing the LLM), and review schema validation warnings.
+5. **Lighthouse Audit**: Run the "Agentic browsing" category in Lighthouse (Chrome 150+) to verify paired `toolname`/`tooldescription`, unique field names, parameter description fallback chains (`toolparamdescription` $\rightarrow$ `<label>` $\rightarrow$ `aria-description`), accessibility tree naming, CLS thresholds, and `/llms.txt`.
 
 ---
 
@@ -266,5 +266,5 @@ Use this checklist when evaluating any WebMCP tool implementation:
 - [ ] **Imperative Lifecycle & Discovery**: Unregister on unmount via `AbortController.abort()`; forward execution `{ signal }` to `fetch()`; resolve structured error payloads (`{ error, code, retryable }`) instead of rejecting; consumer panels use `getTools()`, `executeTool()`, and listen to `toolchange`.
 - [ ] **React Compliance**: Every imperative tool registered through `useWebMCP` from `use-webmcp-tool`; `enabled` used for state gating; schema literals stable or hoisted (preventing `JSON.stringify` re-registration churn); unit tests mock `registerTool`.
 - [ ] **Evals Suite**: Deterministic unit tests mock `registerTool`; probabilistic evals cover direct queries, ambiguous queries, and mid-chain failures.
-- [ ] **DevTools & Lighthouse Verification**: Verified in Chrome DevTools WebMCP pane and Lighthouse Agentic browsing audit.
+- [ ] **DevTools & Lighthouse Verification**: Verified in Chrome DevTools WebMCP pane (invocation counter, manual execution, schema warnings) and Lighthouse Agentic browsing audit (paired toolname/tooldescription, unique names, label fallback chain).
 - [ ] **Page Readiness**: Accessibility tree valid; CLS within bounds; `/llms.txt` present if applicable.

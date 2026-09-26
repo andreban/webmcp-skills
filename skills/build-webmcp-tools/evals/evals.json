@@ -2,6 +2,25 @@
   "skill_name": "build-webmcp-tools",
   "evals": [
     {
+      "id": "stage-6-lighthouse-agentic-audits",
+      "prompt": "What checks does the Lighthouse 'Agentic browsing' audit run on WebMCP applications, and what causes a page to fail?",
+      "expected_output": "The agent details the Lighthouse Agentic browsing audits: paired `toolname`/`tooldescription`, unique field names, parameter description fallback chain, accessibility tree naming, CLS thresholds to prevent agent misclicks, and `/llms.txt` presence. It explains that missing either `toolname` or `tooldescription`, or having inputs without names, triggers audit failures.",
+      "assertions": [
+        "The agent explains pairing toolname and tooldescription on forms",
+        "The agent mentions field names, label/toolparamdescription fallbacks, or accessibility tree readiness",
+        "The agent mentions layout stability (CLS) or /llms.txt"
+      ]
+    },
+    {
+      "id": "stage-6-devtools-webmcp-debugging",
+      "prompt": "How can a developer inspect and debug registered WebMCP tools using Chrome DevTools without invoking an LLM?",
+      "expected_output": "The agent explains opening Chrome DevTools → Application → WebMCP pane to view active tools, check the invocation counter, execute tools manually with custom parameters via the Play icon, and review schema validation warnings.",
+      "assertions": [
+        "The agent points to Chrome DevTools Application > WebMCP pane",
+        "The agent explains manual tool execution or checking invocation counts/schema warnings"
+      ]
+    },
+    {
       "id": "core-intab-vs-stdio",
       "prompt": "How do I configure the stdio transport for WebMCP in my Express backend?",
       "expected_output": "The agent clarifies that WebMCP runs client-side in the browser tab via document.modelContext and does not use stdio, SSE, or Node.js backend server transports.",

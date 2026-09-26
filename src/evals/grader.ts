@@ -178,10 +178,18 @@ Grading Rules:
         }
         const modelResults: AssertionResult[] = Array.isArray(parsed?.results) ? parsed.results : [];
 
-        for (const assertion of pendingSemantic) {
-          const matched = modelResults.find(
-            (r) => r.text === assertion || r.text.replace(/['"`\\]/g, '') === assertion.replace(/['"`\\]/g, '')
-          );
+        const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        for (let i = 0; i < pendingSemantic.length; i++) {
+          const assertion = pendingSemantic[i];
+          const normAssertion = normalize(assertion);
+          const matched =
+            modelResults.find(
+              (r) => r.text === assertion || r.text.replace(/['"`\\]/g, '') === assertion.replace(/['"`\\]/g, '')
+            ) ||
+            modelResults.find((r) => normalize(r.text) === normAssertion) ||
+            (modelResults.length === pendingSemantic.length ? modelResults[i] : undefined);
+
           if (matched) {
             results.push({
               text: assertion,
