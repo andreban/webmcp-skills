@@ -152,10 +152,64 @@ When some steps must occur sequentially while others can execute in any order (s
 ]
 ```
 
-### Argument Matching Rules
-* **Exact Matching**: Matches primitive values (`"SFO"`, `true`, `42`).
-* **Regex Pattern Matching**: Enclose strings in regex slashes (e.g. `"departure_date": "/^202[0-9]-[0-1][0-9]-[0-3][0-9]$/"`).
+### Argument Matching Rules & Constraint Operators
+In `expectedCall`, parameter values are matched using strict equality or constraint objects evaluated by `matcher.js`:
+* **Exact Primitive Matching**: Matches primitive values directly via strict equality (`"SFO"`, `true`, `42`). String literals are matched with `actual === expected`.
+* **Regex Pattern Matching (`$pattern`)**: To validate string values using regular expressions, use the `$pattern` constraint object:
+  ```json
+  "arguments": {
+    "departure_date": { "$pattern": "^202[0-9]-[0-1][0-9]-[0-3][0-9]$" },
+    "filter": { "$pattern": "^(all|active)$" }
+  }
+  ```
+  *(Do NOT use slash literals like `"/^...$/"`, as string literals are tested with strict equality).*
+* **Supported Constraint Operators**:
+  * `{ "$pattern": "<regex>" }`: Matches string values against a regular expression.
+  * `{ "$contains": "<substring-or-element>" }`: Checks string substring presence or array inclusion.
+  * `{ "$gt": <number> }`, `{ "$gte": <number> }`, `{ "$lt": <number> }`, `{ "$lte": <number> }`: Numerical threshold boundaries.
+  * `{ "$type": "string" | "number" | "boolean" | "array" | "object" }`: Asserts value data type.
+  * `{ "$any": true }`: Matches any non-undefined value for the parameter.
 * **Realistic Tool Sets**: When evaluating tool selection, always supply the **complete tool catalog for that page state** so the agent must choose between competing tools.
+
+### Chained Multi-Step Trajectories with `mockOutput`
+In static local evaluation mode (`webmcp-evals local`), `MockResolver.js` defaults to returning an empty object `{}` for resolved tool invocations.
+
+When a downstream tool call depends on entity IDs or state returned by a preceding step (for example, `list_playlists` returning playlist IDs needed by `add_track_to_playlist`), receiving `{}` causes the model to get stuck repeating the initial step. Supply a `mockOutput` field on `expectedCall` steps:
+
+```json
+[
+  {
+    "name": "Add track to user playlist after listing",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Add this song to my Chill Vibes playlist."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "list_playlists",
+        "arguments": { "filter": "user_created" },
+        "mockOutput": {
+          "playlists": [
+            { "id": "pl-42", "name": "Chill Vibes", "track_count": 18 }
+          ]
+        }
+      },
+      {
+        "functionName": "add_track_to_playlist",
+        "arguments": {
+          "playlist_id": "pl-42",
+          "track_id": "trk-99"
+        }
+      }
+    ]
+  }
+]
+```
+
+`MockResolver.js` feeds this `mockOutput` back to the model as the tool response for subsequent steps, allowing multi-step reasoning to proceed deterministically.
 
 ### Mid-Chain Failure Testing & Graceful Recovery
 Automated evaluations must verify that when intermediate tool calls fail (e.g., invalid coupon, seat already reserved, or item out of stock), the agent recovers gracefully rather than aborting the session or hallucinating success.
@@ -173,23 +227,29 @@ In `evals.json`, author multi-turn test cases that simulate the prior dialogueâ€
         "content": "Apply promo code SAVE50 and checkout."
       },
       {
-        "role": "assistant",
-        "type": "function_call",
+        "role": "model",
+        "type": "functioncall",
         "name": "apply_coupon",
         "arguments": { "code": "SAVE50" }
       },
       {
-        "role": "tool",
-        "type": "function_response",
+        "role": "user",
+        "type": "functionresponse",
         "name": "apply_coupon",
-        "content": "{\"error\": \"Promo code SAVE50 has expired. Please enter an active discount code or proceed without coupon.\", \"code\": \"COUPON_EXPIRED\", \"retryable\": true}"
+        "response": {
+          "result": {
+            "error": "Promo code SAVE50 has expired. Please enter an active discount code or proceed without coupon.",
+            "code": "COUPON_EXPIRED",
+            "retryable": true
+          }
+        }
       }
     ],
     "expectedCall": [
       {
         "functionName": "request_user_input",
         "arguments": {
-          "prompt": "/expired.*alternative|different/i"
+          "prompt": { "$pattern": "expired.*alternative|different" }
         }
       }
     ]
@@ -198,7 +258,10 @@ In `evals.json`, author multi-turn test cases that simulate the prior dialogueâ€
 ```
 
 Key authoring rules for mid-chain failure tests:
-1. **Pre-seed Failed State in `messages`**: Simulate the initial user prompt, the agent's function call, and the tool's error response directly in the `messages` array.
+1. **Pre-seed Failed State in `messages` with Proper Message Types (`mappers.js`)**:
+   * Use lowercase `"type": "functioncall"` with `"role": "model"` (or `"assistant"`), `"name"`, and `"arguments"`.
+   * Use lowercase `"type": "functionresponse"` with `"role": "user"`, `"name"`, and payload inside `"response": { "result": { ... } }` (or `"response": { ... }`).
+   * *Do NOT use `function_call` / `function_response` or `content`, as `mappers.js` will treat them as plain chat messages and trigger AI SDK validation errors.*
 2. **Actionable Error Responses**: Emulate Core Principle 8 ("Errors Are Guides") by providing structured, actionable feedback (e.g. `{ error: "...", code: "...", retryable: true }`) in the tool response.
 3. **Verify Graceful Recovery**: Assert in `expectedCall` that the agent invokes a fallback tool (e.g. `list_available_coupons`, `proceed_without_discount`) or asks the user for clarification, rather than crashing or repeating the invalid call.
 

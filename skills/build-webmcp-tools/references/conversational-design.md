@@ -24,8 +24,10 @@ For each candidate journey, document:
 * **Required Context**: State, permissions, and session data needed (e.g., passenger details, loyalty tier, seat preferences).
 * **Boundaries & Guardrails**: What the agent must *never* do autonomously (e.g., charging credit cards without user confirmation).
 
-### 3. Goal Isolation
-Each role-play simulation in Stage 3 isolates **one specific goal** at a time. Avoid compounding unrelated user goals into a single scenario.
+### 3. Goal Isolation & "One Goal Per Iteration"
+* Each role-play simulation in Stage 3 isolates **one specific goal** at a time. Avoid compounding unrelated user goals into a single scenario.
+* **One Goal Per Iteration**: Complete the entire design cycle (Starting States $\rightarrow$ Role-Play $\rightarrow$ Variations $\rightarrow$ User Critique) for **one single goal at a time** before advancing to the next goal in the portfolio.
+* **Forbid Bulk Generation**: Never generate turn-by-turn role-plays or use cases for multiple goals in a single turn. Bulk generation prevents meaningful user collaboration, induces model hallucination, and bypasses critical edge-case discovery.
 
 ---
 
@@ -61,6 +63,12 @@ Simulate the conversation turn-by-turn driving directly toward goal completion. 
 6. **Agent Response (to User)**: Conversational response presenting findings and guiding next steps.
 
 Use the standardized [Use Case Template](./use-case-template.md) for markdown formatting.
+
+### Active User Critique Checklist
+After simulating a conversation, actively prompt the user for feedback across three dimensions before finalizing schemas or moving to the next goal:
+1. **Agent Demeanor & Tone**: Is the conversational tone appropriate? Is the response concise and clearly presenting findings?
+2. **Clarifying Questions**: Does the agent ask the right questions when parameters are missing or ambiguous, without making unwarranted assumptions?
+3. **Autonomous Boundaries**: Does the agent act autonomously only within acceptable limits? Are high-risk, irreversible, or navigational actions properly flagged for confirmation (`consequentialHint: true`)?
 
 ---
 
