@@ -56,7 +56,7 @@ Before designing or implementing tools, enforce these fundamental principles:
      * **Why**: LLMs have no need for internal plumbing. Jargon wastes character budget, confuses models, and induces hallucinated arguments.
      * **Do / Don't Examples**:
        * ❌ *Don't*: `"Polymorphic Zustand-backed mutation handler that dispatches to the internal Axum REST bridge to update task state and invalidate TanStack cache."`
-       * ✅ *Do*: `"Updates the progress or completion status of an existing task in the workspace. Use when marking tasks as todo, in-progress, or done."`
+       * ✅ *Do*: `"Updates the progress or completion status of an existing task in the workspace. Use when marking items as pending, in-progress, or completed."`
 5. **Tool Naming & Initiation vs. Execution**:
    * Use concise action-oriented verbs.
    * **Distinguish execution from initiation & navigation**:
@@ -98,6 +98,10 @@ Before designing or implementing tools, enforce these fundamental principles:
     * **Reject entity-specific tool proliferation**: Avoid separate CRUD tools per entity (e.g. `list_tasks`, `list_notes`, `get_note`, `move_task`). Granular tool bloat causes prompt token explosion, selection paralysis, and multi-turn roundtrips.
     * **Consolidate polymorphically**: Parameterize entity types (e.g. `list_items({ types: ['tasks', 'notes'] })`, `get_item({ item_type, id })`).
     * **Batch mutations in a single turn**: Use batch signatures (`move_items({ items: [{ type, id }] })`) and query/mutate data sources concurrently via `Promise.all` inside the tool handler.
+12. **Never Conflate Code Completion with Design Completion**:
+    * **Implementation simplicity is not conversational simplicity**: Simple frontend state updates (e.g. appending to an array via `setBookmarks([...bookmarks, newBookmark])` or toggling a boolean in React) are trivial to write, but natural language interaction is non-deterministic and ambiguous. Agents must never treat conversational design as negligible overhead to rush through.
+    * **Conversational Complexity**: Natural language interactions introduce coreference ("the second one"), underspecified parameters, recovery paths, autonomous confirmation boundaries, and indirect prompt injection vectors that do not exist in button clicks.
+    * **The Rule**: Always prioritize conversational co-design and boundary exploration with the user. Code implementation must never be treated as the shortcut or primary deliverable—thorough conversational alignment across Stages 1–4 is required.
 
 ---
 
@@ -120,7 +124,8 @@ Where would you like to start?
 ## Stage 1: User Goals Portfolio (Step a)
 * **Discover Candidate Journeys**: Inspect routes, menus, and high-friction flows; immediately propose prioritized candidate user goals (e.g. flight search, seat selection, booking, check-in) rather than asking open-ended preliminary questions.
 * **Define Each Goal**: For every proposed candidate goal, explicitly define its **ideal outcomes**, **required context**, and **autonomous boundaries** (what the agent must *not* do autonomously without confirmation).
-* **Isolate Goals**: Each Stage 3 simulation isolates **one specific goal** at a time. See [Conversational Design Guide](./references/conversational-design.md).
+* **Mandatory "One Goal Per Iteration" Rule**: After defining candidate goals, the agent and developer MUST complete the entire design cycle (Stages 2–4: Starting States $\rightarrow$ Role-Play $\rightarrow$ Variations $\rightarrow$ User Critique) for **one single goal at a time** before moving to the next goal in the portfolio.
+* **Forbid Bulk Generation**: Never generate turn-by-turn role-plays or use cases for multiple goals in a single turn. Bulk generation prevents meaningful developer collaboration, induces model hallucination, and bypasses critical edge-case discovery. See [Conversational Design Guide](./references/conversational-design.md).
 
 ---
 
@@ -139,6 +144,10 @@ Simulate complete interactions turn-by-turn driving toward goal completion. For 
 5. **Site Implementation & UI Reaction**: Application-side behavior (routing, Zustand/Redux state updates, drawer toggle).
 6. **Agent Response (to User)**: Conversational response presenting findings and guiding next steps.
 * Use [Use Case Template](./references/use-case-template.md) for markdown formatting and see [Conversational Design Guide](./references/conversational-design.md).
+* **Mandatory Active User Critique Loop**: For every simulated conversation, actively invite the user to evaluate the agent's behavior across three specific dimensions before moving to the next goal or finalizing schemas:
+  1. *Agent Demeanor & Tone*: Conversational tone, response brevity, and presentation of findings.
+  2. *Clarifying Questions*: What questions the agent asks when parameters are ambiguous or missing.
+  3. *Autonomous Boundaries*: Where the agent acts autonomously vs. where it requires human confirmation (`consequentialHint: true`).
 
 ---
 
@@ -156,6 +165,13 @@ Stress-test baseline conversations against real-world ambiguity, bad inputs, and
 
 ### Objective
 Reconcile all tools discovered across the various goals and states into a single cohesive, deduplicated toolset and produce automated evaluation suites.
+
+### Strict Upstream Dependency on Approved Goals
+* **Never Invent Tools or Evals for Un-Modeled Goals**: WebMCP tools are **discovered interfaces**, not preconceived CRUD wrappers. Stage 5 must **only** consolidate and deduplicate tools that have been **formally discovered and approved through Stages 1–4**.
+* **Two Valid Execution Pathways**:
+  * **Iterative Incremental Pathway**: When developing incrementally goal-by-goal, author `schema.json` and `evals.json` containing *only* the tools discovered in approved goals so far (e.g. `save_bookmark` for Goal 1). Subsequent goals append and consolidate their tools into the schema and evals suite only after their conversations are role-played and approved.
+  * **Portfolio-First Pathway**: When designing the full tool suite upfront, the agent must guide the user through Stages 2–4 for *every* planned goal in the portfolio before entering Stage 5 consolidation.
+* ❌ *Anti-Pattern*: Authoring schemas, evals, or frontend code for tools whose user goals have not yet been role-played and approved.
 
 ### Procedure
 
@@ -180,16 +196,25 @@ Reconcile all tools discovered across the various goals and states into a single
 * Output standard WebMCP JSON schema definitions matching [Evals Specification](./references/evals-format.md).
 
 #### 3. Generate Automated Evals Suite (`evals.json`)
-* Compile baseline and variation trajectories into `evals.json` using exact match, regex patterns, and nested `ordered` and `unordered` blocks (e.g. `{"unordered": [{"ordered": [...]}, ...]}`) for multi-item or independent sub-chains.
-* Author mid-chain failure tests: simulate intermediate failure responses in conversation `messages` (returning actionable error guidance) and assert graceful recovery or alternative tool selection in subsequent turns.
+* Compile baseline and variation trajectories into `evals.json` using exact match, regex patterns (via `{ "$pattern": "..." }`), `mockOutput` for chained multi-step dependencies, and nested `ordered` and `unordered` blocks (e.g. `{"unordered": [{"ordered": [...]}, ...]}`) for multi-item or independent sub-chains.
+* Author mid-chain failure tests: simulate intermediate failure responses in conversation `messages` (using lowercase `"type": "functioncall"` and `"type": "functionresponse"` with nested `"response"` payloads) and assert graceful recovery or alternative tool selection in subsequent turns.
 * See [Evals Specification](./references/evals-format.md) for full JSON examples.
 
-#### 4. Run Evals & Diagnostics
-* Guide the developer to run local schema evaluations:
-  ```bash
-  npx webmcp-evals local -t schema.json -e evals.json
-  ```
-* Use the [Failure-Mode Troubleshooting Matrix](./references/evals-format.md#4-failure-mode-troubleshooting-matrix) if tool selection or ordering fails.
+#### 4. Local Evaluation Gate & Diagnostics (Proactive User Choice)
+* **Proactive Evaluation Gate (Optional with Explicit User Choice)**:
+  * Immediately after authoring `schema.json` and `evals.json`, proactively ask the user:
+    > *"Would you like to run the local schema evaluations (`npx webmcp-evals local -t schema.json -e evals.json`) now to verify tool selection and argument parsing, or proceed directly to Stage 6 (Application Implementation)?"*
+  * **NEVER** silently skip evaluations or drop them as an unmentioned afterthought.
+  * **If User Chooses to Run Evaluations**:
+    * Check if `GEMINI_API_KEY` (or provider key) is configured in the environment or project `.env`. If missing, prompt the user to add it so evaluations can execute.
+    * Propose running:
+      ```bash
+      npx webmcp-evals local -t schema.json -e evals.json -m gemini-3.5-flash-lite
+      ```
+      *(Passing `-m gemini-3.5-flash-lite` provides high velocity and low latency).*
+    * If tool selection or ordering fails, use the [Failure-Mode Troubleshooting Matrix](./references/evals-format.md#4-failure-mode-troubleshooting-matrix) to diagnose and resolve schema or description issues before moving to code.
+  * **If User Chooses Implementation**:
+    * Proceed directly to Stage 6 application implementation without blocking.
 
 ---
 
@@ -246,6 +271,10 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 
 Use this checklist when evaluating any WebMCP tool implementation:
 
+- [ ] **Design vs Code Separation**: Conversational edge cases, coreference, ambiguity, and confirmation boundaries were thoroughly co-designed with the user; code simplicity was not conflated with design simplicity.
+- [ ] **One Goal Per Iteration**: Stages 2–4 were completed for one single goal at a time; no unreviewed goals were generated in bulk.
+- [ ] **User Critique**: User actively evaluated agent tone, clarifying questions, and autonomous confirmation boundaries before locking down the tool schema.
+- [ ] **Strictly Goal-Driven Tools & Evals**: No tools or evals were invented for un-modeled goals; adhered strictly to Iterative Incremental or Portfolio-First pathway.
 - [ ] **Single Responsibility**: Each tool performs one task; no overlapping tools; tool count is minimal.
 - [ ] **Polymorphic Tool Consolidation**: Entities sharing operational lifecycles (e.g., tasks, notes, documents, files) use consolidated polymorphic signatures (`list_items`, `get_item`, `move_items`) with batching (`items: [{ type, id }]`) and concurrent execution (`Promise.all`), avoiding entity-specific tool bloat, prompt token explosion, and multi-turn roundtrips.
 - [ ] **Naming Conventions**: Names are ≤ 30-char action verbs; initiation (`start_...` / `initiate_...`) is distinct from execution (`create_...` / `book_...`).
@@ -265,6 +294,7 @@ Use this checklist when evaluating any WebMCP tool implementation:
 - [ ] **Declarative Submissions**: `event.agentInvoked` and `event.respondWith` handled; structured validation errors resolved via `event.respondWith(Promise.resolve(errors))` rather than rejected; `toolactivated`/`toolcancel` events update UI; `:tool-form-active` and `:tool-submit-active` styles present.
 - [ ] **Imperative Lifecycle & Discovery**: Unregister on unmount via `AbortController.abort()`; forward execution `{ signal }` to `fetch()`; resolve structured error payloads (`{ error, code, retryable }`) instead of rejecting; consumer panels use `getTools()`, `executeTool()`, and listen to `toolchange`.
 - [ ] **React Compliance**: Every imperative tool registered through `useWebMCP` from `use-webmcp-tool`; `enabled` used for state gating; schema literals stable or hoisted (preventing `JSON.stringify` re-registration churn); unit tests mock `registerTool`.
-- [ ] **Evals Suite**: Deterministic unit tests mock `registerTool`; probabilistic evals cover direct queries, ambiguous queries, and mid-chain failures.
+- [ ] **Evaluation Gate**: User was proactively asked whether to run local schema evaluations (`npx webmcp-evals local`) or proceed to Stage 6; if executed, evals passed with 100% success rate.
+- [ ] **Evals Syntax & Matchers**: Regex arguments use `$pattern` constraint objects; chained multi-step trajectories declare `mockOutput`; mid-chain failure messages use lowercase `functioncall`/`functionresponse` with nested `response`.
 - [ ] **DevTools & Lighthouse Verification**: Verified in Chrome DevTools WebMCP pane (invocation counter, manual execution, schema warnings) and Lighthouse Agentic browsing audit (paired toolname/tooldescription, unique names, label fallback chain).
 - [ ] **Page Readiness**: Accessibility tree valid; CLS within bounds; `/llms.txt` present if applicable.

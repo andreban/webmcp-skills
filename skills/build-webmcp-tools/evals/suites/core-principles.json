@@ -44,7 +44,7 @@
     {
       "id": "core-clean-tool-descriptions",
       "prompt": "A developer wrote this WebMCP tool description: \"Polymorphic Zustand-backed mutation handler that dispatches to the internal Axum REST bridge to update task state and invalidate TanStack cache.\" What is wrong with this description and how should it be rewritten?",
-      "expected_output": "The agent identifies that internal implementation jargon (e.g. Zustand, Axum, REST bridge, TanStack cache) must be strictly omitted because it wastes character budget and causes model confusion or hallucination. It explains that descriptions should focus on user/agent capabilities rather than internal implementation details, and provides a clean rewrite such as \"Updates the progress or completion status of an existing task in the workspace. Use when marking tasks as todo, in-progress, or done.\"",
+      "expected_output": "The agent identifies that internal implementation jargon (e.g. Zustand, Axum, REST bridge, TanStack cache) must be strictly omitted because it wastes character budget and causes model confusion or hallucination. It explains that descriptions should focus on user/agent capabilities rather than internal implementation details, and provides a clean rewrite such as \"Updates the progress or completion status of an existing task in the workspace. Use when marking items as pending, in-progress, or completed.\"",
       "assertions": [
         "The agent identifies that internal implementation jargon (e.g. Zustand, Axum, REST, TanStack) must be omitted",
         "The agent explains that descriptions must describe user or agent capabilities rather than internal architecture",
@@ -117,6 +117,16 @@
         "The agent explains using structural delimiters (e.g. `<untrusted_content>`) or Base64 spotlighting to sandbox the payload",
         "The agent mentions applying system prompt anchoring directives to treat tool output as passive data",
         "The agent explains that this prevents indirect prompt injection from user-generated content"
+      ]
+    },
+    {
+      "id": "core-design-vs-code-completion",
+      "prompt": "We are building a simple bookmark manager in React. Since saving a bookmark is just a one-line `setBookmarks([...bookmarks, newBookmark])`, can we skip conversational role-playing and start implementing the WebMCP tool code immediately?",
+      "expected_output": "The agent enforces Principle 12: Never conflate code completion with design completion. It explains that implementation simplicity does not mean conversational design is trivial overhead. Natural language interactions introduce coreference, user ambiguity, confirmation boundaries, recovery paths, and indirect prompt injection vectors that do not exist in button clicks, so thorough conversational co-design in Stages 1–4 must be completed before writing code.",
+      "assertions": [
+        "The agent states that code completion or implementation simplicity must not be conflated with design completion",
+        "The agent explains that natural language interaction introduces coreference, ambiguity, confirmation boundaries, or prompt injection risks",
+        "The agent insists on completing conversational design or role-playing before implementing tool code"
       ]
     }
   ]
