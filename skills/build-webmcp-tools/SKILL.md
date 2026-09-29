@@ -20,17 +20,20 @@ WebMCP enables web applications to expose client-side capabilities as structured
 
 ---
 
-## Quick Reference & Navigation
+## Quick Reference & Progressive Disclosure (Mandatory Directives)
 
-- [Conversational Design Guide (Stages 1–4)](./references/conversational-design.md)
-- [Use Case Markdown Template](./references/use-case-template.md)
-- [Tool Schema & Evals Specification (`evals.json`)](./references/evals-format.md)
-- [React Integration Guide (`use-webmcp-tool`)](./references/react-patterns.md)
-- [Angular Integration Guide (`@angular/core`)](./references/angular-patterns.md)
-- [Vanilla JS & General Framework Patterns](./references/vanilla-patterns.md)
-- [Declarative HTML Forms Patterns](./references/declarative-patterns.md)
-- [Agent Security & Injection Guardrails](./references/agent-security.md)
-- [Official Chrome Documentation & Spec Sources](./references/sources.md)
+This skill follows a progressive disclosure architecture. To keep execution fast and prevent context bloat, deep technical patterns, security threat models, and testing schemas are isolated in specialized reference files under `references/`.
+
+**Operational Directive**: When you enter or route to any stage or framework pathway below, you **MUST inspect the corresponding reference file using `view_file`** before generating findings, schemas, or code:
+
+- **Conversational Design (Stages 1–4)**: Inspect [`references/conversational-design.md`](./references/conversational-design.md) and [`references/use-case-template.md`](./references/use-case-template.md) for goal-by-goal state modeling, turn structures, and variation edge cases.
+- **Tool Schemas, Constraints & Evals (Stage 5)**: Inspect [`references/evals-format.md`](./references/evals-format.md) for exact matcher patterns, `$pattern` regex constraints, and chained mock outputs.
+- **Application Audits (Security & Imperative Lifecycle)**: Inspect [`references/agent-security.md`](./references/agent-security.md) for indirect prompt injection threat models, delimiter spotlighting, and UGC guardrails, and [`references/vanilla-patterns.md`](./references/vanilla-patterns.md) for W3C unhandled rejection error mapping (`DOMException: UnknownError`).
+- **React Implementation (Pathway A)**: Inspect [`references/react-patterns.md`](./references/react-patterns.md) for `useWebMCP` hook lifecycles, schema literal stability, and RTL test harnesses.
+- **Angular Implementation (Pathway B)**: Inspect [`references/angular-patterns.md`](./references/angular-patterns.md) for `provideExperimentalWebMcpTools`, auto-cleanup injectors, and Signal Forms.
+- **Vanilla JS & Imperative Lifecycles (Pathway C)**: Inspect [`references/vanilla-patterns.md`](./references/vanilla-patterns.md) for `registerTool`, `AbortController` cancellation, structured errors, and consumer discovery.
+- **Declarative HTML Forms (Pathway D)**: Inspect [`references/declarative-patterns.md`](./references/declarative-patterns.md) for `<form toolname tooldescription>`, autosubmit policies, and `:tool-form-active` CSS.
+- **Official Specifications & Browser Releases**: Inspect [`references/sources.md`](./references/sources.md) for Chrome DevTools, Lighthouse, and W3C WebMCP spec citations.
 
 ---
 
@@ -151,6 +154,7 @@ When activated, assess the developer's prompt, artifacts, and workspace to route
 
 8. **Existing Schema Provided for Code** (e.g., _"Here is my schema.json... Help me implement these tools in React"_):
    - Route directly to **Stage 6 (Application Implementation)** without reopening conversational design.
+   - Instruct inspecting the relevant framework reference file (e.g. [`references/react-patterns.md`](./references/react-patterns.md) for React, [`references/angular-patterns.md`](./references/angular-patterns.md) for Angular, or [`references/vanilla-patterns.md`](./references/vanilla-patterns.md) for Vanilla JS) using `view_file` before writing code.
    - For React, use `use-webmcp-tool` (`useWebMCP`), declare stable/hoisted schema literals outside components to avoid re-registration churn, and provide a unit test with React Testing Library (RTL) mocking `document.modelContext.registerTool`. For Angular, use `provideExperimentalWebMcpTools`; for Vanilla JS, use `document.modelContext.registerTool`.
 
 9. **Live Site Greenfield / URL Given** (e.g., _"I want to add WebMCP tools to example.com"_):
@@ -160,19 +164,21 @@ When activated, assess the developer's prompt, artifacts, and workspace to route
    - Strictly avoid outputting frontend code before defining goals.
 
 10. **Live Site Tool Audit** (e.g., _"Can you give feedback on the tools on example.com?"_):
+    - Explicitly state that you are routing directly to **Stage 6 Review Checklist & Auditing** rather than restarting Stage 1 ideation from scratch.
+    - Explicitly state and instruct inspecting [`references/agent-security.md`](./references/agent-security.md) and [`references/vanilla-patterns.md`](./references/vanilla-patterns.md) using `view_file` before evaluating tools or generating recommendations.
     - Explicitly mention all live inspection methods: inspecting in the Chrome DevTools **Application > WebMCP pane**, running `await document.modelContext.getTools()` in the console, or using the `/browser` command to inspect the live page.
-    - Route directly to **Stage 6 Review Checklist & Auditing** rather than restarting Stage 1 ideation from scratch.
-    - Audit tool annotations (specifically `readOnlyHint` for queries, `consequentialHint` for navigation, or `untrustedContentHint` for UGC), verify character budgets (names ≤ 30 chars, descriptions ≤ 500 chars), remove implementation jargon, and explicitly suggest running the Chrome Lighthouse "Agentic browsing" audit category and verifying DevTools manual execution via the Play icon.
+    - Audit tool annotations (specifically `readOnlyHint` for queries, `consequentialHint` for navigation, or `untrustedContentHint` for UGC), verify character budgets (names ≤ 30 chars, descriptions ≤ 500 chars), remove implementation jargon, audit that tools return structured error payloads rather than unhandled rejections (which map to `DOMException: UnknownError`), and explicitly suggest running the Chrome Lighthouse "Agentic browsing" audit category and verifying DevTools manual execution via the Play icon.
 
 11. **Local Codebase Audit** (e.g., _"Can you audit our existing WebMCP tools in src/tools/?"_):
-    - Immediately route directly to **Stage 6 Review Checklist & Auditing**.
+    - Immediately state that you are routing directly to **Stage 6 Review Checklist & Auditing**.
+    - Explicitly state and instruct inspecting [`references/agent-security.md`](./references/agent-security.md) and [`references/vanilla-patterns.md`](./references/vanilla-patterns.md) (or the relevant framework guide) using `view_file` before evaluating the implementation.
     - Systematically perform and output the audit against all 5 core checklist criteria:
       1. _Character budgets_: verify tool and parameter names ≤ 30 chars, descriptions ≤ 500 chars (enforcing "What + When" without schema repetition or internal jargon).
-      2. _Unhandled rejections_: audit that tools return actionable error guidance rather than unhandled Promise rejections.
+      2. _Unhandled rejections_: audit that tools return actionable error guidance rather than unhandled Promise rejections (W3C WebMCP maps unhandled throws/rejections to generic `DOMException: UnknownError`).
       3. _UI view navigation_: audit that tools shifting views or tabs declare `consequentialHint: true` (and strictly omit `readOnlyHint: true`).
-      4. _UGC / Untrusted content_: audit that tools returning user-generated text declare `untrustedContentHint: true`.
-      5. _DevTools & Lighthouse readiness_: verify live inspection in the Chrome DevTools Application > WebMCP pane and running the Lighthouse "Agentic browsing" audit category.
-    - Always explicitly list all 5 criteria above in the response, specifically including DevTools Application > WebMCP pane verification and the Lighthouse "Agentic browsing" audit.
+      4. _UGC / Untrusted content_: audit that tools returning user-generated text declare `untrustedContentHint: true` and apply delimiter sandboxing against prompt injection (addressing the First-Party Database Fallacy).
+      5. _DevTools Application > WebMCP pane & Lighthouse "Agentic browsing" audit_: verify live inspection in the Chrome DevTools Application > WebMCP pane (manual execution via Play icon) and running the Lighthouse "Agentic browsing" audit category.
+    - Always explicitly list all 5 criteria above in the response, specifically explicitly naming the Chrome DevTools Application > WebMCP pane and the Lighthouse "Agentic browsing" audit.
 
 12. **Protocol Disambiguation / Anti-Triggering** (e.g., _"Create a Python stdio MCP server for Claude Desktop"_):
     - Clarify that WebMCP is specifically for client-side in-browser tools on `document.modelContext`, whereas backend MCP runs over `stdio`/SSE in Node/Python.
@@ -283,7 +289,7 @@ Reconcile all tools discovered across the various goals and states into a single
 #### 3. Generate Automated Evals Suite (`evals.json`)
 
 - Compile baseline and variation trajectories into `evals.json` using exact match, regex patterns (via `{ "$pattern": "..." }`), `mockOutput` for chained multi-step dependencies, and nested `ordered` and `unordered` blocks (e.g. `{"unordered": [{"ordered": [...]}, ...]}`) for multi-item or independent sub-chains.
-- Author mid-chain failure tests: simulate intermediate failure responses in conversation `messages` (using lowercase `"type": "functioncall"` and `"type": "functionresponse"` with nested `"response"` payloads) and assert graceful recovery or alternative tool selection in subsequent turns.
+- Author mid-chain failure tests: simulate intermediate failure responses in conversation `messages` (using lowercase `"type": "functioncall"` and `"type": "functionresponse"` with nested `"response": { "result": { ... } }` payloads, rather than `mockOutput`) and assert graceful recovery or alternative tool selection in subsequent turns.
 - See [Evals Specification](./references/evals-format.md) for full JSON examples.
 
 #### 4. Local Evaluation Gate & Diagnostics (Proactive User Choice)
@@ -310,6 +316,16 @@ Reconcile all tools discovered across the various goals and states into a single
 ### Objective
 
 Embed the consolidated WebMCP tools into the frontend application code using framework-idiomatic conventions, audit page readiness, and verify compliance against the review checklist.
+
+### Reference Loading Directive (Mandatory)
+
+Whenever performing a tool audit or authoring frontend code, you **MUST explicitly cite and instruct inspecting the relevant reference files using `view_file`**:
+
+- **For Tool Audits & Security Reviews**: Explicitly instruct inspecting [`references/agent-security.md`](./references/agent-security.md) (for First-Party Database Fallacy, delimiter spotlighting, prompt injection) and [`references/vanilla-patterns.md`](./references/vanilla-patterns.md) (for W3C WebMCP unhandled rejection error mapping to `DOMException: UnknownError`).
+- **For React Applications**: Explicitly instruct inspecting [`references/react-patterns.md`](./references/react-patterns.md) for `useWebMCP` lifecycles and RTL mocking.
+- **For Angular Applications**: Explicitly instruct inspecting [`references/angular-patterns.md`](./references/angular-patterns.md) for `provideExperimentalWebMcpTools` and auto-cleanup.
+- **For Vanilla JS / Other Frameworks**: Explicitly instruct inspecting [`references/vanilla-patterns.md`](./references/vanilla-patterns.md) for `registerTool` cancellation and structured errors.
+- **For Declarative HTML Forms**: Explicitly instruct inspecting [`references/declarative-patterns.md`](./references/declarative-patterns.md) for `<form toolname tooldescription>` and autosubmit rules.
 
 ### Implementation Pathways
 
@@ -364,30 +380,31 @@ Embed the consolidated WebMCP tools into the frontend application code using fra
 
 Use this checklist when evaluating any WebMCP tool implementation:
 
-- [ ] **Design vs Code Separation**: Conversational edge cases, coreference, ambiguity, and confirmation boundaries were thoroughly co-designed with the user; code simplicity was not conflated with design simplicity.
-- [ ] **One Goal Per Iteration**: Stages 2–4 were completed for one single goal at a time; no unreviewed goals were generated in bulk.
-- [ ] **User Critique**: User actively evaluated agent tone, clarifying questions, and autonomous confirmation boundaries before locking down the tool schema.
-- [ ] **Strictly Goal-Driven Tools & Evals**: No tools or evals were invented for un-modeled goals; adhered strictly to Iterative Incremental or Portfolio-First pathway.
-- [ ] **Single Responsibility**: Each tool performs one task; no overlapping tools; tool count is minimal.
-- [ ] **Polymorphic Tool Consolidation**: Entities sharing operational lifecycles (e.g., tasks, notes, documents, files) use consolidated polymorphic signatures (`list_items`, `get_item`, `move_items`) with batching (`items: [{ type, id }]`) and concurrent execution (`Promise.all`), avoiding entity-specific tool bloat, prompt token explosion, and multi-turn roundtrips.
-- [ ] **Naming Conventions**: Names are ≤ 30-char action verbs; initiation (`start_...` / `initiate_...`) is distinct from execution (`create_...` / `book_...`).
-- [ ] **Description Budgets & "What + When" Formula**: Descriptions are ≤ 500 chars, positive phrasing, defining _what_ the tool does and _when_ to select it over alternatives.
-- [ ] **No Schema Duplication in Descriptions**: Descriptions omit parameter names, data types, and constraints already declared in `inputSchema.properties`.
-- [ ] **No Implementation Jargon**: Descriptions describe user/agent capability without referencing internal frameworks, stores, or backend architecture (e.g., Zustand, REST, Redux, Axum, GraphQL, IPC, TanStack).
-- [ ] **Parameter Schemas**: Specific types, `enum` arrays with descriptions, property descriptions ≤ 150 chars, required fields marked.
-- [ ] **Accept Raw Input**: Tools accept raw user strings and dates; no arithmetic or manual transformations forced onto the model.
-- [ ] **Actionable Errors**: Errors provide remediation guidance; React tools throw `Error` (normalized to `isError: true`), declarative forms return structured validation arrays via `event.respondWith`, and native tools return actionable error payloads rather than empty rejections.
-- [ ] **Output Budget**: Payloads are ≤ 1,500 characters, structured, and LLM-readable.
-- [ ] **UI Synchronization**: Application state and DOM updates are awaited before the tool resolves.
-- [ ] **Annotations**: `readOnlyHint` and `consequentialHint` are set accurately.
-- [ ] **UI Navigation Verification**: Does this tool shift the active view, route, tab, or modal in the UI? If so, is `consequentialHint: true` declared and `readOnlyHint: true` strictly omitted so autonomous background execution cannot unmount active components or destroy uncommitted form drafts? Pure data queries (e.g. `get_invoice_summary`) declare `readOnlyHint: true` instead.
-- [ ] **Untrusted Content Verification**: Does this tool output text, metadata, or attachments created or edited by users or third parties (notes, tasks, comments, reviews, files)? If so, is `untrustedContentHint: true` set so the host agent isolates, spotlights, and delimiter-sandboxes (`<untrusted_content>`) the payload? Pure system/config tools omit it.
-- [ ] **Cross-Origin Security**: `exposedTo` lists only trusted origins; `allow="tools"` set only on approved iframes; origin isolation preserved.
-- [ ] **Declarative Forms**: `toolname` + `tooldescription` paired; `toolautosubmit` applied appropriately (omitted for sensitive actions); all fields have a unique `name` and label/`toolparamdescription`.
-- [ ] **Declarative Submissions**: `event.agentInvoked` and `event.respondWith` handled; structured validation errors resolved via `event.respondWith(Promise.resolve(errors))` rather than rejected; `toolactivated`/`toolcancel` events on `document.modelContext` update UI; `:tool-form-active` and `:tool-submit-active` styles present.
-- [ ] **Imperative Lifecycle & Discovery**: Unregister on unmount via `AbortController.abort()`; forward execution `{ signal }` to `fetch()`; resolve structured error payloads (`{ error, code, retryable }`) instead of rejecting; consumer panels use `getTools()`, `executeTool()`, and listen to `toolchange`.
-- [ ] **React Compliance**: Every imperative tool registered through `useWebMCP` from `use-webmcp-tool`; `enabled` used for state gating; schema literals stable or hoisted (preventing `JSON.stringify` re-registration churn); unit tests mock `registerTool`.
-- [ ] **Evaluation Gate**: User was proactively asked whether to run local schema evaluations (`npx webmcp-evals local`) or proceed to Stage 6; if executed, evals passed with 100% success rate.
-- [ ] **Evals Syntax & Matchers**: Regex arguments use `$pattern` constraint objects; chained multi-step trajectories declare `mockOutput`; mid-chain failure messages use lowercase `functioncall`/`functionresponse` with nested `response`.
-- [ ] **DevTools & Lighthouse Verification**: Verified in Chrome DevTools WebMCP pane (invocation counter, manual execution, schema warnings) and Lighthouse Agentic browsing audit (paired toolname/tooldescription, unique names, label fallback chain).
-- [ ] **Page Readiness**: Accessibility tree valid; CLS within bounds; `/llms.txt` present if applicable.
+- [ ] **Design vs Code Separation**: (See: [`references/conversational-design.md`](./references/conversational-design.md)) Conversational edge cases, coreference, ambiguity, and confirmation boundaries were thoroughly co-designed with the user; code simplicity was not conflated with design simplicity.
+- [ ] **One Goal Per Iteration**: (See: [`references/conversational-design.md#one-goal-per-iteration`](./references/conversational-design.md)) Stages 2–4 were completed for one single goal at a time; no unreviewed goals were generated in bulk.
+- [ ] **User Critique**: (See: [`references/conversational-design.md#critique-loop`](./references/conversational-design.md)) User actively evaluated agent tone, clarifying questions, and autonomous confirmation boundaries before locking down the tool schema.
+- [ ] **Strictly Goal-Driven Tools & Evals**: (See: [`references/evals-format.md`](./references/evals-format.md)) No tools or evals were invented for un-modeled goals; adhered strictly to Iterative Incremental or Portfolio-First pathway.
+- [ ] **Single Responsibility**: (See: [`references/conversational-design.md`](./references/conversational-design.md)) Each tool performs one task; no overlapping tools; tool count is minimal.
+- [ ] **Polymorphic Tool Consolidation**: (See: [`references/react-patterns.md`](./references/react-patterns.md) and [`references/vanilla-patterns.md`](./references/vanilla-patterns.md)) Entities sharing operational lifecycles (e.g., tasks, notes, documents, files) use consolidated polymorphic signatures (`list_items`, `get_item`, `move_items`) with batching (`items: [{ type, id }]`) and concurrent execution (`Promise.all`), avoiding entity-specific tool bloat, prompt token explosion, and multi-turn roundtrips.
+- [ ] **Naming Conventions**: (See: [`references/sources.md`](./references/sources.md)) Names are ≤ 30-char action verbs; initiation (`start_...` / `initiate_...`) is distinct from execution (`create_...` / `book_...`).
+- [ ] **Description Budgets & "What + When" Formula**: (See: [`references/evals-format.md`](./references/evals-format.md)) Descriptions are ≤ 500 chars, positive phrasing, defining _what_ the tool does and _when_ to select it over alternatives.
+- [ ] **No Schema Duplication in Descriptions**: (See: [`references/evals-format.md`](./references/evals-format.md)) Descriptions omit parameter names, data types, and constraints already declared in `inputSchema.properties`.
+- [ ] **No Implementation Jargon**: (See: [`references/evals-format.md`](./references/evals-format.md)) Descriptions describe user/agent capability without referencing internal frameworks, stores, or backend architecture (e.g., Zustand, REST, Redux, Axum, GraphQL, IPC, TanStack).
+- [ ] **Parameter Schemas**: (See: [`references/evals-format.md`](./references/evals-format.md)) Specific types, `enum` arrays with descriptions, property descriptions ≤ 150 chars, required fields marked.
+- [ ] **Accept Raw Input**: (See: [`references/conversational-design.md`](./references/conversational-design.md)) Tools accept raw user strings and dates; no arithmetic or manual transformations forced onto the model.
+- [ ] **Actionable Errors**: (See: [`references/vanilla-patterns.md#error-reporting`](./references/vanilla-patterns.md)) Errors provide remediation guidance; React tools throw `Error` (normalized to `isError: true`), declarative forms return structured validation arrays via `event.respondWith`, and native tools return actionable error payloads rather than empty rejections (which map to `DOMException: UnknownError`).
+- [ ] **Output Budget**: (See: [`references/sources.md`](./references/sources.md)) Payloads are ≤ 1,500 characters, structured, and LLM-readable.
+- [ ] **UI Synchronization**: (See: [`references/react-patterns.md`](./references/react-patterns.md) and [`references/vanilla-patterns.md`](./references/vanilla-patterns.md)) Application state and DOM updates are awaited before the tool resolves.
+- [ ] **Annotations**: (See: [`references/sources.md`](./references/sources.md)) `readOnlyHint` and `consequentialHint` are set accurately.
+- [ ] **UI Navigation Verification**: (See: [`references/conversational-design.md`](./references/conversational-design.md) and [`references/agent-security.md`](./references/agent-security.md)) Does this tool shift the active view, route, tab, or modal in the UI? If so, is `consequentialHint: true` declared and `readOnlyHint: true` strictly omitted so autonomous background execution cannot unmount active components or destroy uncommitted form drafts? Pure data queries (e.g. `get_invoice_summary`) declare `readOnlyHint: true` instead.
+- [ ] **Untrusted Content Verification**: (See: [`references/agent-security.md#threat-model`](./references/agent-security.md)) Does this tool output text, metadata, or attachments created or edited by users or third parties (notes, tasks, comments, reviews, files)? If so, is `untrustedContentHint: true` set so the host agent isolates, spotlights, and delimiter-sandboxes (`<untrusted_content>`) the payload? Pure system/config tools omit it.
+- [ ] **Cross-Origin Security**: (See: [`references/agent-security.md#cross-origin-boundaries`](./references/agent-security.md)) `exposedTo` lists only trusted origins; `allow="tools"` set only on approved iframes; origin isolation preserved.
+- [ ] **Declarative Forms**: (See: [`references/declarative-patterns.md`](./references/declarative-patterns.md)) `toolname` + `tooldescription` paired; `toolautosubmit` applied appropriately (omitted for sensitive actions); all fields have a unique `name` and label/`toolparamdescription`.
+- [ ] **Declarative Submissions**: (See: [`references/declarative-patterns.md`](./references/declarative-patterns.md)) `event.agentInvoked` and `event.respondWith` handled; structured validation errors resolved via `event.respondWith(Promise.resolve(errors))` rather than rejected; `toolactivated`/`toolcancel` events on `document.modelContext` update UI; `:tool-form-active` and `:tool-submit-active` styles present.
+- [ ] **Imperative Lifecycle & Discovery**: (See: [`references/vanilla-patterns.md`](./references/vanilla-patterns.md)) Unregister on unmount via `AbortController.abort()`; forward execution `{ signal }` to `fetch()`; resolve structured error payloads (`{ error, code, retryable }`) instead of rejecting; consumer panels use `getTools()`, `executeTool()`, and listen to `toolchange`.
+- [ ] **React Compliance**: (See: [`references/react-patterns.md`](./references/react-patterns.md)) Every imperative tool registered through `useWebMCP` from `use-webmcp-tool`; `enabled` used for state gating; schema literals stable or hoisted (preventing `JSON.stringify` re-registration churn); unit tests mock `registerTool`.
+- [ ] **Angular Compliance**: (See: [`references/angular-patterns.md`](./references/angular-patterns.md)) Application tools registered via `provideExperimentalWebMcpTools` with `inject()`; route-scoped tools registered on route `providers` with `withExperimentalAutoCleanupInjectors()`; Signal Forms tools exposed via `provideExperimentalWebMcpForms()`.
+- [ ] **Evaluation Gate**: (See: [`references/evals-format.md`](./references/evals-format.md)) User was proactively asked whether to run local schema evaluations (`npx webmcp-evals local`) or proceed to Stage 6; if executed, evals passed with 100% success rate.
+- [ ] **Evals Syntax & Matchers**: (See: [`references/evals-format.md`](./references/evals-format.md)) Regex arguments use `$pattern` constraint objects; chained multi-step trajectories declare `mockOutput`; mid-chain failure messages use lowercase `functioncall`/`functionresponse` with nested `response`.
+- [ ] **DevTools & Lighthouse Verification**: (See: [`references/sources.md`](./references/sources.md) and [`references/declarative-patterns.md`](./references/declarative-patterns.md)) Verified in Chrome DevTools WebMCP pane (invocation counter, manual execution, schema warnings) and Lighthouse Agentic browsing audit (paired toolname/tooldescription, unique names, label fallback chain).
+- [ ] **Page Readiness**: (See: [`references/sources.md`](./references/sources.md)) Accessibility tree valid; CLS within bounds; `/llms.txt` present if applicable.
