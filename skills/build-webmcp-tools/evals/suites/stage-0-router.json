@@ -83,6 +83,52 @@
         "The output routes directly to Stage 6 (Application Implementation) without re-opening conversational design.",
         "The output uses use-webmcp-tool (useWebMCP), stable/hoisted schema literals, and RTL mocking."
       ]
+    },
+    {
+      "id": "stage-0-router-live-site-url",
+      "prompt": "I want to add WebMCP tools to example.com. Where do we start?",
+      "expected_output": "The agent clarifies that WebMCP runs client-side in the browser tab on document.modelContext rather than external headless scraping, recommends using browser capabilities (such as the /browser command or checking /llms.txt) to explore workflows, routes to Stage 1 (User Goals Portfolio) proposing candidate user journeys with autonomous boundaries, and avoids premature code dumping.",
+      "assertions": [
+        "The output clarifies that WebMCP runs client-side in the browser tab on document.modelContext (requiring first-party site code or extension/content script execution).",
+        "The output does NOT confuse WebMCP with external headless scraping (Puppeteer, Playwright, or DOM clicking).",
+        "The output recommends using browser capabilities (e.g., /browser command, page inspection, or checking /llms.txt) to explore the site's workflows.",
+        "The output routes to Stage 1 (User Goals Portfolio) by proposing or offering to inspect candidate user journeys with autonomous boundaries.",
+        "The output does NOT immediately output frontend code before defining goals."
+      ]
+    },
+    {
+      "id": "stage-0-router-live-site-audit",
+      "prompt": "Can you give feedback on the tools on example.com?",
+      "expected_output": "The agent references inspecting live tools via document.modelContext.getTools(), the Chrome DevTools Application > WebMCP pane, or using /browser to inspect the live page, routes to the Stage 6 audit/review checklist rather than restarting Stage 1 ideation, audits annotations and character budgets without jargon, and suggests running the Lighthouse 'Agentic browsing' audit or DevTools manual execution.",
+      "assertions": [
+        "The output references inspecting live tools via document.modelContext.getTools(), the Chrome DevTools Application > WebMCP pane, or using /browser to inspect the live page.",
+        "The output routes to the Stage 6 audit/review checklist rather than restarting Stage 1 ideation from scratch.",
+        "The output mentions auditing tool annotations (specifically readOnlyHint, consequentialHint for navigation, or untrustedContentHint for UGC).",
+        "The output mentions character budgets (names <= 30 chars, descriptions <= 500 chars) or removing implementation jargon.",
+        "The output suggests running the Lighthouse \"Agentic browsing\" audit or checking DevTools manual execution."
+      ]
+    },
+    {
+      "id": "stage-0-router-local-codebase-audit",
+      "prompt": "Can you audit our existing WebMCP tools in src/tools/ for best practices and security?",
+      "expected_output": "The agent routes directly to Stage 6 Review Checklist & Auditing, systematically checking against character budgets, unhandled rejections, UI view navigation missing consequentialHint, UGC missing untrustedContentHint, and DevTools/Lighthouse readiness.",
+      "assertions": [
+        "The output routes directly to Stage 6 Review Checklist & Auditing.",
+        "The output systematically checks against character budgets (names <= 30 chars, descriptions <= 500 chars) and removing internal implementation jargon.",
+        "The output audits that tools return actionable error guidance rather than unhandled Promise rejections.",
+        "The output audits that tools shifting views or tabs declare consequentialHint: true and strictly omit readOnlyHint: true.",
+        "The output audits that tools returning user-generated text declare untrustedContentHint: true.",
+        "The output verifies live inspection in the Chrome DevTools Application > WebMCP pane and running the Lighthouse \"Agentic browsing\" audit."
+      ]
+    },
+    {
+      "id": "skill-discovery-mcp-disambiguation",
+      "prompt": "Create a Python stdio MCP server for Claude Desktop to query my Postgres database.",
+      "expected_output": "The agent clarifies that WebMCP is specifically for client-side in-browser tools on document.modelContext, whereas backend MCP runs over stdio or SSE in Node/Python, and redirects or clarifies the protocol boundary rather than attempting to use document.modelContext in a backend environment.",
+      "assertions": [
+        "The output clarifies that WebMCP is specifically for client-side in-browser tools on document.modelContext, whereas backend MCP runs over stdio or SSE in Node/Python.",
+        "The agent either redirects or clarifies the protocol boundary rather than incorrectly attempting to use document.modelContext in a Node/Python backend."
+      ]
     }
   ]
 }
