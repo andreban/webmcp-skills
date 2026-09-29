@@ -1,14 +1,16 @@
-// Copyright 2026 Andre Cipriani Bandarra
-// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright 2026 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import { improveDescription } from './improve-description.js';
-import { runTriggerEval, type TriggerEvalReport, type TriggerQuery } from './trigger-eval.js';
+import { improveDescription } from "./improve-description.js";
+import { runTriggerEval, type TriggerEvalReport, type TriggerQuery } from "./trigger-eval.js";
 
 export interface LoopIteration {
   iteration: number;
   description: string;
-  train_metrics: TriggerEvalReport['metrics'];
-  test_metrics?: TriggerEvalReport['metrics'];
+  train_metrics: TriggerEvalReport["metrics"];
+  test_metrics?: TriggerEvalReport["metrics"];
 }
 
 export interface LoopResult {
@@ -26,7 +28,10 @@ export interface LoopOptions {
 /**
  * Splits query set into train and test sets, stratified by should_trigger.
  */
-function splitQueries(queries: TriggerQuery[], holdout: number): { train: TriggerQuery[]; test: TriggerQuery[] } {
+function splitQueries(
+  queries: TriggerQuery[],
+  holdout: number,
+): { train: TriggerQuery[]; test: TriggerQuery[] } {
   if (holdout <= 0 || holdout >= 1) {
     return { train: queries, test: [] };
   }
@@ -59,7 +64,9 @@ export async function runTriggerOptimizationLoop(
   const { train, test } = splitQueries(queries, holdout);
 
   console.log(`\nStarting Description Optimization Loop for: ${skillName}`);
-  console.log(`Query split: ${train.length} train queries, ${test.length} test queries (holdout: ${holdout})\n`);
+  console.log(
+    `Query split: ${train.length} train queries, ${test.length} test queries (holdout: ${holdout})\n`,
+  );
 
   let currentDescription = initialDescription;
   let bestDescription = initialDescription;
@@ -111,13 +118,13 @@ export async function runTriggerOptimizationLoop(
 
     // Stop early if 100% accuracy achieved on both
     if (trainEval.metrics.accuracy === 1.0 && (!testEval || testEval.metrics.accuracy === 1.0)) {
-      console.log('✓ Perfect 100% accuracy reached on train and test queries. Stopping early.');
+      console.log("✓ Perfect 100% accuracy reached on train and test queries. Stopping early.");
       break;
     }
 
     // 3. Propose improved description for next iteration
     if (iter < maxIterations) {
-      console.log('Synthesizing improved description with model...');
+      console.log("Synthesizing improved description with model...");
       currentDescription = await improveDescription(
         skillName,
         skillContent,
@@ -128,7 +135,9 @@ export async function runTriggerOptimizationLoop(
     }
   }
 
-  console.log(`\n✓ Optimization complete. Best description selected (F1: ${bestScore}):\n"${bestDescription}"\n`);
+  console.log(
+    `\n✓ Optimization complete. Best description selected (F1: ${bestScore}):\n"${bestDescription}"\n`,
+  );
 
   return {
     best_description: bestDescription,

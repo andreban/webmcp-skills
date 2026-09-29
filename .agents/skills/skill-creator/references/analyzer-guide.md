@@ -1,3 +1,13 @@
+<!--
+Copyright 2026 Google LLC
+SPDX-License-Identifier: Apache-2.0
+
+Portions derived from Anthropic's skill-creator (https://github.com/anthropics/skills),
+licensed under the Apache License, Version 2.0.
+Copyright (c) Anthropic, PBC.
+Modified by Google LLC.
+-->
+
 # Post-Hoc Analyzer Agent & Benchmark Diagnostics
 
 This guide provides the analytical protocols for both **Post-Hoc A/B Analysis** (explaining why a winning output won) and **Benchmark Diagnostics** (identifying patterns and anomalies across multi-run benchmarks).
@@ -15,6 +25,7 @@ After the blind comparator determines a winner, the Post-Hoc Analyzer unblinds t
 ## Inputs
 
 Parameters provided in the prompt:
+
 - **`winner`**: "A" or "B" (from blind comparator).
 - **`winner_skill_path`**: Path to the winning skill.
 - **`winner_transcript_path`**: Path to the execution transcript for the winner.
@@ -26,11 +37,13 @@ Parameters provided in the prompt:
 ## Process
 
 ### Step 1: Read Comparison Results
+
 1. Read `comparison.json`.
 2. Note the winning side, overall scores, and the comparator's core reasoning.
 3. Understand what specific output qualities decided the outcome.
 
 ### Step 2: Read Both Skills
+
 1. Read the winner's `SKILL.md` and referenced files.
 2. Read the loser's `SKILL.md` and referenced files.
 3. Identify structural and instructional differences:
@@ -40,6 +53,7 @@ Parameters provided in the prompt:
    - Guidance on edge cases and error handling.
 
 ### Step 3: Read Both Transcripts
+
 1. Read the winner's transcript (`response.md` or logs).
 2. Read the loser's transcript.
 3. Compare execution trajectories:
@@ -49,7 +63,9 @@ Parameters provided in the prompt:
    - Did either encounter runtime errors, and how did they recover?
 
 ### Step 4: Analyze Instruction Following
+
 Evaluate for each run:
+
 - Did the agent follow the skill's explicit workflow?
 - Did the agent utilize bundled scripts and templates?
 - Were there missed opportunities to leverage skill content?
@@ -58,21 +74,27 @@ Evaluate for each run:
 Score instruction following from 1–10 and document specific divergences.
 
 ### Step 5: Identify Winner Strengths
+
 Determine what caused the winner's superior output:
+
 - Clearer step-by-step instructions?
 - Pre-bundled helper scripts or schemas that eliminated improvisation?
 - Richer examples covering edge cases?
 - Explicit error prevention rules?
 
 ### Step 6: Identify Loser Weaknesses
+
 Determine what hindered the loser:
+
 - Ambiguous or vague instructions (e.g. "handle errors appropriately")?
 - Missing helper utilities that forced the model to reinvent the wheel?
 - Gaps in edge-case coverage?
 - Heavy-handed directives that caused over-constraining or brittle output?
 
 ### Step 7: Generate Prioritized Improvement Suggestions
+
 Produce concrete, actionable recommendations to improve the losing skill:
+
 - **`instructions`**: Specific wording changes to `SKILL.md`.
 - **`tools`**: Scripts, templates, or schemas to add to `scripts/` or `assets/`.
 - **`examples`**: Input/output pairings to clarify edge cases.
@@ -146,10 +168,13 @@ Review all test runs and generate freeform analytical observations grounded dire
 ## Process
 
 ### Step 1: Read Benchmark Data
+
 Inspect `benchmark.json` metadata, runs array, and `run_summary` aggregates.
 
 ### Step 2: Analyze Per-Assertion Patterns
+
 For each assertion across all runs:
+
 - **Always Passes in Both Configurations**: Non-discriminating assertion. It tests something trivial that the model does anyway, not the skill's specific value-add.
 - **Always Fails in Both Configurations**: Either the assertion is broken/unrealistic, or the capability is beyond the model's current ceiling.
 - **Passes With Skill, Fails Without Skill**: The skill demonstrates clear, measurable value-add.
@@ -157,16 +182,19 @@ For each assertion across all runs:
 - **High Variance Across Runs**: Flaky assertion or non-deterministic model behavior.
 
 ### Step 3: Analyze Cross-Eval Patterns
+
 - Are certain lifecycle stages or eval types consistently more difficult?
 - Does performance cluster by domain (e.g. React passes 100%, vanilla JS flakier)?
 - Are there unexpected anomalies where simple tasks fail and complex ones succeed?
 
 ### Step 4: Analyze Resource & Latency Metrics
+
 - **Latency Tradeoff**: Does the skill add 20+ seconds of reasoning time without a commensurate boost in quality?
 - **Token Consumption**: Is token usage disproportionately inflated due to verbose templates or unnecessary steps?
 - **Outliers**: Were there outlier runs (e.g. 5x normal token count) caused by circular tool loops?
 
 ### Step 5: Format Benchmark Notes
+
 Record specific, evidence-grounded observations into `notes` in `benchmark.json`:
 
 ```json

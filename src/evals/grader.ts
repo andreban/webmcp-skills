@@ -1,8 +1,10 @@
-// Copyright 2026 Andre Cipriani Bandarra
-// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright 2026 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import { generateContent } from './provider.js';
-import type { AssertionResult, GradingOutput } from './types.js';
+import { generateContent } from "./provider.js";
+import type { AssertionResult, GradingOutput } from "./types.js";
 
 export interface GraderOptions {
   model?: string;
@@ -21,8 +23,14 @@ export function tryDeterministicCheck(assertion: string, output: string): Assert
   // 1. Quoted string: does NOT include 'target' or "target" or `target`
   const quotedNotMatch = trimmed.match(/does NOT (?:include|contain)\s+(['"`])([\s\S]+?)\1/i);
   // 2. Unquoted single token / identifier (e.g. navigator.modelContext, unregisterTool)
-  const tokenNotMatch = trimmed.match(/does NOT (?:include|contain)\s+(?:deprecated\s+)?([a-zA-Z0-9_$.-]+)$/i);
-  const notTarget = quotedNotMatch ? quotedNotMatch[2].trim() : tokenNotMatch ? tokenNotMatch[1].trim() : null;
+  const tokenNotMatch = trimmed.match(
+    /does NOT (?:include|contain)\s+(?:deprecated\s+)?([a-zA-Z0-9_$.-]+)$/i,
+  );
+  const notTarget = quotedNotMatch
+    ? quotedNotMatch[2].trim()
+    : tokenNotMatch
+      ? tokenNotMatch[1].trim()
+      : null;
 
   if (notTarget) {
     const found = output.includes(notTarget);
@@ -52,7 +60,9 @@ export function tryDeterministicCheck(assertion: string, output: string): Assert
 
   // 2. Unquoted single identifier (e.g. useWebMCP) or simple key-value pair (e.g. readOnlyHint: true)
   // Must NOT match natural language sentences like "The output includes the toolname attribute on the form"
-  const tokenIncludesMatch = trimmed.match(/^The output includes\s+([a-zA-Z0-9_$.-]+(?::\s*['"`]?[a-zA-Z0-9_$.-]+['"`]?)?)$/i);
+  const tokenIncludesMatch = trimmed.match(
+    /^The output includes\s+([a-zA-Z0-9_$.-]+(?::\s*['"`]?[a-zA-Z0-9_$.-]+['"`]?)?)$/i,
+  );
   if (tokenIncludesMatch) {
     const target = tokenIncludesMatch[1].trim();
     const found = output.includes(target);
@@ -121,7 +131,7 @@ ${output}
 """
 
 Assertions to Grade:
-${pendingSemantic.map((a, i) => `${i + 1}. ${a}`).join('\n')}
+${pendingSemantic.map((a, i) => `${i + 1}. ${a}`).join("\n")}
 
 Grading Rules:
 1. Require concrete evidence for a PASS. Do not give the benefit of the doubt.
@@ -142,13 +152,16 @@ Grading Rules:
       try {
         const generation = await generateContent(gradingPrompt, {
           model: options.model,
-          responseMimeType: 'application/json',
+          responseMimeType: "application/json",
           temperature: 0.1,
         });
 
         let rawText = generation.text.trim();
-        if (rawText.startsWith('```')) {
-          rawText = rawText.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
+        if (rawText.startsWith("```")) {
+          rawText = rawText
+            .replace(/^```(?:json)?\s*\n?/, "")
+            .replace(/\n?```\s*$/, "")
+            .trim();
         }
 
         let parsed: any;
@@ -157,17 +170,18 @@ Grading Rules:
         } catch {
           // Fallback 1: repair invalid or unescaped control/escape characters
           try {
-            const sanitized = rawText.replace(/\\([^"\\/bfnrtu])/g, '$1');
+            const sanitized = rawText.replace(/\\([^"\\/bfnrtu])/g, "$1");
             parsed = JSON.parse(sanitized);
           } catch {
             // Fallback 2: regex extract results when evidence contains unescaped quotes
             const extractedResults: AssertionResult[] = [];
-            const blockRegex = /\{\s*"text"\s*:\s*"([^"]+)"[\s\S]*?"passed"\s*:\s*(true|false)[\s\S]*?"evidence"\s*:\s*"([\s\S]*?)"\s*\}/g;
+            const blockRegex =
+              /\{\s*"text"\s*:\s*"([^"]+)"[\s\S]*?"passed"\s*:\s*(true|false)[\s\S]*?"evidence"\s*:\s*"([\s\S]*?)"\s*\}/g;
             let match;
             while ((match = blockRegex.exec(rawText)) !== null) {
               extractedResults.push({
                 text: match[1],
-                passed: match[2] === 'true',
+                passed: match[2] === "true",
                 evidence: match[3],
               });
             }
@@ -176,16 +190,20 @@ Grading Rules:
             }
           }
         }
-        const modelResults: AssertionResult[] = Array.isArray(parsed?.results) ? parsed.results : [];
+        const modelResults: AssertionResult[] = Array.isArray(parsed?.results)
+          ? parsed.results
+          : [];
 
-        const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
         for (let i = 0; i < pendingSemantic.length; i++) {
           const assertion = pendingSemantic[i];
           const normAssertion = normalize(assertion);
           const matched =
             modelResults.find(
-              (r) => r.text === assertion || r.text.replace(/['"`\\]/g, '') === assertion.replace(/['"`\\]/g, '')
+              (r) =>
+                r.text === assertion ||
+                r.text.replace(/['"`\\]/g, "") === assertion.replace(/['"`\\]/g, ""),
             ) ||
             modelResults.find((r) => normalize(r.text) === normAssertion) ||
             (modelResults.length === pendingSemantic.length ? modelResults[i] : undefined);
@@ -194,13 +212,13 @@ Grading Rules:
             results.push({
               text: assertion,
               passed: Boolean(matched.passed),
-              evidence: String(matched.evidence || 'No evidence provided by grader.'),
+              evidence: String(matched.evidence || "No evidence provided by grader."),
             });
           } else {
             results.push({
               text: assertion,
               passed: false,
-              evidence: 'Grader did not return evaluation for this assertion.',
+              evidence: "Grader did not return evaluation for this assertion.",
             });
           }
         }

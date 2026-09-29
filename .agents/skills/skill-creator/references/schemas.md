@@ -1,3 +1,13 @@
+<!--
+Copyright 2026 Google LLC
+SPDX-License-Identifier: Apache-2.0
+
+Portions derived from Anthropic's skill-creator (https://github.com/anthropics/skills),
+licensed under the Apache License, Version 2.0.
+Copyright (c) Anthropic, PBC.
+Modified by Google LLC.
+-->
+
 # JSON Schemas Specification
 
 This document defines the formal JSON schemas used across the skill-creator evaluation engine, test suites, benchmark aggregator, and Vite evaluation viewer.
@@ -29,6 +39,7 @@ Defines test cases for a skill. In this repository, test cases are authored in m
 ```
 
 ### Fields:
+
 - `skill_name`: String matching the skill's directory name and frontmatter `name`.
 - `suite`: (Optional in bundled `evals.json`, required in `suites/*.json`) Identifier for the modular topic or stage.
 - `evals[].id`: Unique string or integer identifier.
@@ -75,6 +86,7 @@ Tracks version progression across iterations in the iteration loop. Located at t
 ```
 
 ### Fields:
+
 - `started_at`: ISO 8601 timestamp when improvement cycle started.
 - `skill_name`: Name of the skill.
 - `current_best`: Version string representing current top performer.
@@ -157,6 +169,7 @@ Output from the Grader agent or automated grading runner. Located at `<run-dir>/
 ```
 
 ### Fields:
+
 - `expectations[]`: Array of graded assertions with `text`, `passed`, and `evidence`. **The viewer strictly requires these exact keys.**
 - `summary`: Aggregate counts (`passed`, `failed`, `total`, `pass_rate`).
 - `execution_metrics`: Tool call counts and character volumes.
@@ -252,14 +265,14 @@ Aggregated output produced by `npm run eval:full`. Located at `evals-workspace/<
   ],
   "run_summary": {
     "with_skill": {
-      "pass_rate": {"mean": 0.94, "stddev": 0.05, "min": 0.88, "max": 1.0},
-      "time_seconds": {"mean": 14.2, "stddev": 2.1, "min": 11.5, "max": 17.0},
-      "tokens": {"mean": 13800, "stddev": 850, "min": 12500, "max": 15100}
+      "pass_rate": { "mean": 0.94, "stddev": 0.05, "min": 0.88, "max": 1.0 },
+      "time_seconds": { "mean": 14.2, "stddev": 2.1, "min": 11.5, "max": 17.0 },
+      "tokens": { "mean": 13800, "stddev": 850, "min": 12500, "max": 15100 }
     },
     "without_skill": {
-      "pass_rate": {"mean": 0.38, "stddev": 0.12, "min": 0.25, "max": 0.50},
-      "time_seconds": {"mean": 10.1, "stddev": 1.5, "min": 8.5, "max": 12.0},
-      "tokens": {"mean": 8200, "stddev": 400, "min": 7800, "max": 8900}
+      "pass_rate": { "mean": 0.38, "stddev": 0.12, "min": 0.25, "max": 0.5 },
+      "time_seconds": { "mean": 10.1, "stddev": 1.5, "min": 8.5, "max": 12.0 },
+      "tokens": { "mean": 8200, "stddev": 400, "min": 7800, "max": 8900 }
     },
     "delta": {
       "pass_rate": "+0.56",
@@ -289,15 +302,15 @@ Output from the Blind Comparator agent. Located at `<run-dir>/comparison.json`.
   "reasoning": "Output A properly registers the tool with Zod schema and handles component unmount cleanup.",
   "rubric": {
     "A": {
-      "content": {"correctness": 5, "completeness": 5, "accuracy": 5},
-      "structure": {"organization": 4, "formatting": 5, "usability": 5},
+      "content": { "correctness": 5, "completeness": 5, "accuracy": 5 },
+      "structure": { "organization": 4, "formatting": 5, "usability": 5 },
       "content_score": 5.0,
       "structure_score": 4.7,
       "overall_score": 9.7
     },
     "B": {
-      "content": {"correctness": 3, "completeness": 3, "accuracy": 2},
-      "structure": {"organization": 3, "formatting": 4, "usability": 3},
+      "content": { "correctness": 3, "completeness": 3, "accuracy": 2 },
+      "structure": { "organization": 3, "formatting": 4, "usability": 3 },
       "content_score": 2.7,
       "structure_score": 3.3,
       "overall_score": 6.0
@@ -341,8 +354,8 @@ Output from the Post-Hoc Analyzer agent. Located at `<run-dir>/analysis.json`.
     "Missing cleanup on unmount"
   ],
   "instruction_following": {
-    "winner": {"score": 9, "issues": []},
-    "loser": {"score": 5, "issues": ["Used deprecated DOM APIs"]}
+    "winner": { "score": 9, "issues": [] },
+    "loser": { "score": 5, "issues": ["Used deprecated DOM APIs"] }
   },
   "improvement_suggestions": [
     {

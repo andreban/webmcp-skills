@@ -1,5 +1,5 @@
 <!--
-Copyright 2026 Andre Cipriani Bandarra
+Copyright 2026 Google LLC
 SPDX-License-Identifier: Apache-2.0
 -->
 
@@ -12,6 +12,7 @@ SPDX-License-Identifier: Apache-2.0
 WebMCP is an emerging standard that allows web applications to expose client-side tools directly to in-browser AI agents via `document.modelContext`.
 
 ### Key Tenet
+
 WebMCP runs **client-side in the browser tab on `document.modelContext`**. It is **not** a backend server protocol (like MCP over `stdio` or SSE) and does not rely on fragile DOM scraping or simulated clicking.
 
 ---
@@ -33,8 +34,8 @@ webmcp-skills/
 │   ├── evals/                       # TypeScript evaluation runner, grader & benchmark aggregator
 │   └── eval-viewer/                 # Vite-based interactive eval review dashboard
 ├── evals-workspace/                 # Evaluation run outputs & benchmark iterations (gitignored)
-├── package.json                     # Scripts & devDependencies (Vite, Vitest, TypeScript)
-├── .github/workflows/evals.yaml     # CI workflow for running unit tests and skill evaluations
+├── package.json                     # Scripts & devDependencies (Vite, Vitest, TypeScript, Oxlint)
+├── NOTICE                           # Attribution for third-party Apache-2.0 derived works
 ├── AGENTS.md                        # This agent guide
 └── README.md                        # Project documentation
 ```
@@ -46,6 +47,7 @@ webmcp-skills/
 This project uses a native **TypeScript and Vite evaluation engine** (`src/evals/`) conforming to the [Agent Skills Evaluation Standard](https://agentskills.io/skill-creation/evaluating-skills).
 
 ### 1. Environment Setup
+
 ```bash
 npm install
 # Set your Gemini API key in .env (automatically loaded by the eval runner via dotenvy)
@@ -53,6 +55,7 @@ echo "GEMINI_API_KEY=your-gemini-api-key" >> .env
 ```
 
 ### 2. Running Evals & Tests
+
 ```bash
 # Run unit tests for the runner, loader, and grader
 npm run test:unit
@@ -154,12 +157,10 @@ To maintain high skill quality and prevent regressions:
 When authoring or maintaining files in this repository, agents must adhere to Antigravity and agent runtime resource constraints:
 
 1. **Rule File Cap (`AGENTS.md`)**:
-   * **Per-File Cap (24 KB / 24,000 bytes)**: Rule files (`AGENTS.md`, `GEMINI.md`) are hard-capped at 24,000 bytes. Files exceeding this limit are truncated on line boundaries.
-   * **No YAML Frontmatter**: Standalone `AGENTS.md` files do not support YAML frontmatter and are loaded unconditionally across the workspace and its subdirectories.
-   * **Aggregate Rules Budget (20,000 tokens)**: Always-on and global rules share a dedicated 20,000-token rules budget (`defaultRulesBudget`). If active rules exceed this budget, they are demoted from full inline text to file path pointers.
+   - **Per-File Cap (24 KB / 24,000 bytes)**: Rule files (`AGENTS.md`, `GEMINI.md`) are hard-capped at 24,000 bytes. Files exceeding this limit are truncated on line boundaries.
+   - **No YAML Frontmatter**: Standalone `AGENTS.md` files do not support YAML frontmatter and are loaded unconditionally across the workspace and its subdirectories.
+   - **Aggregate Rules Budget (20,000 tokens)**: Always-on and global rules share a dedicated 20,000-token rules budget (`defaultRulesBudget`). If active rules exceed this budget, they are demoted from full inline text to file path pointers.
 2. **Skill Prompt Budget (`SKILL.md`)**:
-   * `SKILL.md` is loaded directly as the `systemInstruction` in Promptfoo evaluations and whenever an agent activates the skill.
-   * Keep `SKILL.md` lean (well under 24 KB) to avoid context bloat, slow evaluation runs, or truncation.
-   * Move framework-specific walkthroughs, testing harnesses, and lengthy code snippets into `references/*.md`, referencing them via relative markdown links.
-
-
+   - `SKILL.md` is loaded directly as the `systemInstruction` in Promptfoo evaluations and whenever an agent activates the skill.
+   - Keep `SKILL.md` lean (well under 24 KB) to avoid context bloat, slow evaluation runs, or truncation.
+   - Move framework-specific walkthroughs, testing harnesses, and lengthy code snippets into `references/*.md`, referencing them via relative markdown links.

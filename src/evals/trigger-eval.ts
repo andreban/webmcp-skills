@@ -1,7 +1,9 @@
-// Copyright 2026 Andre Cipriani Bandarra
-// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright 2026 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import { generateContent } from './provider.js';
+import { generateContent } from "./provider.js";
 
 export interface TriggerQuery {
   query: string;
@@ -55,12 +57,12 @@ export async function runTriggerEval(
 
   for (const item of queries) {
     let triggered = false;
-    let reason = '';
+    let reason = "";
 
     if (options.mock || !process.env.GEMINI_API_KEY) {
       // In mock mode, simulate correct behavior based on query matching description keywords
       triggered = item.should_trigger;
-      reason = '[MOCK] Simulated router decision';
+      reason = "[MOCK] Simulated router decision";
     } else {
       const routerPrompt = `
 You are an AI agent router determining whether to activate a skill for a user request.
@@ -84,13 +86,13 @@ Return valid JSON matching this schema:
       try {
         const res = await generateContent(routerPrompt, {
           model: options.model,
-          responseMimeType: 'application/json',
+          responseMimeType: "application/json",
           temperature: 0.1,
         });
 
         const parsed = JSON.parse(res.text);
         triggered = Boolean(parsed.triggered);
-        reason = String(parsed.reason || '');
+        reason = String(parsed.reason || "");
       } catch (err) {
         triggered = false;
         reason = `Router error: ${(err as Error).message}`;
@@ -125,7 +127,10 @@ Return valid JSON matching this schema:
   const accuracy = total > 0 ? Number((passed / total).toFixed(4)) : 1.0;
   const precision = tp + fp > 0 ? Number((tp / (tp + fp)).toFixed(4)) : 0.0;
   const recall = tp + fn > 0 ? Number((tp / (tp + fn)).toFixed(4)) : 0.0;
-  const f1 = precision + recall > 0 ? Number(((2 * precision * recall) / (precision + recall)).toFixed(4)) : 0.0;
+  const f1 =
+    precision + recall > 0
+      ? Number(((2 * precision * recall) / (precision + recall)).toFixed(4))
+      : 0.0;
 
   return {
     skill_name: skillName,
