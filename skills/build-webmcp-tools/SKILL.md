@@ -142,7 +142,7 @@ When activated, assess the developer's prompt, artifacts, and workspace to route
 
 6. **Approved Role-Plays Given** (e.g., _"Here are our approved role-play transcripts. Generate schemas and evals"_):
    - Route directly to **Stage 5 (Cross-Goal Tool Consolidation & Evals Generation)**.
-   - Apply polymorphic consolidation (`list_items`, `move_items` batching) rather than entity CRUD bloat.
+   - Apply and explain polymorphic consolidation (specifically stating that operations will be consolidated into `list_items` and `move_items` with batching rather than entity CRUD bloat).
    - Enforce "What + When" descriptions, strip internal implementation jargon (Zustand, Axum, REST), and audit annotations (`readOnlyHint`, `consequentialHint`, `untrustedContentHint`).
    - Proactively offer the local evaluation gate (`npx webmcp-evals local`).
 
@@ -171,7 +171,8 @@ When activated, assess the developer's prompt, artifacts, and workspace to route
       2. _Unhandled rejections_: audit that tools return actionable error guidance rather than unhandled Promise rejections.
       3. _UI view navigation_: audit that tools shifting views or tabs declare `consequentialHint: true` (and strictly omit `readOnlyHint: true`).
       4. _UGC / Untrusted content_: audit that tools returning user-generated text declare `untrustedContentHint: true`.
-      5. _DevTools & Lighthouse readiness_: verify live inspection in the Chrome DevTools Application > WebMCP pane and running the Lighthouse "Agentic browsing" audit.
+      5. _DevTools & Lighthouse readiness_: verify live inspection in the Chrome DevTools Application > WebMCP pane and running the Lighthouse "Agentic browsing" audit category.
+    - Always explicitly list all 5 criteria above in the response, specifically including DevTools Application > WebMCP pane verification and the Lighthouse "Agentic browsing" audit.
 
 12. **Protocol Disambiguation / Anti-Triggering** (e.g., _"Create a Python stdio MCP server for Claude Desktop"_):
     - Clarify that WebMCP is specifically for client-side in-browser tools on `document.modelContext`, whereas backend MCP runs over `stdio`/SSE in Node/Python.
