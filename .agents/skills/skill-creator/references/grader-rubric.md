@@ -1,3 +1,13 @@
+<!--
+Copyright 2026 Google LLC
+SPDX-License-Identifier: Apache-2.0
+
+Portions derived from Anthropic's skill-creator (https://github.com/anthropics/skills),
+licensed under the Apache License, Version 2.0.
+Copyright (c) Anthropic, PBC.
+Modified by Google LLC.
+-->
+
 # Grader Agent Rubric & Evaluation Protocol
 
 Evaluate expectations against an execution transcript and generated outputs.
@@ -7,6 +17,7 @@ Evaluate expectations against an execution transcript and generated outputs.
 The Grader reviews an execution transcript and output files, then determines whether each expectation passes or fails. Provide clear, objective evidence for each judgment.
 
 You have two primary jobs:
+
 1. **Grade the outputs** with concrete textual citations.
 2. **Critique the evals themselves**. A passing grade on a weak or superficial assertion is worse than useless — it creates false confidence. When you notice an assertion that is trivially satisfied, or an important outcome that no assertion checks, flag it.
 
@@ -15,6 +26,7 @@ You have two primary jobs:
 ## Inputs
 
 Parameters provided during evaluation:
+
 - **`expectations`**: List of verifiable assertions to evaluate (strings).
 - **`transcript_path`**: Path to the execution transcript (`response.md` or transcript log).
 - **`outputs_dir`**: Directory containing output files from execution.
@@ -24,17 +36,21 @@ Parameters provided during evaluation:
 ## Process
 
 ### Step 1: Read the Transcript
+
 1. Read the execution transcript completely.
 2. Note the eval prompt, execution steps, tool invocations, and final results.
 3. Identify any issues, errors, or unexpected recovery loops documented during execution.
 
 ### Step 2: Examine Output Files
+
 1. List files in `outputs_dir`.
 2. Read and examine each file relevant to the expectations. If outputs are structured code or artifacts, inspect their AST or content directly rather than relying solely on transcript summaries.
 3. Note contents, structure, and quality.
 
 ### Step 3: Evaluate Each Assertion
+
 For each expectation:
+
 1. **Search for evidence** in the transcript and outputs.
 2. **Determine verdict**:
    - **PASS**: Clear evidence demonstrates the expectation is true AND the evidence reflects genuine task completion, not just surface-level compliance.
@@ -42,7 +58,9 @@ For each expectation:
 3. **Cite the evidence**: Quote the specific text, line range, or describe concrete findings.
 
 ### Step 4: Extract and Verify Claims
+
 Beyond predefined expectations, extract implicit claims from the outputs and verify them:
+
 1. **Extract claims**:
    - **Factual statements**: ("The component accepts an onError prop")
    - **Process claims**: ("Used useWebMCP to register tool")
@@ -54,17 +72,21 @@ Beyond predefined expectations, extract implicit claims from the outputs and ver
 3. **Flag unverifiable claims**: Note claims that cannot be proven with available context.
 
 ### Step 5: Read User Notes
+
 If `{outputs_dir}/user_notes.md` exists:
+
 1. Read and note any uncertainties or workarounds flagged during execution.
 2. Include relevant concerns in the grading output.
 3. These notes often reveal latent problems even when all assertions technically pass.
 
 ### Step 6: Critique the Evals
+
 After grading, assess whether the eval assertions could be improved. Only surface suggestions when there is a clear gap.
 
 Good assertions test meaningful outcomes — assertions that are hard to satisfy without actually doing the work correctly. A good assertion is **discriminating**: it passes when the skill genuinely succeeds and fails when it doesn't.
 
 **Suggestions worth raising:**
+
 - An assertion that passed but would also pass for a clearly wrong output (e.g. checking filename existence rather than content correctness).
 - An important outcome observed — good or bad — that no assertion covers at all.
 - An assertion that cannot actually be verified from the available outputs.
@@ -72,9 +94,11 @@ Good assertions test meaningful outcomes — assertions that are hard to satisfy
 Keep the bar high. Flag things the eval author would recognize as valuable catches.
 
 ### Step 7: Write Grading Results
+
 Save results to `{outputs_dir}/../grading.json` (sibling to `outputs/`).
 
 ### Step 8: Read Metrics and Timing
+
 1. If `{outputs_dir}/metrics.json` exists, incorporate tool calls and execution metrics.
 2. If `{outputs_dir}/../timing.json` exists, incorporate duration and token counts.
 
@@ -83,11 +107,13 @@ Save results to `{outputs_dir}/../grading.json` (sibling to `outputs/`).
 ## Grading Criteria
 
 ### PASS When:
+
 - The transcript or outputs clearly demonstrate the expectation is true.
 - Specific, verifiable evidence can be cited.
 - The evidence reflects genuine substance, not just surface compliance (e.g., a file exists AND contains correct logic, not merely the expected filename or export stub).
 
 ### FAIL When:
+
 - No evidence is found for the expectation.
 - Evidence directly contradicts the expectation.
 - The expectation cannot be verified from available information.

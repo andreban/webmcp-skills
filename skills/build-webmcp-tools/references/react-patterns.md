@@ -1,5 +1,5 @@
 <!--
-Copyright 2026 Andre Cipriani Bandarra
+Copyright 2026 Google LLC
 SPDX-License-Identifier: Apache-2.0
 -->
 
@@ -18,8 +18,8 @@ npm install use-webmcp-tool
 npm install -D webmcp-types  # Optional: for direct TypeScript typings
 ```
 
-* **Requirements**: React 18+ peer dependency, ESM-only, bundled TypeScript types, zero runtime dependencies.
-* **Next.js & Server Components**: The hook uses React state and lifecycle effects, so components declaring tools must include the `"use client"` directive. During SSR, the hook gracefully feature-detects and returns `{ supported: false, registered: false, error: null }` without throwing.
+- **Requirements**: React 18+ peer dependency, ESM-only, bundled TypeScript types, zero runtime dependencies.
+- **Next.js & Server Components**: The hook uses React state and lifecycle effects, so components declaring tools must include the `"use client"` directive. During SSR, the hook gracefully feature-detects and returns `{ supported: false, registered: false, error: null }` without throwing.
 
 ---
 
@@ -42,11 +42,11 @@ const { supported, registered, error } = useWebMCP<Args, Result>({
 
 ### Return Values
 
-| Return Field | Description |
-| :--- | :--- |
-| `supported` | `true` if `document.modelContext` exists in the browser. `false` during SSR and on unsupported browsers. |
+| Return Field | Description                                                                                                          |
+| :----------- | :------------------------------------------------------------------------------------------------------------------- |
+| `supported`  | `true` if `document.modelContext` exists in the browser. `false` during SSR and on unsupported browsers.             |
 | `registered` | `true` if the tool is actively registered with the browser. `false` if unregistered, unmounted, or `enabled: false`. |
-| `error` | `Error \| null`. Contains registration errors (such as `NotAllowedError` if Permissions Policy denies `tools`). |
+| `error`      | `Error \| null`. Contains registration errors (such as `NotAllowedError` if Permissions Policy denies `tools`).      |
 
 ---
 
@@ -68,19 +68,19 @@ const { supported, registered, error } = useWebMCP<Args, Result>({
 
 `useWebMCP` automatically normalizes return values and errors into the WebMCP protocol structure:
 
-| What `execute` Returns / Throws | What the Agent Receives |
-| :--- | :--- |
-| `string` | `{ content: [{ type: "text", text }] }` |
-| `undefined` / `null` | `{ content: [] }` (empty success) |
-| Object or Array | `{ content: [{ type: "text", text: JSON.stringify(val) }] }` |
-| Already `{ content: [...] }` | Passed through directly without modification |
+| What `execute` Returns / Throws      | What the Agent Receives                                             |
+| :----------------------------------- | :------------------------------------------------------------------ |
+| `string`                             | `{ content: [{ type: "text", text }] }`                             |
+| `undefined` / `null`                 | `{ content: [] }` (empty success)                                   |
+| Object or Array                      | `{ content: [{ type: "text", text: JSON.stringify(val) }] }`        |
+| Already `{ content: [...] }`         | Passed through directly without modification                        |
 | `throw new Error("actionable text")` | `{ content: [{ type: "text", text: err.message }], isError: true }` |
-| Returns an `Error` instance | Treated identically to throwing (`isError: true`) |
+| Returns an `Error` instance          | Treated identically to throwing (`isError: true`)                   |
 
 > **Critical Rule**: **Throw actionable errors; do NOT return failure objects.**
 > Never return `{ status: "error", message: "..." }`. In `useWebMCP`, returning a plain object is interpreted as a successful execution. Throwing an `Error` triggers `onError` telemetry and resolves `{ content: [{ type: "text", text: err.message }], isError: true }`.
-> 
-> *Under the hood*: `useWebMCP` catches the thrown `Error` and **resolves** the tool promise with `isError: true`. This prevents the browser from discarding the error message into a generic `DOMException: UnknownError` (as native WebMCP does on unhandled rejections), ensuring the agent receives both the full remediation text and the error flag to self-correct.
+>
+> _Under the hood_: `useWebMCP` catches the thrown `Error` and **resolves** the tool promise with `isError: true`. This prevents the browser from discarding the error message into a generic `DOMException: UnknownError` (as native WebMCP does on unhandled rejections), ensuring the agent receives both the full remediation text and the error flag to self-correct.
 
 ---
 
@@ -91,23 +91,23 @@ const { supported, registered, error } = useWebMCP<Args, Result>({
 Place the hook in the component that owns or receives the state the tool modifies. When the component unmounts, the tool unregisters automatically:
 
 ```tsx
-import React, { useState } from 'react';
-import { useWebMCP } from 'use-webmcp-tool';
+import React, { useState } from "react";
+import { useWebMCP } from "use-webmcp-tool";
 
 export function FlightSearch() {
   const [flights, setFlights] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const { supported, registered, error } = useWebMCP({
-    name: 'search_flights',
-    description: 'Searches available flights by destination and date.',
+    name: "search_flights",
+    description: "Searches available flights by destination and date.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        destination: { type: 'string', description: '3-letter IATA airport code (e.g. JFK)' },
-        date: { type: 'string', description: 'Departure date in YYYY-MM-DD format' },
+        destination: { type: "string", description: "3-letter IATA airport code (e.g. JFK)" },
+        date: { type: "string", description: "Departure date in YYYY-MM-DD format" },
       },
-      required: ['destination', 'date'],
+      required: ["destination", "date"],
     },
     annotations: {
       readOnlyHint: true,
@@ -120,11 +120,11 @@ export function FlightSearch() {
           throw new Error(`Flight search failed (${response.status}). Check airport code or date.`);
         }
         const data = await response.json();
-        
+
         // Update local state before returning result to the agent
         // (Use flushSync(() => setFlights(data.results)) from 'react-dom' if synchronous DOM mutation is strictly required)
         setFlights(data.results);
-        
+
         return `Found ${data.results.length} flights to ${destination} on ${date}.`;
       } finally {
         setIsLoading(false);
@@ -134,7 +134,9 @@ export function FlightSearch() {
 
   return (
     <section>
-      {supported && <span aria-live="polite">{registered ? 'AI Tools Active' : 'Connecting...'}</span>}
+      {supported && (
+        <span aria-live="polite">{registered ? "AI Tools Active" : "Connecting..."}</span>
+      )}
       {/* UI Elements */}
     </section>
   );
@@ -146,29 +148,31 @@ export function FlightSearch() {
 When a component remains mounted across multiple steps (e.g. a multi-step checkout wizard), use `enabled` to expose tools only during valid states:
 
 ```tsx
-import { useWebMCP } from 'use-webmcp-tool';
+import { useWebMCP } from "use-webmcp-tool";
 
 export function CheckoutWizard({ currentStep, orderId }) {
   // Tool only available during the 'payment' step
   useWebMCP({
-    name: 'apply_coupon',
-    description: 'Applies a promotional discount coupon to the active order.',
-    enabled: currentStep === 'payment',
+    name: "apply_coupon",
+    description: "Applies a promotional discount coupon to the active order.",
+    enabled: currentStep === "payment",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
-        code: { type: 'string', description: 'Coupon code' },
+        code: { type: "string", description: "Coupon code" },
       },
-      required: ['code'],
+      required: ["code"],
     },
     async execute({ code }) {
       const result = await applyDiscount(orderId, code);
       if (!result.success) {
-        throw new Error(`Coupon "${code}" is invalid or expired. Prompt user for an alternate code.`);
+        throw new Error(
+          `Coupon "${code}" is invalid or expired. Prompt user for an alternate code.`,
+        );
       }
       return `Coupon "${code}" applied. New total: $${result.newTotal}.`;
     },
-    onError: (err) => console.warn('Coupon application failed:', err),
+    onError: (err) => console.warn("Coupon application failed:", err),
   });
 
   return <div>{/* Checkout Step UI */}</div>;
@@ -181,14 +185,14 @@ Enforce character budgets (≤ 1.5K characters) and structure output for LLM con
 
 ```tsx
 useWebMCP({
-  name: 'search_catalog',
-  description: 'Searches product catalog; returns top matches with prices and stock.',
+  name: "search_catalog",
+  description: "Searches product catalog; returns top matches with prices and stock.",
   inputSchema: {
-    type: 'object',
+    type: "object",
     properties: {
-      query: { type: 'string', description: 'Search keywords or product terms' },
+      query: { type: "string", description: "Search keywords or product terms" },
     },
-    required: ['query'],
+    required: ["query"],
   },
   annotations: { readOnlyHint: true, untrustedContentHint: true },
   async execute({ query }) {
@@ -196,13 +200,15 @@ useWebMCP({
   },
   formatOutput: (results) => {
     if (!results || results.length === 0) {
-      return 'No products found. Suggest broadening search filters.';
+      return "No products found. Suggest broadening search filters.";
     }
     // Limit to top 5 and format as concise lines under 1.5K chars
     return results
       .slice(0, 5)
-      .map((p) => `- [${p.id}] ${p.name} ($${p.price}) - ${p.inStock ? 'In Stock' : 'Out of Stock'}`)
-      .join('\n');
+      .map(
+        (p) => `- [${p.id}] ${p.name} ($${p.price}) - ${p.inStock ? "In Stock" : "Out of Stock"}`,
+      )
+      .join("\n");
   },
 });
 ```
@@ -212,31 +218,32 @@ useWebMCP({
 When an application manages multiple entity types (e.g. notes, tasks, documents), do not register granular tools per entity type (`list_notes`, `list_tasks`, `move_note`, `move_task`). Instead, register consolidated polymorphic tools that query or mutate across entity types in a single turn using `Promise.all`:
 
 ```tsx
-import React, { useState } from 'react';
-import { useWebMCP } from 'use-webmcp-tool';
+import React, { useState } from "react";
+import { useWebMCP } from "use-webmcp-tool";
 
 export function WorkspaceView() {
   const [items, setItems] = useState<any[]>([]);
 
   // 1. Consolidated polymorphic query tool
   useWebMCP({
-    name: 'list_items',
-    description: 'Searches and lists items across tasks, notes, and documents with optional type filtering.',
+    name: "list_items",
+    description:
+      "Searches and lists items across tasks, notes, and documents with optional type filtering.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         types: {
-          type: 'array',
-          items: { type: 'string', enum: ['tasks', 'notes', 'docs'] },
-          description: 'Entity types to query. Defaults to all types if omitted.',
+          type: "array",
+          items: { type: "string", enum: ["tasks", "notes", "docs"] },
+          description: "Entity types to query. Defaults to all types if omitted.",
         },
         query: {
-          type: 'string',
-          description: 'Natural language keyword query to search across titles and descriptions.',
+          type: "string",
+          description: "Natural language keyword query to search across titles and descriptions.",
         },
         page: {
-          type: 'integer',
-          description: 'Page number for pagination (starts at 1).',
+          type: "integer",
+          description: "Page number for pagination (starts at 1).",
         },
       },
     },
@@ -244,10 +251,10 @@ export function WorkspaceView() {
       readOnlyHint: true,
       untrustedContentHint: true,
     },
-    async execute({ types = ['tasks', 'notes', 'docs'], query = '', page = 1 }) {
+    async execute({ types = ["tasks", "notes", "docs"], query = "", page = 1 }) {
       // Execute sub-queries concurrently with Promise.all to avoid multi-turn roundtrips
       const fetchers = types.map(async (type) => {
-        const params = new URLSearchParams({ q: query, page: String(page), limit: '10' });
+        const params = new URLSearchParams({ q: query, page: String(page), limit: "10" });
         const res = await fetch(`/api/${type}?${params}`);
         if (!res.ok) throw new Error(`Failed to fetch ${type} (${res.status})`);
         const data = await res.json();
@@ -274,42 +281,44 @@ export function WorkspaceView() {
 
   // 2. Consolidated polymorphic batch mutation tool
   useWebMCP({
-    name: 'move_items',
-    description: 'Moves a batch of items (tasks, notes, or docs) to a target folder or project.',
+    name: "move_items",
+    description: "Moves a batch of items (tasks, notes, or docs) to a target folder or project.",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         items: {
-          type: 'array',
+          type: "array",
           items: {
-            type: 'object',
+            type: "object",
             properties: {
-              type: { type: 'string', enum: ['task', 'note', 'doc'] },
-              id: { type: 'string', description: 'Item identifier' },
+              type: { type: "string", enum: ["task", "note", "doc"] },
+              id: { type: "string", description: "Item identifier" },
             },
-            required: ['type', 'id'],
+            required: ["type", "id"],
           },
-          description: 'Array of items to move.',
+          description: "Array of items to move.",
         },
         target_folder_id: {
-          type: 'string',
-          description: 'Target destination folder ID or path.',
+          type: "string",
+          description: "Target destination folder ID or path.",
         },
       },
-      required: ['items', 'target_folder_id'],
+      required: ["items", "target_folder_id"],
     },
     annotations: {
       consequentialHint: true,
     } as any,
     async execute({ items, target_folder_id }) {
-      const response = await fetch('/api/batch-move', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/batch-move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items, targetFolderId: target_folder_id }),
       });
 
       if (!response.ok) {
-        throw new Error(`Batch move failed: ${response.statusText}. Verify item IDs and target folder.`);
+        throw new Error(
+          `Batch move failed: ${response.statusText}. Verify item IDs and target folder.`,
+        );
       }
 
       return `Successfully moved ${items.length} items to folder "${target_folder_id}".`;
@@ -343,11 +352,11 @@ export function WorkspaceView() {
 Test tool logic, argument validation, and state updates deterministically without invoking an LLM:
 
 ```tsx
-import { render, screen } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { FlightSearch } from './FlightSearch';
+import { render, screen } from "@testing-library/react";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { FlightSearch } from "./FlightSearch";
 
-describe('FlightSearch WebMCP Integration', () => {
+describe("FlightSearch WebMCP Integration", () => {
   beforeEach(() => {
     // Mock document.modelContext
     document.modelContext = {
@@ -359,11 +368,11 @@ describe('FlightSearch WebMCP Integration', () => {
     delete (document as any).modelContext;
   });
 
-  it('registers tool on mount and executes successfully', async () => {
+  it("registers tool on mount and executes successfully", async () => {
     // Mock successful API fetch response
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ results: [{ id: '1', airline: 'SkyAir', price: 299 }] }),
+      json: async () => ({ results: [{ id: "1", airline: "SkyAir", price: 299 }] }),
     } as any);
 
     render(<FlightSearch />);
@@ -371,25 +380,25 @@ describe('FlightSearch WebMCP Integration', () => {
     expect(document.modelContext.registerTool).toHaveBeenCalledTimes(1);
     const [tool, options] = (document.modelContext.registerTool as any).mock.calls[0];
 
-    expect(tool.name).toBe('search_flights');
+    expect(tool.name).toBe("search_flights");
     expect(options.signal).toBeInstanceOf(AbortSignal);
 
     // Test tool execution directly
-    const result = await tool.execute({ destination: 'JFK', date: '2026-10-15' });
-    expect(result).toHaveProperty('content');
+    const result = await tool.execute({ destination: "JFK", date: "2026-10-15" });
+    expect(result).toHaveProperty("content");
     expect(result.isError).toBeFalsy();
   });
 
-  it('reports actionable errors when execution fails', async () => {
+  it("reports actionable errors when execution fails", async () => {
     // Simulate failing fetch
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: false, status: 404 } as any);
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({ ok: false, status: 404 } as any);
 
     render(<FlightSearch />);
     const [tool] = (document.modelContext.registerTool as any).mock.calls[0];
 
-    const result = await tool.execute({ destination: 'INVALID', date: '2026-10-15' });
+    const result = await tool.execute({ destination: "INVALID", date: "2026-10-15" });
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('Flight search failed');
+    expect(result.content[0].text).toContain("Flight search failed");
   });
 });
 ```

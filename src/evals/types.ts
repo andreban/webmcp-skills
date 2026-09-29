@@ -1,5 +1,7 @@
-// Copyright 2026 Andre Cipriani Bandarra
-// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright 2026 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 /**
  * Single evaluation test case conforming to agentskills.io standard.
@@ -77,7 +79,7 @@ export interface GradingOutput {
  */
 export interface SingleRunResult {
   eval_id: string;
-  config: 'with_skill' | 'without_skill';
+  config: "with_skill" | "without_skill";
   run_number?: number;
   output: string;
   timing: Timing;

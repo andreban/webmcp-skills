@@ -1,3 +1,13 @@
+<!--
+Copyright 2026 Google LLC
+SPDX-License-Identifier: Apache-2.0
+
+Portions derived from Anthropic's skill-creator (https://github.com/anthropics/skills),
+licensed under the Apache License, Version 2.0.
+Copyright (c) Anthropic, PBC.
+Modified by Google LLC.
+-->
+
 # Blind Comparator Agent Rubric
 
 Compare two outputs WITHOUT knowing which skill version or prompt configuration produced them.
@@ -13,6 +23,7 @@ Your judgment is based purely on output quality and task completion.
 ## Inputs
 
 Parameters provided in the prompt:
+
 - **`output_a_path`**: Path to the first output file or directory.
 - **`output_b_path`**: Path to the second output file or directory.
 - **`eval_prompt`**: The original user task/prompt that was executed.
@@ -23,12 +34,14 @@ Parameters provided in the prompt:
 ## Process
 
 ### Step 1: Read Both Outputs
+
 1. Examine output A (file or directory).
 2. Examine output B (file or directory).
 3. Note the type, structure, completeness, and substance of each.
 4. If outputs are directories, examine all relevant files inside.
 
 ### Step 2: Understand the Task
+
 1. Read the `eval_prompt` carefully.
 2. Identify what the task requires:
    - What must be produced?
@@ -36,42 +49,52 @@ Parameters provided in the prompt:
    - What distinguishes an exceptional output from a mediocre or poor one?
 
 ### Step 3: Generate Evaluation Rubric
+
 Based on the task, generate a rubric across two primary dimensions:
 
 #### Content Rubric (Substance & Correctness)
-| Criterion | 1 (Poor) | 3 (Acceptable) | 5 (Excellent) |
-|---|---|---|---|
-| **Correctness** | Major functional or logical errors | Minor errors or omissions | Fully correct and functional |
-| **Completeness** | Missing essential requirements | Mostly complete with minor gaps | All requirements and edge cases addressed |
-| **Accuracy** | Significant technical inaccuracies | Minor inaccuracies or questionable types | Technologically accurate and robust |
+
+| Criterion        | 1 (Poor)                           | 3 (Acceptable)                           | 5 (Excellent)                             |
+| ---------------- | ---------------------------------- | ---------------------------------------- | ----------------------------------------- |
+| **Correctness**  | Major functional or logical errors | Minor errors or omissions                | Fully correct and functional              |
+| **Completeness** | Missing essential requirements     | Mostly complete with minor gaps          | All requirements and edge cases addressed |
+| **Accuracy**     | Significant technical inaccuracies | Minor inaccuracies or questionable types | Technologically accurate and robust       |
 
 #### Structure Rubric (Organization & Polish)
-| Criterion | 1 (Poor) | 3 (Acceptable) | 5 (Excellent) |
-|---|---|---|---|
-| **Organization** | Disorganized or monolithic | Reasonably organized | Clear, modular, idiomatic architecture |
-| **Formatting** | Inconsistent or broken syntax | Mostly consistent style | Production-ready, clean, well-documented |
-| **Usability** | Fragile or hard to integrate | Usable with manual adjustments | Plug-and-play, ergonomic API design |
+
+| Criterion        | 1 (Poor)                      | 3 (Acceptable)                 | 5 (Excellent)                            |
+| ---------------- | ----------------------------- | ------------------------------ | ---------------------------------------- |
+| **Organization** | Disorganized or monolithic    | Reasonably organized           | Clear, modular, idiomatic architecture   |
+| **Formatting**   | Inconsistent or broken syntax | Mostly consistent style        | Production-ready, clean, well-documented |
+| **Usability**    | Fragile or hard to integrate  | Usable with manual adjustments | Plug-and-play, ergonomic API design      |
 
 Adapt criteria to the specific task domain:
+
 - **WebMCP tool**: Schema validation, lifecycle registration, error handling, clean teardown.
 - **React component**: Clean hook usage, memoization, state management, accessibility.
 - **Data output**: Schema conformance, data types, normalization.
 
 ### Step 4: Evaluate Outputs Against the Rubric
+
 For each output (A and B):
+
 1. **Score each criterion** (1–5 scale).
 2. **Calculate dimension scores**: Average for Content, average for Structure.
 3. **Calculate overall score**: Combined score scaled to 1–10 (`(content_score + structure_score) * 1.0`).
 
 ### Step 5: Check Assertions (If Provided)
+
 If expectations are provided:
+
 1. Check each expectation against output A.
 2. Check each expectation against output B.
 3. Count pass rates for each output.
 4. Use expectation scores as **secondary evidence** (the overall task completion and rubric remain primary).
 
 ### Step 6: Determine the Winner
+
 Compare A and B in strict priority order:
+
 1. **Primary**: Overall rubric score (content + structure).
 2. **Secondary**: Assertion pass rates (if applicable).
 3. **Tiebreaker**: If truly equal across all dimensions, declare a **TIE**.
@@ -79,6 +102,7 @@ Compare A and B in strict priority order:
 Be decisive — ties should be rare. One output is almost always marginally or significantly better.
 
 ### Step 7: Write Comparison Results
+
 Save results to `comparison.json`.
 
 ---
@@ -129,16 +153,11 @@ Save results to `comparison.json`.
         "Includes readOnlyHint for non-mutating search",
         "Handles unmount lifecycle properly"
       ],
-      "weaknesses": [
-        "Minor: could add explicit TypeScript generic for response"
-      ]
+      "weaknesses": ["Minor: could add explicit TypeScript generic for response"]
     },
     "B": {
       "score": 6.0,
-      "strengths": [
-        "Valid JSX rendering",
-        "Basic state handling"
-      ],
+      "strengths": ["Valid JSX rendering", "Basic state handling"],
       "weaknesses": [
         "References deprecated navigator.modelContext",
         "Omits readOnlyHint configuration",
@@ -152,9 +171,9 @@ Save results to `comparison.json`.
       "total": 3,
       "pass_rate": 1.0,
       "details": [
-        {"text": "Uses useWebMCP hook", "passed": true},
-        {"text": "Includes readOnlyHint", "passed": true},
-        {"text": "No deprecated navigator.modelContext", "passed": true}
+        { "text": "Uses useWebMCP hook", "passed": true },
+        { "text": "Includes readOnlyHint", "passed": true },
+        { "text": "No deprecated navigator.modelContext", "passed": true }
       ]
     },
     "B": {
@@ -162,9 +181,9 @@ Save results to `comparison.json`.
       "total": 3,
       "pass_rate": 0.33,
       "details": [
-        {"text": "Uses useWebMCP hook", "passed": false},
-        {"text": "Includes readOnlyHint", "passed": false},
-        {"text": "No deprecated navigator.modelContext", "passed": false}
+        { "text": "Uses useWebMCP hook", "passed": false },
+        { "text": "Includes readOnlyHint", "passed": false },
+        { "text": "No deprecated navigator.modelContext", "passed": false }
       ]
     }
   }

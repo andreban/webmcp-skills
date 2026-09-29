@@ -1,26 +1,28 @@
-// Copyright 2026 Andre Cipriani Bandarra
-// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright 2026 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { bundleSkillEvals, discoverSkills, loadSkillEvals } from './loader.js';
-import { packageSkill } from './package-skill.js';
-import { printConsoleSummary, saveBenchmarkWorkspace } from './reporter.js';
-import { runSkillEvals } from './runner.js';
-import { runTriggerEval, type TriggerQuery } from './trigger-eval.js';
-import { runTriggerOptimizationLoop } from './trigger-loop.js';
-import type { Skill } from './types.js';
-import { validateSkill } from './validate-skill.js';
-import dotenvy from 'dotenvy';
+import fs from "node:fs";
+import path from "node:path";
+import { bundleSkillEvals, discoverSkills, loadSkillEvals } from "./loader.js";
+import { packageSkill } from "./package-skill.js";
+import { printConsoleSummary, saveBenchmarkWorkspace } from "./reporter.js";
+import { runSkillEvals } from "./runner.js";
+import { runTriggerEval, type TriggerQuery } from "./trigger-eval.js";
+import { runTriggerOptimizationLoop } from "./trigger-loop.js";
+import type { Skill } from "./types.js";
+import { validateSkill } from "./validate-skill.js";
+import dotenvy from "dotenvy";
 
-if (fs.existsSync(path.resolve('.env'))) {
+if (fs.existsSync(path.resolve(".env"))) {
   dotenvy();
 }
 
 interface CliArgs {
   skill?: string;
   filter?: string;
-  mode: 'with-only' | 'comparison';
+  mode: "with-only" | "comparison";
   iteration?: number;
   runs?: number;
   model?: string;
@@ -35,22 +37,22 @@ interface CliArgs {
 function parseArgs(): CliArgs {
   const args = process.argv.slice(2);
   const result: CliArgs = {
-    mode: 'comparison',
+    mode: "comparison",
     dryRun: false,
     bundleOnly: false,
   };
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg === '--skill' && args[i + 1]) {
+    if (arg === "--skill" && args[i + 1]) {
       result.skill = args[++i];
-    } else if (arg === '--filter' && args[i + 1]) {
+    } else if (arg === "--filter" && args[i + 1]) {
       result.filter = args[++i];
-    } else if (arg === '--mode' && args[i + 1]) {
-      result.mode = args[++i] as 'with-only' | 'comparison';
-    } else if (arg === '--iteration' && args[i + 1]) {
+    } else if (arg === "--mode" && args[i + 1]) {
+      result.mode = args[++i] as "with-only" | "comparison";
+    } else if (arg === "--iteration" && args[i + 1]) {
       result.iteration = parseInt(args[++i], 10);
-    } else if ((arg === '--runs' || arg === '-r') && args[i + 1]) {
+    } else if ((arg === "--runs" || arg === "-r") && args[i + 1]) {
       const parsed = parseInt(args[++i], 10);
       if (Number.isInteger(parsed) && parsed > 0) {
         result.runs = parsed;
@@ -58,21 +60,21 @@ function parseArgs(): CliArgs {
         console.error(`Invalid --runs value: "${args[i]}". Must be a positive integer.`);
         process.exit(1);
       }
-    } else if (arg === '--model' && args[i + 1]) {
+    } else if (arg === "--model" && args[i + 1]) {
       result.model = args[++i];
-    } else if (arg === '--dry-run') {
+    } else if (arg === "--dry-run") {
       result.dryRun = true;
-    } else if (arg === '--bundle-only') {
+    } else if (arg === "--bundle-only") {
       result.bundleOnly = true;
-    } else if (arg === '--validate' && args[i + 1]) {
+    } else if (arg === "--validate" && args[i + 1]) {
       result.validate = args[++i];
-    } else if (arg === '--package' && args[i + 1]) {
+    } else if (arg === "--package" && args[i + 1]) {
       result.package = args[++i];
-    } else if (arg === '--trigger-eval' && args[i + 1]) {
+    } else if (arg === "--trigger-eval" && args[i + 1]) {
       result.triggerEval = args[++i];
-    } else if (arg === '--optimize-desc' && args[i + 1]) {
+    } else if (arg === "--optimize-desc" && args[i + 1]) {
       result.optimizeDesc = args[++i];
-    } else if (arg === '--help' || arg === '-h') {
+    } else if (arg === "--help" || arg === "-h") {
       console.log(`
 Modular Agent Skills Evaluation Runner (TypeScript & Vite)
 
@@ -113,7 +115,7 @@ async function main(): Promise<void> {
     if (res.valid) {
       console.log(`✓ Skill at '${args.validate}' is valid!`);
       if (res.warnings.length > 0) {
-        console.log('\nWarnings:');
+        console.log("\nWarnings:");
         for (const w of res.warnings) console.log(`  ⚠ ${w}`);
       }
       process.exit(0);
@@ -136,7 +138,7 @@ async function main(): Promise<void> {
     }
   }
 
-  const skillsDir = path.resolve('skills');
+  const skillsDir = path.resolve("skills");
 
   // Discover skills
   let skills: Skill[] = [];
@@ -156,18 +158,24 @@ async function main(): Promise<void> {
   if (args.bundleOnly) {
     for (const skill of skills) {
       const outPath = bundleSkillEvals(skill.dir);
-      console.log(`✓ Bundled ${skill.evals.length} evals into ${path.relative(process.cwd(), outPath)}`);
+      console.log(
+        `✓ Bundled ${skill.evals.length} evals into ${path.relative(process.cwd(), outPath)}`,
+      );
     }
     process.exit(0);
   }
 
   // 4. Handle --trigger-eval
   if (args.triggerEval) {
-    const queries: TriggerQuery[] = JSON.parse(fs.readFileSync(path.resolve(args.triggerEval), 'utf8'));
+    const queries: TriggerQuery[] = JSON.parse(
+      fs.readFileSync(path.resolve(args.triggerEval), "utf8"),
+    );
     const targetSkill = skills[0];
     const match = targetSkill.systemInstruction.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-    const descMatch = match ? match[1].match(/description:\s*(?:>-|>)?\s*([\s\S]*?)(?=\n[a-z0-9_-]+:|$)/) : null;
-    const desc = descMatch ? descMatch[1].trim() : '';
+    const descMatch = match
+      ? match[1].match(/description:\s*(?:>-|>)?\s*([\s\S]*?)(?=\n[a-z0-9_-]+:|$)/)
+      : null;
+    const desc = descMatch ? descMatch[1].trim() : "";
 
     const report = await runTriggerEval(targetSkill.name, desc, queries, {
       model: args.model,
@@ -184,11 +192,15 @@ async function main(): Promise<void> {
 
   // 5. Handle --optimize-desc
   if (args.optimizeDesc) {
-    const queries: TriggerQuery[] = JSON.parse(fs.readFileSync(path.resolve(args.optimizeDesc), 'utf8'));
+    const queries: TriggerQuery[] = JSON.parse(
+      fs.readFileSync(path.resolve(args.optimizeDesc), "utf8"),
+    );
     const targetSkill = skills[0];
     const match = targetSkill.systemInstruction.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-    const descMatch = match ? match[1].match(/description:\s*(?:>-|>)?\s*([\s\S]*?)(?=\n[a-z0-9_-]+:|$)/) : null;
-    const desc = descMatch ? descMatch[1].trim() : '';
+    const descMatch = match
+      ? match[1].match(/description:\s*(?:>-|>)?\s*([\s\S]*?)(?=\n[a-z0-9_-]+:|$)/)
+      : null;
+    const desc = descMatch ? descMatch[1].trim() : "";
 
     await runTriggerOptimizationLoop(
       targetSkill.name,
@@ -212,13 +224,15 @@ async function main(): Promise<void> {
   const isMock = args.dryRun || !hasApiKey;
 
   if (!hasApiKey && !args.dryRun) {
-    console.log('\n⚠️  NOTICE: GEMINI_API_KEY is not set. Running in dry-run / mock mode.\n');
+    console.log("\n⚠️  NOTICE: GEMINI_API_KEY is not set. Running in dry-run / mock mode.\n");
   }
 
   let totalFailedEvals = 0;
 
   for (const skill of skills) {
-    console.log(`\nEvaluating skill: ${skill.name} (${skill.evals.length} total evals across ${skill.suites.length} suites)`);
+    console.log(
+      `\nEvaluating skill: ${skill.name} (${skill.evals.length} total evals across ${skill.suites.length} suites)`,
+    );
 
     const runs = await runSkillEvals(skill, {
       mode: args.mode,
@@ -237,7 +251,9 @@ async function main(): Promise<void> {
     });
 
     printConsoleSummary(report);
-    console.log(`Artifacts saved to: ${path.relative(process.cwd(), path.dirname(benchmarkPath))}\n`);
+    console.log(
+      `Artifacts saved to: ${path.relative(process.cwd(), path.dirname(benchmarkPath))}\n`,
+    );
 
     for (const r of report.eval_results) {
       if (!r.with_skill.passed) {
@@ -252,6 +268,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error('\nFatal eval error:', err);
+  console.error("\nFatal eval error:", err);
   process.exit(1);
 });

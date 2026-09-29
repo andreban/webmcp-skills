@@ -1,10 +1,12 @@
-// Copyright 2026 Andre Cipriani Bandarra
-// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright 2026 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import { execFileSync } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
-import { validateSkill } from './validate-skill.js';
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { validateSkill } from "./validate-skill.js";
 
 export interface PackageResult {
   success: boolean;
@@ -24,7 +26,7 @@ export function packageSkill(skillDir: string, outputDir: string = process.cwd()
   if (!validation.valid) {
     return {
       success: false,
-      error: `Validation failed:\n  ${validation.errors.join('\n  ')}`,
+      error: `Validation failed:\n  ${validation.errors.join("\n  ")}`,
     };
   }
 
@@ -44,19 +46,54 @@ export function packageSkill(skillDir: string, outputDir: string = process.cwd()
     const parentDir = path.dirname(resolvedSkillDir);
     const folderName = path.basename(resolvedSkillDir);
 
-    const excludeArgs = [
-      '-x',
-      `*/evals/*`,
-      `*/node_modules/*`,
-      `*/.DS_Store`,
-      `*/__pycache__/*`,
-      `*.pyc`,
-    ];
+    if (process.platform === "win32") {
+      try {
+        const excludeArgs = [
+          "--exclude",
+          "*/evals/*",
+          "--exclude",
+          "evals",
+          "--exclude",
+          "*/node_modules/*",
+          "--exclude",
+          "node_modules",
+          "--exclude",
+          "*.DS_Store",
+          "--exclude",
+          "*__pycache__*",
+          "--exclude",
+          "*.pyc",
+        ];
+        execFileSync(
+          "tar.exe",
+          ["-c", "-f", archivePath, "--format", "zip", "-C", parentDir, ...excludeArgs, folderName],
+          {
+            stdio: "pipe",
+          },
+        );
+      } catch {
+        const tempZip = path.join(resolvedOutputDir, `${skillName}-temp.zip`);
+        if (fs.existsSync(tempZip)) fs.unlinkSync(tempZip);
+        const psCommand = `Compress-Archive -Path '${resolvedSkillDir}' -DestinationPath '${tempZip}' -Force; Move-Item -Path '${tempZip}' -Destination '${archivePath}' -Force`;
+        execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", psCommand], {
+          stdio: "pipe",
+        });
+      }
+    } else {
+      const excludeArgs = [
+        "-x",
+        `*/evals/*`,
+        `*/node_modules/*`,
+        `*/.DS_Store`,
+        `*/__pycache__/*`,
+        `*.pyc`,
+      ];
 
-    execFileSync('zip', ['-r', '-q', archivePath, folderName, ...excludeArgs], {
-      cwd: parentDir,
-      stdio: 'pipe',
-    });
+      execFileSync("zip", ["-r", "-q", archivePath, folderName, ...excludeArgs], {
+        cwd: parentDir,
+        stdio: "pipe",
+      });
+    }
 
     return {
       success: true,

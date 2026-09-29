@@ -3,6 +3,16 @@ name: skill-creator
 description: Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy.
 ---
 
+<!--
+Copyright 2026 Google LLC
+SPDX-License-Identifier: Apache-2.0
+
+Portions derived from Anthropic's skill-creator (https://github.com/anthropics/skills),
+licensed under the Apache License, Version 2.0.
+Copyright (c) Anthropic, PBC.
+Modified by Google LLC.
+-->
+
 # Skill Creator
 
 A skill for creating new skills and iteratively improving them following the [agentskills.io](https://agentskills.io/skill-creation/evaluating-skills) standard, powered by TypeScript and Vite.
@@ -57,7 +67,7 @@ Based on the interview, fill in these components:
 - **`name`**: Skill identifier (1–64 characters, lowercase alphanumeric and hyphens, strictly matching parent directory name).
 - **`description`**: Primary triggering mechanism. State both **what** the skill does AND specific contexts for **when** to use it. All "when to use" info goes here, not in the body.
   > [!IMPORTANT]
-  > Agents have a natural tendency to "undertrigger" skills — to avoid using them when they would be helpful. To combat this, make skill descriptions proactive and slightly "pushy". For instance, instead of *"How to build a simple fast dashboard to display internal data."*, write: *"How to build a simple fast dashboard to display internal data. Make sure to use this skill whenever the user mentions dashboards, data visualization, internal metrics, or wants to display any kind of application data, even if they don't explicitly ask for a 'dashboard.'"*
+  > Agents have a natural tendency to "undertrigger" skills — to avoid using them when they would be helpful. To combat this, make skill descriptions proactive and slightly "pushy". For instance, instead of _"How to build a simple fast dashboard to display internal data."_, write: _"How to build a simple fast dashboard to display internal data. Make sure to use this skill whenever the user mentions dashboards, data visualization, internal metrics, or wants to display any kind of application data, even if they don't explicitly ask for a 'dashboard.'"_
 - **`compatibility`**: (Optional) Required tools or runtime environment.
 - **Body instructions**: Core instructions kept under 500 lines.
 
@@ -79,17 +89,20 @@ skills/<skill-name>/
 #### Progressive Disclosure
 
 Skills use a three-level loading system:
+
 1. **Metadata** (`name` + `description`): Loaded into agent context at startup (~100 tokens).
 2. **`SKILL.md` body**: Loaded when the skill is activated (< 5000 tokens recommended).
 3. **Bundled resources** (`references/`, `scripts/`): Loaded or executed strictly on demand.
 
 **Key patterns:**
+
 - Keep `SKILL.md` under 500 lines; if approaching this limit, move specialized framework patterns, schemas, or large guides into `references/*.md`.
 - Reference files clearly from `SKILL.md` with explicit criteria for when to read them.
 - Keep file references **one level deep** from `SKILL.md`.
 - For large reference files (>300 lines), include a table of contents.
 
 **Domain organization**: When a skill supports multiple domains or frameworks, organize by variant:
+
 ```
 cloud-deploy/
 ├── SKILL.md (workflow + selection router)
@@ -98,6 +111,7 @@ cloud-deploy/
     ├── gcp.md
     └── azure.md
 ```
+
 The agent reads only the relevant reference file for the user's specific stack.
 
 #### Principle of Lack of Surprise
@@ -110,26 +124,32 @@ Skills must not contain malware, exploit code, or any content that compromises s
 - **Define Output Formats**: Provide explicit markdown or JSON templates:
   ```markdown
   ## Report Structure
+
   ALWAYS use this exact template:
+
   # [Title]
+
   ## Executive Summary
+
   ## Key Findings
   ```
 - **Include Concrete Examples**: Show concrete before/after or input/output pairings:
   ```markdown
   ## Commit Message Format
+
   **Example 1:**
   Input: Added user authentication with JWT tokens
   Output: feat(auth): implement JWT-based authentication
   ```
-- **Explain the Why**: Explain *why* a constraint exists (theory of mind) rather than issuing rigid, all-caps directives. Models follow instructions far more reliably when they understand the rationale.
+- **Explain the Why**: Explain _why_ a constraint exists (theory of mind) rather than issuing rigid, all-caps directives. Models follow instructions far more reliably when they understand the rationale.
 
 ---
 
 ## Designing Test Cases
 
 After drafting the skill, write 2–3 realistic test prompts — the kind of phrasing a real user would actually type. Share them with the user:
-> *"Here are a few test cases I'd like to try. Do these look right, or do you want to add more?"*
+
+> _"Here are a few test cases I'd like to try. Do these look right, or do you want to add more?"_
 
 Save test cases to modular suites in `skills/<skill-name>/evals/suites/<topic>.json`:
 
@@ -161,6 +181,7 @@ This section is one continuous sequence — do not stop partway through. Organiz
 For each test case, spawn two runs in the same turn — one with the skill, one without (baseline). Launch everything concurrently so all runs finish around the same time.
 
 **With-skill run execution prompt:**
+
 ```
 Execute this task:
 - Skill path: <path-to-skill>
@@ -171,10 +192,12 @@ Execute this task:
 ```
 
 **Baseline run** (same prompt, but baseline configuration depends on context):
+
 - **Creating a new skill**: No skill at all. Same prompt, no skill path, save outputs to `without_skill/outputs/`.
 - **Improving an existing skill**: The old version. Before editing, snapshot the original skill (`cp -r <skill-path> evals-workspace/<skill-name>/skill-snapshot/`), then point the baseline subagent at the snapshot. Save outputs to `old_skill/outputs/`.
 
 Create an `eval_metadata.json` for each test case giving each eval a descriptive name:
+
 ```json
 {
   "eval_id": "search-flow",
@@ -191,6 +214,7 @@ Don't just wait for runs to finish — use this time productively. Draft quantit
 Good assertions are objectively verifiable and have descriptive names that read clearly in the benchmark viewer. Subjective skills are better evaluated qualitatively — don't force assertions onto things that need human judgment.
 
 Update `eval_metadata.json` and the modular suite JSON files with the drafted assertions:
+
 ```json
 "assertions": [
   "The output uses useWebMCP from use-webmcp-tool",
@@ -202,6 +226,7 @@ Update `eval_metadata.json` and the modular suite JSON files with the drafted as
 ### Step 3: Capture Timing and Resource Metrics
 
 When each execution completes, capture latency and token consumption immediately and write them to `timing.json` in the run directory:
+
 ```json
 {
   "total_tokens": 84852,
@@ -225,13 +250,16 @@ Once all runs are complete:
    - **High-variance evals**: Flaky test cases with wide standard deviation.
    - **Time/token tradeoffs**: Cases where the skill adds substantial latency or tokens without proportional quality gains.
 4. **Launch the viewer**:
+
    ```bash
    npm run eval:view
    ```
+
    Tell the user:
-   > *"I've opened the evaluation dashboard at http://localhost:3333. There are two views — 'Outputs' lets you inspect the test cases side-by-side and record feedback, and 'Benchmark' shows the quantitative comparison. Let me know when you've finished reviewing."*
-   
-   *Headless / remote environments*: If a local browser cannot open, generate static review artifacts and instruct the user to download `feedback.json`.
+
+   > _"I've opened the evaluation dashboard at http://localhost:3333. There are two views — 'Outputs' lets you inspect the test cases side-by-side and record feedback, and 'Benchmark' shows the quantitative comparison. Let me know when you've finished reviewing."_
+
+   _Headless / remote environments_: If a local browser cannot open, generate static review artifacts and instruct the user to download `feedback.json`.
 
 ### What the User Sees in the Viewer
 
@@ -242,15 +270,21 @@ Once all runs are complete:
 ### Step 5: Read Human Feedback
 
 When the user finishes reviewing, read `evals-workspace/<skill-name>/iteration-<N>/feedback.json`:
+
 ```json
 {
   "reviews": [
-    {"run_id": "eval-0-with_skill", "feedback": "Missing error boundary fallback", "timestamp": "..."},
-    {"run_id": "eval-1-with_skill", "feedback": "", "timestamp": "..."}
+    {
+      "run_id": "eval-0-with_skill",
+      "feedback": "Missing error boundary fallback",
+      "timestamp": "..."
+    },
+    { "run_id": "eval-1-with_skill", "feedback": "", "timestamp": "..." }
   ],
   "status": "complete"
 }
 ```
+
 Empty feedback means the user was satisfied. Focus your revisions on test cases with specific critique.
 
 ---
@@ -301,10 +335,10 @@ Queries must reflect realistic user behavior with concrete detail — file paths
 
 **Should-trigger queries (8–10)**: Cover varied phrasings, casual speech, implied intent where the user doesn't name the skill, and competitive cases where this skill should win.
 
-**Should-not-trigger queries (8–10)**: The most valuable queries are **near-misses** — queries sharing keywords or adjacent domains that actually need different tools. Avoid trivial negatives like *"write a fibonacci function"* as a negative test for WebMCP. Make negatives genuinely tricky.
+**Should-not-trigger queries (8–10)**: The most valuable queries are **near-misses** — queries sharing keywords or adjacent domains that actually need different tools. Avoid trivial negatives like _"write a fibonacci function"_ as a negative test for WebMCP. Make negatives genuinely tricky.
 
 > [!NOTE]
-> Models only consult skills for tasks they cannot easily handle alone. Simple one-step queries (e.g. *"read file X"*) rarely trigger skills because models handle them directly with basic tools. Eval queries must be substantive enough that the model genuinely benefits from a skill.
+> Models only consult skills for tasks they cannot easily handle alone. Simple one-step queries (e.g. _"read file X"_) rarely trigger skills because models handle them directly with basic tools. Eval queries must be substantive enough that the model genuinely benefits from a skill.
 
 ### Step 2: Review Queries with the User
 
@@ -339,6 +373,7 @@ npm run skill:package
 ```
 
 When updating an existing skill:
+
 - **Preserve the original name**: Keep the name frontmatter and directory name identical; do not append `-v2`.
 - **Copy to a writeable location before editing**: If installed in a read-only global path, stage in a workspace directory first.
 
@@ -347,6 +382,7 @@ When updating an existing skill:
 ## TodoList & Review Loop Discipline
 
 When executing this skill, maintain strict discipline:
+
 1. Add evaluation and review steps to your plan or task tracker.
 2. **ALWAYS open the evaluation viewer (`npm run eval:view`) BEFORE attempting to revise the skill yourself.** Never skip presenting raw outputs to the user.
 3. Incorporate user feedback first, then address quantitative assertion failures.

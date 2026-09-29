@@ -1,8 +1,10 @@
-// Copyright 2026 Andre Cipriani Bandarra
-// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright 2026 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import { generateContent } from './provider.js';
-import type { TriggerEvalReport } from './trigger-eval.js';
+import { generateContent } from "./provider.js";
+import type { TriggerEvalReport } from "./trigger-eval.js";
 
 export interface ImproveOptions {
   model?: string;
@@ -41,8 +43,8 @@ Skill Body Summary:
 ${skillContent.slice(0, 1500)}
 
 Trigger Errors Observed:
-${falseNegatives.length > 0 ? `Failed to Trigger (False Negatives - SHOULD have triggered):\n${falseNegatives.map((fn) => `- "${fn.query}"`).join('\n')}\n` : ''}
-${falsePositives.length > 0 ? `Incorrectly Triggered (False Positives - SHOULD NOT have triggered):\n${falsePositives.map((fp) => `- "${fp.query}"`).join('\n')}` : ''}
+${falseNegatives.length > 0 ? `Failed to Trigger (False Negatives - SHOULD have triggered):\n${falseNegatives.map((fn) => `- "${fn.query}"`).join("\n")}\n` : ""}
+${falsePositives.length > 0 ? `Incorrectly Triggered (False Positives - SHOULD NOT have triggered):\n${falsePositives.map((fp) => `- "${fp.query}"`).join("\n")}` : ""}
 
 Instructions for New Description:
 1. Must be written in the third person (e.g. "Designs and implements WebMCP tools...").
@@ -57,7 +59,7 @@ Instructions for New Description:
   try {
     const res = await generateContent(prompt, {
       model: options.model,
-      responseMimeType: 'application/json',
+      responseMimeType: "application/json",
       temperature: 0.2,
     });
 
@@ -65,16 +67,16 @@ Instructions for New Description:
     let desc = String(parsed.improved_description || currentDescription).trim();
 
     // Clean up angle brackets if model included any
-    desc = desc.replace(/[<>]/g, '');
+    desc = desc.replace(/[<>]/g, "");
 
     // Truncate to 1024 chars if necessary
     if (desc.length > 1024) {
-      desc = desc.slice(0, 1021) + '...';
+      desc = desc.slice(0, 1021) + "...";
     }
 
     return desc;
   } catch (err) {
-    console.error('Failed to improve description:', err);
+    console.error("Failed to improve description:", err);
     return currentDescription;
   }
 }

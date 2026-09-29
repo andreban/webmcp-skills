@@ -1,5 +1,7 @@
-// Copyright 2026 Andre Cipriani Bandarra
-// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright 2026 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 import type {
   BenchmarkReport,
@@ -9,7 +11,7 @@ import type {
   EvalBenchmarkResult,
   MetricStats,
   SingleRunResult,
-} from './types.js';
+} from "./types.js";
 
 /**
  * Calculates mean, stddev, min, and max for a list of numerical values.
@@ -79,11 +81,12 @@ export function buildBenchmarkReport(
   runs: SingleRunResult[],
   options: BuildBenchmarkOptions = {},
 ): BenchmarkReport {
-  const withSkillRuns = runs.filter((r) => r.config === 'with_skill');
-  const withoutSkillRuns = runs.filter((r) => r.config === 'without_skill');
+  const withSkillRuns = runs.filter((r) => r.config === "with_skill");
+  const withoutSkillRuns = runs.filter((r) => r.config === "without_skill");
 
   const withSkillStats = computeConfigStats(withSkillRuns);
-  const withoutSkillStats = withoutSkillRuns.length > 0 ? computeConfigStats(withoutSkillRuns) : undefined;
+  const withoutSkillStats =
+    withoutSkillRuns.length > 0 ? computeConfigStats(withoutSkillRuns) : undefined;
   const delta = withoutSkillStats ? computeDelta(withSkillStats, withoutSkillStats) : undefined;
 
   const runSummary: BenchmarkSummary = {
@@ -103,20 +106,45 @@ export function buildBenchmarkReport(
     if (targetWithRuns.length > 0) {
       const withSummary = {
         passed: targetWithRuns.every((r) => r.grading.summary.failed === 0),
-        pass_rate: Number((targetWithRuns.reduce((sum, r) => sum + r.grading.summary.pass_rate, 0) / targetWithRuns.length).toFixed(4)),
-        time_seconds: Number((targetWithRuns.reduce((sum, r) => sum + r.timing.duration_ms, 0) / (targetWithRuns.length * 1000)).toFixed(2)),
-        tokens: Math.round(targetWithRuns.reduce((sum, r) => sum + r.timing.total_tokens, 0) / targetWithRuns.length),
+        pass_rate: Number(
+          (
+            targetWithRuns.reduce((sum, r) => sum + r.grading.summary.pass_rate, 0) /
+            targetWithRuns.length
+          ).toFixed(4),
+        ),
+        time_seconds: Number(
+          (
+            targetWithRuns.reduce((sum, r) => sum + r.timing.duration_ms, 0) /
+            (targetWithRuns.length * 1000)
+          ).toFixed(2),
+        ),
+        tokens: Math.round(
+          targetWithRuns.reduce((sum, r) => sum + r.timing.total_tokens, 0) / targetWithRuns.length,
+        ),
       };
 
-      let withoutSummary: EvalBenchmarkResult['without_skill'] = undefined;
+      let withoutSummary: EvalBenchmarkResult["without_skill"] = undefined;
       let deltaPassRate: number | undefined = undefined;
 
       if (targetWithoutRuns.length > 0) {
         withoutSummary = {
           passed: targetWithoutRuns.every((r) => r.grading.summary.failed === 0),
-          pass_rate: Number((targetWithoutRuns.reduce((sum, r) => sum + r.grading.summary.pass_rate, 0) / targetWithoutRuns.length).toFixed(4)),
-          time_seconds: Number((targetWithoutRuns.reduce((sum, r) => sum + r.timing.duration_ms, 0) / (targetWithoutRuns.length * 1000)).toFixed(2)),
-          tokens: Math.round(targetWithoutRuns.reduce((sum, r) => sum + r.timing.total_tokens, 0) / targetWithoutRuns.length),
+          pass_rate: Number(
+            (
+              targetWithoutRuns.reduce((sum, r) => sum + r.grading.summary.pass_rate, 0) /
+              targetWithoutRuns.length
+            ).toFixed(4),
+          ),
+          time_seconds: Number(
+            (
+              targetWithoutRuns.reduce((sum, r) => sum + r.timing.duration_ms, 0) /
+              (targetWithoutRuns.length * 1000)
+            ).toFixed(2),
+          ),
+          tokens: Math.round(
+            targetWithoutRuns.reduce((sum, r) => sum + r.timing.total_tokens, 0) /
+              targetWithoutRuns.length,
+          ),
         };
         deltaPassRate = Number((withSummary.pass_rate - withoutSummary.pass_rate).toFixed(4));
       }
@@ -131,14 +159,14 @@ export function buildBenchmarkReport(
   }
 
   const runsPerConfig =
-    typeof options.runsPerConfiguration === 'number' && options.runsPerConfiguration > 0
+    typeof options.runsPerConfiguration === "number" && options.runsPerConfiguration > 0
       ? options.runsPerConfiguration
-      : (evalIds.length > 0 && withSkillRuns.length > 0
+      : evalIds.length > 0 && withSkillRuns.length > 0
         ? Math.max(1, Math.round(withSkillRuns.length / evalIds.length))
-        : 1);
+        : 1;
 
   const timestamp = new Date().toISOString();
-  const defaultModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+  const defaultModel = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
   const resolvedModel = options.model || defaultModel;
 
   return {

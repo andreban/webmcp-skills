@@ -1,7 +1,9 @@
-// Copyright 2026 Andre Cipriani Bandarra
-// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright 2026 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import type { Timing } from './types.js';
+import type { Timing } from "./types.js";
 
 export interface GenerateOptions {
   model?: string;
@@ -16,7 +18,18 @@ export interface GenerationResult {
   timing: Timing;
 }
 
-const DEFAULT_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+
+/**
+ * Error indicating a client-side or non-transient API failure that cannot succeed on retry
+ * (e.g. 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found).
+ */
+export class NonRetryableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NonRetryableError";
+  }
+}
 
 /**
  * Sleeps for the specified number of milliseconds.
@@ -54,7 +67,7 @@ export async function generateContent(
   const requestBody: Record<string, unknown> = {
     contents: [
       {
-        role: 'user',
+        role: "user",
         parts: [{ text: prompt }],
       },
     ],
@@ -77,17 +90,18 @@ export async function generateContent(
     const startTime = performance.now();
     try {
       const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
 
       const durationMs = Math.round(performance.now() - startTime);
 
-      if (response.status === 429 || response.status === 503) {
-        const errorText = await response.text().catch(() => '');
-        lastError = new Error(`Gemini API rate limit or service unavailable (${response.status}): ${errorText}`);
-        const retryAfterHeader = response.headers.get('retry-after');
+      // Only retry transient rate limits (429) or transient server errors (500, 502, 503, 504)
+      if (response.status === 429 || (response.status >= 500 && response.status <= 504)) {
+        const errorText = await response.text().catch(() => "");
+        lastError = new Error(`Gemini API transient error (${response.status}): ${errorText}`);
+        const retryAfterHeader = response.headers.get("retry-after");
         const retryAfterMs = retryAfterHeader ? parseInt(retryAfterHeader, 10) * 1000 : 0;
         const delay = Math.max(retryAfterMs, Math.pow(2, attempt) * 2000 + Math.random() * 1000);
         await sleep(delay);
@@ -95,12 +109,14 @@ export async function generateContent(
       }
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+        const errorText = await response.text().catch(() => "");
+        // Non-transient client errors (e.g. 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found)
+        // will never succeed upon retry. Fail immediately without retrying.
+        throw new NonRetryableError(`Gemini API client error (${response.status}): ${errorText}`);
       }
 
       const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const usage = data?.usageMetadata || {};
 
       return {
@@ -113,6 +129,9 @@ export async function generateContent(
         },
       };
     } catch (err) {
+      if (err instanceof NonRetryableError) {
+        throw err;
+      }
       lastError = err as Error;
       if (attempt < maxRetries) {
         await sleep(Math.pow(2, attempt) * 1000);
@@ -120,5 +139,5 @@ export async function generateContent(
     }
   }
 
-  throw lastError || new Error('Failed to generate content after retries');
+  throw lastError || new Error("Failed to generate content after retries");
 }
