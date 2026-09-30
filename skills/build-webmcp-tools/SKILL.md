@@ -47,7 +47,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 
 | The developer has / asks for | Go to | Read first | Don't yet |
 | :-- | :-- | :-- | :-- |
-| "Add WebMCP to this project" (local code) | Stage 1 | The project's `package.json`, routes, and main components; `conversational-design.md` | Ask what the app does; write code or schemas |
+| "Add WebMCP to this project" (**local code in the workspace**, no URL) | Stage 1 | The project's `package.json`, routes, and main components; `conversational-design.md` | Ask what the app does; write code or schemas |
 | One specific tool idea ("a tool to search flights") | Stage 2 or 3 for that goal | `conversational-design.md`, `use-case-template.md` | Ideate an unrelated portfolio; write code |
 | Goals already defined | Stage 2 | `conversational-design.md` | Re-ideate goals |
 | Goal + starting state | Stage 3 | `use-case-template.md`, `conversational-design.md` | Skip the critique loop |
@@ -56,7 +56,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 | Existing `schema.json` → `evals.json` | Stage 5 (evals) | `evals-format.md` | Force Stages 1–4 |
 | Just finished `schema.json`/`evals.json` ("what next?") | Stage 5 eval gate | `evals-format.md` | Start Stage 6 without asking |
 | Existing schema or design → code | Stage 6 | The framework file (below), `error-handling.md` | Reopen conversational design |
-| A live site / URL to **add** tools to | Stage 1, after exploring the site | `live-site-discovery.md` | Ask the user to describe the site; write frontend code |
+| A **URL or domain** (e.g. `example.com`) to **add** tools to | Stage 1, after exploring the site | `live-site-discovery.md` (not `conversational-design.md` first) | Ask the user to describe the site; write frontend code |
 | **Feedback on, review, or audit of existing tools** (live site or local code) | Audit | `audit-checklist.md`, `agent-security.md`, `error-handling.md` | Restart Stage 1 ideation |
 | Testing, DevTools, Lighthouse, page readiness | — | `testing-and-debugging.md` | — |
 | Concept questions | — | Budgets/naming/descriptions: `tool-design.md`; annotations: `annotations.md`; prompt injection, spotlighting: `agent-security.md`; errors: `error-handling.md` | — |
