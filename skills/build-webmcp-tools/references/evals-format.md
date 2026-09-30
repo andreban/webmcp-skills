@@ -3,21 +3,19 @@ Copyright 2026 Google LLC
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# WebMCP Evaluations, Debugging & Auditing Specification
+# WebMCP Tool Specs & Evals (Stage 5)
 
-This guide specifies how to test, evaluate, debug, and audit WebMCP tools across deterministic unit testing, probabilistic model evaluations (`evals.json`), Chrome DevTools inspection, and Lighthouse audits.
+This guide covers the Stage 5 deliverables: the consolidated `schema.json`, the automated `evals.json` suite, and the local evaluation gate. For design rules on names, descriptions, and consolidation see [tool-design.md](./tool-design.md); for annotations see [annotations.md](./annotations.md); for unit tests, DevTools, and Lighthouse see [testing-and-debugging.md](./testing-and-debugging.md).
 
 ---
 
-## 1. Multi-Layer Testing Strategy
+## 1. Stage 5 Procedure
 
-Agents are probabilistic; identical prompts can produce different paths. Before deploying tools to production, test across five distinct layers:
-
-1. **Deterministic Unit Tests**: Mock `document.modelContext.registerTool`, invoke the captured `execute` callback directly, and assert state store updates, argument validation, and return payloads without invoking an LLM.
-2. **Tools in Isolation**: Verify schemas and descriptions in isolation. Trigger tools directly using `document.modelContext.executeTool(tool, jsonString)` to verify parser behavior before introducing model randomness.
-3. **Probabilistic Model Evals**: Run conversational prompt suites to confirm the model selects the right tool and extracts the correct parameters under both direct queries ("Book flight AA-100") and ambiguous queries ("Find me a morning flight next Friday").
-4. **End-to-End User Journeys**: Verify complete multi-turn flows (e.g. `search_flights` $\rightarrow$ `select_flight` $\rightarrow$ `initiate_booking`), specifying ordering constraints where sequence matters.
-5. **Mid-Chain Failures**: Advance the application state directly to an intermediate step and simulate failures (e.g. discount coupon expired) to ensure the agent recovers gracefully rather than blindly completing the journey.
+1. **Consolidate only approved tools**: Include only tools discovered in goals that were role-played and approved in Stages 1–4 (see [conversational-design.md](./conversational-design.md#tools-and-evals-are-strictly-goal-driven)). Merge overlapping tools and apply polymorphic consolidation per [tool-design.md](./tool-design.md).
+2. **Audit every tool**: budgets, "What + When" descriptions without schema repetition or jargon, and annotations (`readOnlyHint`, `consequentialHint`, `untrustedContentHint`).
+3. **Write `schema.json`** (§2).
+4. **Write `evals.json`** (§3): compile baseline and variation trajectories using exact match, `$pattern` regex constraints, `mockOutput` for chained steps, nested `ordered`/`unordered` blocks, and mid-chain failure tests.
+5. **Offer the local evaluation gate** (§4) before moving to Stage 6.
 
 ---
 
@@ -26,7 +24,7 @@ Agents are probabilistic; identical prompts can produce different paths. Before 
 The consolidated `schema.json` file contains a root object with a `tools` array. Each tool definition includes its `name` (≤ 30 chars), `description` (≤ 500 chars), standard JSON Schema `inputSchema`, optional `outputSchema`, and `annotations`:
 
 > [!IMPORTANT]
-> **Clean Descriptions (No Implementation Jargon)**: Tool descriptions must describe user/agent capabilities in positive phrasing. Strictly omit developer implementation jargon (e.g. Zustand, Redux, Axum, SQLite, REST, GraphQL, IPC, internal mutation handlers). LLMs reason about what the tool accomplishes, not internal architecture or libraries.
+> Descriptions follow the "What + When" formula and contain no implementation jargon (Zustand, Redux, Axum, SQLite, REST, GraphQL, IPC). See [tool-design.md](./tool-design.md#3-descriptions-the-what--when-formula).
 
 ```json
 {
@@ -275,7 +273,24 @@ Key authoring rules for mid-chain failure tests:
 
 ---
 
-## 4. Failure-Mode Troubleshooting Matrix
+## 4. Local Evaluation Gate (Proactive User Choice)
+
+- Immediately after authoring `schema.json` and `evals.json`, proactively ask the user:
+  > _"Would you like to run the local schema evaluations (`npx webmcp-evals local -t schema.json -e evals.json`) now to verify tool selection and argument parsing, or proceed directly to Stage 6 (Application Implementation)?"_
+- **NEVER** silently skip evaluations or drop them as an unmentioned afterthought.
+- **If the user chooses to run evaluations**:
+  - Check if `GEMINI_API_KEY` (or provider key) is configured in the environment or project `.env`. If missing, prompt the user to add it so evaluations can execute.
+  - Propose running:
+    ```bash
+    npx webmcp-evals local -t schema.json -e evals.json -m gemini-3.5-flash-lite
+    ```
+    _(Passing `-m gemini-3.5-flash-lite` provides high velocity and low latency)._
+  - If tool selection or ordering fails, use the Failure-Mode Troubleshooting Matrix (§5) to diagnose and resolve schema or description issues before moving to code.
+- **If the user chooses implementation**: Proceed directly to Stage 6 without blocking.
+
+---
+
+## 5. Failure-Mode Troubleshooting Matrix
 
 When an evaluation fails or an agent misbehaves, consult this diagnostic guide:
 
@@ -288,60 +303,3 @@ When an evaluation fails or an agent misbehaves, consult this diagnostic guide:
 | **Runtime Exceptions / Crash**        | Agent stops abruptly; tool crashes.                         | • Runtime exceptions caught and re-thrown with actionable messages?<br>• Network failures handled?<br>• Is error distinguishable between retryable vs fatal?                     |
 
 ---
-
-## 5. Debugging with Chrome DevTools (Chrome 149+)
-
-Enable Chrome flags:
-
-- `chrome://flags/#enable-webmcp-testing`
-- `chrome://flags/#devtools-webmcp-support`
-
-Open **Chrome DevTools $\rightarrow$ Application $\rightarrow$ WebMCP**:
-
-1. **Available Tools Pane**:
-   - Displays all active declarative and imperative tools as the browser agent sees them.
-   - Features an **invocation counter** per tool. A count of zero across sessions indicates the agent never deemed the tool relevant.
-2. **Invoked Tools Log**:
-   - Chronological log showing Status (`Completed`, `Canceled`, `In Progress`, `Error`), input arguments received, and returned payload.
-3. **Manual Tool Execution**:
-   - Click any tool or click the Play icon on a log entry to execute tools manually with custom parameters, bypassing the LLM to verify application state reactions.
-4. **Schema Violation Warnings**:
-   - Inspect validation warnings when parameters passed by the model do not match the declared JSON Schema.
-
----
-
-## 6. Chrome DevTools for Agents (`chrome-devtools-mcp`)
-
-Use the Chrome DevTools MCP server to let coding agents interact with running WebMCP web pages:
-
-```json
-{
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "chrome-devtools-mcp@latest",
-        "--autoConnect",
-        "--categoryExperimentalWebmcp",
-        "--channel=canary"
-      ]
-    }
-  }
-}
-```
-
-- Enables coding agents to query available WebMCP tools, execute tools inside the browser, and inspect accessibility trees and visual renders.
-
----
-
-## 7. Lighthouse "Agentic Browsing" Audits (Chrome 150+)
-
-Lighthouse evaluates site readiness for AI agents using fractional pass ratios and specific audits:
-
-- **Registered WebMCP Tools**: Audits discovered declarative and imperative tools for action-oriented names and descriptive text.
-- **Forms Missing Declarative WebMCP**: Detects standard `<form>` elements lacking `toolname` and `tooldescription`.
-- **WebMCP Schema Validity**: Fails if a form has only one of `toolname`/`tooldescription`, or if an input lacks a `name`. Warns if fields lack `toolparamdescription` or `<label>`.
-- **Accessibility for Agents**: Verifies that every interactive element has a programmatic accessible name and valid roles.
-- **Layout Stability (CLS)**: Asserts Cumulative Layout Shift thresholds so visual position shifts do not cause agent misclicks.
-- **`llms.txt`**: Checks for `/llms.txt` per the [llmstxt.org](https://llmstxt.org/) standard summarizing site capabilities and entry points.

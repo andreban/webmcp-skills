@@ -20,7 +20,9 @@
       "expected_output": "Angular implementation using provideExperimentalWebMcpTools without deprecated navigator.modelContext.",
       "assertions": [
         "The output uses provideExperimentalWebMcpTools",
-        "The output does NOT include navigator.modelContext"
+        "The output does NOT include navigator.modelContext",
+        "The agent read references/angular-patterns.md",
+        "The agent did NOT read references/react-patterns.md"
       ]
     },
     {

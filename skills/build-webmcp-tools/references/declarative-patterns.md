@@ -164,11 +164,7 @@ reservationForm.addEventListener("submit", async (event) => {
 });
 ```
 
-> **Critical WebMCP Guidance: Resolving vs. Rejecting Errors**:
->
-> - **Declarative forms (`<form>`)**: As implemented in official Chrome docs and GoogleChromeLabs reference demos (`demos/french-bistro`), field validation errors are returned as structured payloads (e.g. `[{ field, value, message }]`) via `event.respondWith(validationErrors)` so the model learns exactly which form fields need correction. Rejecting (`Promise.reject`) discards the field details into a generic `DOMException: UnknownError`. Reserve rejection only for fatal operational crashes.
-> - **Native imperative tools (`registerTool`)**: In raw `execute()` callbacks, the W3C WebMCP spec discards rejection reasons and rejects `executeTool()` with `UnknownError`. Return structured error payloads (e.g. `{ error: "...", code: "..." }`) so the agent can read the failure and proceed.
-> - **React tools (`useWebMCP`)**: In `use-webmcp-tool`, throw `new Error(...)`. The hook's `try/catch` catches the error and internally resolves `{ content: [...], isError: true }`, giving you the ergonomics of standard JavaScript exceptions while ensuring the agent receives the error text and error flag.
+> **Resolve, don't reject, validation errors**: As implemented in official Chrome docs and GoogleChromeLabs reference demos (`demos/french-bistro`), field validation errors are returned as structured payloads (e.g. `[{ field, value, message }]`) via `event.respondWith(validationErrors)` so the model learns exactly which form fields need correction. Rejecting (`Promise.reject`) discards the field details into a generic `DOMException: UnknownError`. Reserve rejection only for fatal operational crashes. For how React and native imperative tools report errors, see [error-handling.md](./error-handling.md).
 
 ---
 
