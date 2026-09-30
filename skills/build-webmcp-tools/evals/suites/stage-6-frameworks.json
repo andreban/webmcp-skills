@@ -71,7 +71,8 @@
       "assertions": [
         "The output uses document.modelContext.getTools()",
         "The output uses document.modelContext.executeTool()",
-        "The output listens to the toolchange event on document.modelContext"
+        "The output listens to the toolchange event on document.modelContext",
+        "The output passes executeTool arguments as a plain object, not as a JSON.stringify string (JSON-string arguments are deprecated from Chrome 155)"
       ]
     },
     {

@@ -7,6 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 
 Comprehensive index of official Chrome documentation, specifications, blog posts, and Google Chrome Labs repositories for WebMCP as of September 2026.
 
+> **Version claims verified 2026-09-30** against the pages below: origin trial from Chrome 149 and `chrome://flags/#enable-webmcp-testing` (WebMCP overview); in-flight executions survive unregistering from Chrome 153, JSON-string `executeTool` arguments deprecated from Chrome 155, `debugging` annotation from Chrome 156 (Imperative API); `toolactivated`/`toolcancel` on `document.modelContext`, not `window`, from Chrome 156 (Declarative API); Lighthouse "Agentic browsing" requires Chrome 150+; `chrome-devtools-mcp --categoryExperimentalWebmcp` requires Chrome 150+ with `--enable-features=WebMCP` (its configuration guide; the DevTools WebMCP page calls the flag `--categoryWebMCP`); `webmcp-evals` uses `GOOGLE_AI` for Gemini keys and defaults to `gemini-3.5-flash` (npm README). Re-check when citing a Chrome version.
+
 ---
 
 ## 1. Official WebMCP Documentation (`developer.chrome.com/docs/ai/webmcp`)
@@ -49,7 +51,8 @@ Comprehensive index of official Chrome documentation, specifications, blog posts
 - **React Hook**: [`use-webmcp-tool`](https://www.npmjs.com/package/use-webmcp-tool) ([GitHub: GoogleChromeLabs/use-webmcp-tool](https://github.com/GoogleChromeLabs/use-webmcp-tool))
 - **TypeScript Types**: [`webmcp-types`](https://www.npmjs.com/package/webmcp-types)
 - **Reference Demos & Evals**: [GoogleChromeLabs/webmcp-tools](https://github.com/GoogleChromeLabs/webmcp-tools)
-- **Chrome DevTools for Agents**: [`chrome-devtools-mcp`](https://github.com/ChromeDevTools/chrome-devtools-mcp)
+- **Chrome DevTools for Agents**: [`chrome-devtools-mcp`](https://github.com/ChromeDevTools/chrome-devtools-mcp) ([configuration guide](https://github.com/ChromeDevTools/chrome-devtools-mcp/blob/main/docs/configuration.md))
+- **Evals CLI**: [`webmcp-evals`](https://www.npmjs.com/package/webmcp-evals)
 - **Model Context Tool Inspector Extension**: [Chrome Web Store](https://chromewebstore.google.com/detail/model-context-tool-inspec/gbpdfapgefenggkahomfgkhfehlcenpd)
 - **Angular WebMCP Support**: [angular.dev/ai/webmcp](https://angular.dev/ai/webmcp)
 - **LLMs.txt Standard**: [llmstxt.org](https://llmstxt.org/)

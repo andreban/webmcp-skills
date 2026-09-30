@@ -14,19 +14,16 @@ How to verify WebMCP tools beyond `evals.json`: testing layers, Chrome DevTools 
 Agents are probabilistic; identical prompts can produce different paths. Before deploying tools to production, test across five distinct layers:
 
 1. **Deterministic Unit Tests**: Mock `document.modelContext.registerTool`, invoke the captured `execute` callback directly, and assert state store updates, argument validation, and return payloads without invoking an LLM.
-2. **Tools in Isolation**: Verify schemas and descriptions in isolation. Trigger tools directly using `document.modelContext.executeTool(tool, jsonString)` to verify parser behavior before introducing model randomness.
+2. **Tools in Isolation**: Verify schemas and descriptions in isolation. Trigger tools directly using `document.modelContext.executeTool(tool, { ...args })` (pass an object; JSON-string arguments are deprecated from Chrome 155) to verify parser behavior before introducing model randomness.
 3. **Probabilistic Model Evals**: Run conversational prompt suites to confirm the model selects the right tool and extracts the correct parameters under both direct queries ("Book flight AA-100") and ambiguous queries ("Find me a morning flight next Friday").
 4. **End-to-End User Journeys**: Verify complete multi-turn flows (e.g. `search_flights` $\rightarrow$ `select_flight` $\rightarrow$ `initiate_booking`), specifying ordering constraints where sequence matters.
 5. **Mid-Chain Failures**: Advance the application state directly to an intermediate step and simulate failures (e.g. discount coupon expired) to ensure the agent recovers gracefully rather than blindly completing the journey.
 
 ---
 
-## 2. Debugging with Chrome DevTools (Chrome 149+)
+## 2. Debugging with Chrome DevTools
 
-Enable Chrome flags:
-
-- `chrome://flags/#enable-webmcp-testing`
-- `chrome://flags/#devtools-webmcp-support`
+WebMCP must be enabled for the page: locally via `chrome://flags/#enable-webmcp-testing`, or for real users through the WebMCP origin trial (from Chrome 149). The WebMCP pane then appears on any page that registers tools.
 
 Open **Chrome DevTools $\rightarrow$ Application $\rightarrow$ WebMCP** (a section inside the `Application` panel, not a top-level tab):
 
@@ -66,6 +63,7 @@ Use the Chrome DevTools MCP server to let coding agents interact with running We
 ```
 
 - Enables coding agents to query available WebMCP tools, execute tools inside the browser, and inspect accessibility trees and visual renders.
+- `--categoryExperimentalWebmcp` requires Chrome 150+ launched with `--enable-features=WebMCP`. `--autoConnect` attaches to a running Chrome (144+) whose remote debugging server was started via `chrome://inspect/#remote-debugging`; `--channel` selects `canary`, `dev`, `beta`, or `stable`. See the [configuration guide](https://github.com/ChromeDevTools/chrome-devtools-mcp/blob/main/docs/configuration.md).
 
 ---
 
