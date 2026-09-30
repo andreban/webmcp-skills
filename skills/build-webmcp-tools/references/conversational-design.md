@@ -33,7 +33,7 @@ For each candidate journey, document:
 ### 3. Goal Isolation & "One Goal Per Iteration"
 
 - Each role-play simulation in Stage 3 isolates **one specific goal** at a time. Avoid compounding unrelated user goals into a single scenario.
-- **One Goal Per Iteration**: Complete the entire design cycle (Starting States $\rightarrow$ Role-Play $\rightarrow$ Variations $\rightarrow$ User Critique) for **one single goal at a time** before advancing to the next goal in the portfolio.
+- **One Goal Per Iteration**: Complete the entire design cycle (Starting States $\rightarrow$ Role-Play $\rightarrow$ Variations $\rightarrow$ User Critique on agent tone, clarifying questions, and autonomous boundaries) for **one single goal at a time** before advancing to the next goal in the portfolio.
 - **Forbid Bulk Generation**: Never generate turn-by-turn role-plays or use cases for multiple goals in a single turn. Bulk generation prevents meaningful user collaboration, induces model hallucination, and bypasses critical edge-case discovery.
 - After proposing candidate goals, invite the user to select ONE goal to begin Stage 2.
 

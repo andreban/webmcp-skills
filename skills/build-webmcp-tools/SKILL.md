@@ -85,7 +85,7 @@ Only when the developer asks to skip design (asking "can we skip it?" counts) fo
 
 - Inspect the app yourself, then propose 3 prioritized candidate journeys **derived from what the app actually does**. For **each** journey, state its ideal outcome, required context, and **autonomous boundary** (what the agent must not do without user confirmation).
 - **Live site**: explain that tools must be registered by code running in the page (first-party code or an extension/content script) on `document.modelContext`, not by headless scraping; recommend browsing or inspecting the site's pages and checking `/llms.txt` before proposing journeys.
-- Invite the user to pick **ONE** goal to take through Stages 2–4.
+- Invite the user to pick **ONE** goal to take through Stages 2–4, ending with the user critique on agent tone, clarifying questions, and autonomous boundaries.
 - **Single tool idea** (e.g. "a tool to search flights"): skip the portfolio. Frame that one request as a user goal (ideal outcome, required context, autonomous boundaries) and continue straight into Stage 2 or Stage 3 for it.
 
 ## Stage 2: Starting States Matrix
@@ -119,4 +119,4 @@ Stress-test the baseline: missing required parameters (ask, never guess), prereq
 2. Collect the tools: read the registration code, or for a live site use `document.modelContext.getTools()` or the DevTools Application > WebMCP pane.
 3. Report findings per checklist item, each with the affected tool and a concrete fix.
 4. End with verification steps: inspect and manually execute the tools in the Chrome DevTools **Application > WebMCP** pane (Play icon), and run the Lighthouse **"Agentic browsing"** audit.
-5. **No tools available yet** (e.g. a live site you cannot open): do not stop at asking for code. Tell the user how to collect the tools (`await document.modelContext.getTools()` in the console, or the DevTools Application > WebMCP pane), list the checklist areas you will audit (budgets and jargon, annotations including navigation and UGC, error handling, security), and include the verification steps from step 4.
+5. **No tools available yet** (e.g. a live site you cannot open): do not stop at asking for code. Tell the user how to collect the tools (`await document.modelContext.getTools()` in the console, or the DevTools Application > WebMCP pane), list the checklist areas you will audit (budgets and jargon, annotations including navigation and UGC, error handling, security), and end your reply with the verification steps from step 4 (DevTools manual execution, Lighthouse "Agentic browsing").
