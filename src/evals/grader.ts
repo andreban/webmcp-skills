@@ -9,6 +9,41 @@ import type { AssertionResult, GradingOutput } from "./types.js";
 export interface GraderOptions {
   model?: string;
   mock?: boolean;
+  /** Files the agent read via read_file; enables "The agent read <path>" assertions. */
+  filesRead?: string[];
+}
+
+/**
+ * Checks "The agent read <path>" and "The agent did NOT read <path>" assertions against
+ * the files recorded by the read_file agent loop. Returns null for any other assertion.
+ */
+export function tryReadAssertionCheck(
+  assertion: string,
+  filesRead: string[] | undefined,
+): AssertionResult | null {
+  const match = assertion.trim().match(/^The agent (did NOT )?read (\S+?)\.?$/i);
+  if (!match) return null;
+
+  const negated = Boolean(match[1]);
+  const target = match[2].replace(/\\/g, "/").replace(/^(\.\/)+/, "");
+
+  if (!filesRead) {
+    return {
+      text: assertion,
+      passed: false,
+      evidence: "File-read tracking is unavailable for this run.",
+    };
+  }
+
+  const wasRead = filesRead.includes(target);
+  const readList = filesRead.length > 0 ? filesRead.join(", ") : "(none)";
+  return {
+    text: assertion,
+    passed: negated ? !wasRead : wasRead,
+    evidence: wasRead
+      ? `'${target}' was read. Files read: ${readList}.`
+      : `'${target}' was not read. Files read: ${readList}.`,
+  };
 }
 
 /**
@@ -100,7 +135,9 @@ export async function gradeAssertions(
 
   // Try deterministic checks first
   for (const assertion of assertions) {
-    const deterministic = tryDeterministicCheck(assertion, output);
+    const deterministic =
+      tryReadAssertionCheck(assertion, options.filesRead) ??
+      tryDeterministicCheck(assertion, output);
     if (deterministic) {
       results.push(deterministic);
     } else {

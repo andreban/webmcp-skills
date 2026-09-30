@@ -77,8 +77,12 @@ function loadWorkspaceData() {
           const responsePath = path.join(targetPath, "outputs", "response.md");
           const timingPath = path.join(targetPath, "timing.json");
           const gradingPath = path.join(targetPath, "grading.json");
+          const agentPath = path.join(targetPath, "agent.json");
 
           return {
+            agent: fs.existsSync(agentPath)
+              ? JSON.parse(fs.readFileSync(agentPath, "utf8"))
+              : undefined,
             output: fs.existsSync(responsePath) ? fs.readFileSync(responsePath, "utf8") : "",
             timing: fs.existsSync(timingPath)
               ? JSON.parse(fs.readFileSync(timingPath, "utf8"))

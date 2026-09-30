@@ -92,10 +92,19 @@ export function saveBenchmarkWorkspace(
         JSON.stringify(run.grading, null, 2) + "\n",
         "utf8",
       );
+
+      // 4. Agent loop trace (turns and files read via read_file)
+      if (typeof run.turns === "number") {
+        fs.writeFileSync(
+          path.join(dir, "agent.json"),
+          JSON.stringify({ turns: run.turns, files_read: run.files_read ?? [] }, null, 2) + "\n",
+          "utf8",
+        );
+      }
     }
   }
 
-  // 4. Aggregated benchmark.json
+  // 5. Aggregated benchmark.json
   const report = buildBenchmarkReport(skillName, iteration, runs, {
     model: options.model,
     runsPerConfiguration: runsPerConfig,
@@ -170,6 +179,11 @@ export function printConsoleSummary(report: BenchmarkReport): void {
   );
   console.log(`  • With Skill Avg Latency:  ${run_summary.with_skill.time_seconds.mean}s`);
   console.log(`  • With Skill Avg Tokens:   ${Math.round(run_summary.with_skill.tokens.mean)}`);
+  if (run_summary.with_skill.files_read && run_summary.with_skill.turns) {
+    console.log(
+      `  • With Skill Files Read:   ${run_summary.with_skill.files_read.mean} avg (max ${run_summary.with_skill.files_read.max}), ${run_summary.with_skill.turns.mean} avg turns`,
+    );
+  }
 
   if (run_summary.without_skill && run_summary.delta) {
     console.log(

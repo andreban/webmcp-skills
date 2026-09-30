@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { type FileAccessPolicy, normalizeRelativePath, runAgentLoop } from "./agent-loop.js";
 import { gradeAssertions } from "./grader.js";
-import { generateContent } from "./provider.js";
-import type { SingleRunResult, Skill } from "./types.js";
+import type { EvalCase, SingleRunResult, Skill } from "./types.js";
 
 export interface RunOptions {
   mode?: "with-only" | "comparison";
@@ -14,6 +14,36 @@ export interface RunOptions {
   concurrency?: number;
   mock?: boolean;
   runs?: number;
+  maxTurns?: number;
+}
+
+/**
+ * Builds the read_file access policy for a configuration. with_skill may read the skill
+ * directory (except evals/, which holds expected outputs and assertions) plus the eval's
+ * files; without_skill may read only the eval's files.
+ */
+export function buildAccessPolicy(
+  skill: Skill,
+  item: EvalCase,
+  config: "with_skill" | "without_skill",
+): FileAccessPolicy {
+  return {
+    baseDir: skill.dir,
+    allowTree: config === "with_skill",
+    excludeDirs: ["evals"],
+    allowedFiles: item.files ?? [],
+  };
+}
+
+/**
+ * Appends the list of workspace files available to the model, if the eval declares any.
+ */
+export function buildPrompt(item: EvalCase): string {
+  if (!item.files || item.files.length === 0) {
+    return item.prompt;
+  }
+  const listing = item.files.map(normalizeRelativePath).join(", ");
+  return `${item.prompt}\n\nWorkspace files available via read_file: ${listing}`;
 }
 
 /**
@@ -48,10 +78,12 @@ export async function runSkillEvals(
       const runLabel = runsPerConfig > 1 ? ` run ${r}/${runsPerConfig}` : "";
       console.log(`  ▶ Running [${item.id}] (with_skill${runLabel})...`);
 
-      const withGen = await generateContent(item.prompt, {
+      const withGen = await runAgentLoop(buildPrompt(item), {
         model: options.model,
         systemInstruction: skill.systemInstruction,
         mock: options.mock,
+        access: buildAccessPolicy(skill, item, "with_skill"),
+        maxTurns: options.maxTurns,
       });
 
       const withGrading = await gradeAssertions(
@@ -61,6 +93,7 @@ export async function runSkillEvals(
         {
           model: options.model,
           mock: options.mock,
+          filesRead: withGen.filesRead,
         },
       );
 
@@ -71,6 +104,8 @@ export async function runSkillEvals(
         output: withGen.text,
         timing: withGen.timing,
         grading: withGrading,
+        turns: withGen.turns,
+        files_read: withGen.filesRead,
       });
     }
 
@@ -80,10 +115,12 @@ export async function runSkillEvals(
         const runLabel = runsPerConfig > 1 ? ` run ${r}/${runsPerConfig}` : "";
         console.log(`  ▶ Running [${item.id}] (without_skill${runLabel})...`);
 
-        const withoutGen = await generateContent(item.prompt, {
+        const withoutGen = await runAgentLoop(buildPrompt(item), {
           model: options.model,
           systemInstruction: undefined,
           mock: options.mock,
+          access: buildAccessPolicy(skill, item, "without_skill"),
+          maxTurns: options.maxTurns,
         });
 
         const withoutGrading = await gradeAssertions(
@@ -93,6 +130,7 @@ export async function runSkillEvals(
           {
             model: options.model,
             mock: options.mock,
+            filesRead: withoutGen.filesRead,
           },
         );
 
@@ -103,6 +141,8 @@ export async function runSkillEvals(
           output: withoutGen.text,
           timing: withoutGen.timing,
           grading: withoutGrading,
+          turns: withoutGen.turns,
+          files_read: withoutGen.filesRead,
         });
       }
     }

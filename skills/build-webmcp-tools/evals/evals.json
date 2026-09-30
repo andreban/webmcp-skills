@@ -23,9 +23,10 @@
     {
       "id": "stage-6-audit-reference-loading-directives",
       "prompt": "Can you audit the WebMCP tools on our live production site and advise on best practices for error reporting and user-generated content?",
-      "expected_output": "The agent routes to Stage 6 Review Checklist & Auditing. Critically, it instructs inspecting relevant reference files (specifically references/agent-security.md and references/vanilla-patterns.md) using view_file before generating final findings. It details deeper architectural context from these references: the W3C WebMCP unhandled rejection mapping to generic DOMException: UnknownError (requiring structured error payloads rather than throwing/rejecting unhandled promises) and the 'First-Party Database Fallacy' where user-authored database records require untrustedContentHint: true and delimiter sandboxing against prompt injection.",
+      "expected_output": "The agent routes to Stage 6 Review Checklist & Auditing. Critically, it reads the relevant reference files (specifically references/agent-security.md and references/vanilla-patterns.md) before generating final findings. It details deeper architectural context from these references: the W3C WebMCP unhandled rejection mapping to generic DOMException: UnknownError (requiring structured error payloads rather than throwing/rejecting unhandled promises) and the 'First-Party Database Fallacy' where user-authored database records require untrustedContentHint: true and delimiter sandboxing against prompt injection.",
       "assertions": [
-        "The output references or instructs inspecting references/agent-security.md and references/vanilla-patterns.md (using view_file or citing both reference files).",
+        "The agent read references/agent-security.md",
+        "The agent read references/vanilla-patterns.md",
         "The output explains that unhandled promise rejections are mapped by W3C WebMCP to generic DOMException: UnknownError.",
         "The output explains the First-Party Database Fallacy or untrusted user-authored content prompt injection threat model."
       ]
@@ -264,10 +265,11 @@
     {
       "id": "stage-0-router-local-codebase-audit",
       "prompt": "Can you audit our existing WebMCP tools in src/tools/ for best practices and security?",
-      "expected_output": "The agent routes directly to Stage 6 Review Checklist & Auditing, instructs inspecting references/agent-security.md and references/vanilla-patterns.md using view_file, and systematically checks against character budgets, unhandled rejections, UI view navigation missing consequentialHint, UGC missing untrustedContentHint, and DevTools/Lighthouse readiness.",
+      "expected_output": "The agent routes directly to Stage 6 Review Checklist & Auditing, reads references/agent-security.md and references/vanilla-patterns.md before auditing, and systematically checks against character budgets, unhandled rejections, UI view navigation missing consequentialHint, UGC missing untrustedContentHint, and DevTools/Lighthouse readiness.",
       "assertions": [
         "The output routes directly to Stage 6 Review Checklist & Auditing.",
-        "The output references or instructs inspecting references/agent-security.md and references/vanilla-patterns.md (using view_file or citing both reference files).",
+        "The agent read references/agent-security.md",
+        "The agent read references/vanilla-patterns.md",
         "The output systematically checks against character budgets (names <= 30 chars, descriptions <= 500 chars) and removing internal implementation jargon.",
         "The output audits that tools return actionable error guidance rather than unhandled Promise rejections.",
         "The output audits that tools shifting views or tabs declare consequentialHint: true and strictly omit readOnlyHint: true.",

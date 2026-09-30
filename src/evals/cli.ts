@@ -25,6 +25,7 @@ interface CliArgs {
   mode: "with-only" | "comparison";
   iteration?: number;
   runs?: number;
+  maxTurns?: number;
   model?: string;
   dryRun: boolean;
   bundleOnly: boolean;
@@ -60,6 +61,14 @@ function parseArgs(): CliArgs {
         console.error(`Invalid --runs value: "${args[i]}". Must be a positive integer.`);
         process.exit(1);
       }
+    } else if (arg === "--max-turns" && args[i + 1]) {
+      const parsed = parseInt(args[++i], 10);
+      if (Number.isInteger(parsed) && parsed > 0) {
+        result.maxTurns = parsed;
+      } else {
+        console.error(`Invalid --max-turns value: "${args[i]}". Must be a positive integer.`);
+        process.exit(1);
+      }
     } else if (arg === "--model" && args[i + 1]) {
       result.model = args[++i];
     } else if (arg === "--dry-run") {
@@ -87,6 +96,7 @@ Evaluation & Benchmarking:
   --filter <regex>        Filter evals by ID or prompt substring/regex
   --mode <mode>           Run mode: 'comparison' (default, with vs without skill) or 'with-only'
   --runs <N>, -r <N>      Number of runs per configuration (default: 1)
+  --max-turns <N>         Max model calls per run in the read_file agent loop (default: 6)
   --iteration <N>         Explicit iteration folder number
   --model <model>         Gemini model identifier (default: gemini-3.5-flash-lite)
   --dry-run               Run validation and mock generation without calling model APIs
@@ -239,6 +249,7 @@ async function main(): Promise<void> {
       filter: args.filter,
       model: args.model,
       runs: args.runs,
+      maxTurns: args.maxTurns,
       mock: isMock,
     });
 

@@ -45,11 +45,33 @@ export function computeConfigStats(runs: SingleRunResult[]): ConfigStats {
   const passRates = runs.map((r) => r.grading.summary.pass_rate);
   const durationsSec = runs.map((r) => r.timing.duration_ms / 1000);
   const tokenCounts = runs.map((r) => r.timing.total_tokens);
+  const hasLoopMetrics = runs.length > 0 && runs.every((r) => typeof r.turns === "number");
 
   return {
     pass_rate: calculateStats(passRates),
     time_seconds: calculateStats(durationsSec),
     tokens: calculateStats(tokenCounts),
+    ...(hasLoopMetrics
+      ? {
+          turns: calculateStats(runs.map((r) => r.turns as number)),
+          files_read: calculateStats(runs.map((r) => r.files_read?.length ?? 0)),
+        }
+      : {}),
+  };
+}
+
+/**
+ * Computes mean turns and files read for a set of runs, omitted for legacy runs.
+ */
+function loopMetricMeans(runs: SingleRunResult[]): { turns?: number; files_read?: number } {
+  if (runs.length === 0 || !runs.every((r) => typeof r.turns === "number")) {
+    return {};
+  }
+  const mean = (values: number[]) =>
+    Number((values.reduce((sum, v) => sum + v, 0) / values.length).toFixed(2));
+  return {
+    turns: mean(runs.map((r) => r.turns as number)),
+    files_read: mean(runs.map((r) => r.files_read?.length ?? 0)),
   };
 }
 
@@ -121,6 +143,7 @@ export function buildBenchmarkReport(
         tokens: Math.round(
           targetWithRuns.reduce((sum, r) => sum + r.timing.total_tokens, 0) / targetWithRuns.length,
         ),
+        ...loopMetricMeans(targetWithRuns),
       };
 
       let withoutSummary: EvalBenchmarkResult["without_skill"] = undefined;
@@ -145,6 +168,7 @@ export function buildBenchmarkReport(
             targetWithoutRuns.reduce((sum, r) => sum + r.timing.total_tokens, 0) /
               targetWithoutRuns.length,
           ),
+          ...loopMetricMeans(targetWithoutRuns),
         };
         deltaPassRate = Number((withSummary.pass_rate - withoutSummary.pass_rate).toFixed(4));
       }
