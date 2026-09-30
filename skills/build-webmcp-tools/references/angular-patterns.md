@@ -23,7 +23,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideExperimentalWebMcpTools([
       {
-        name: "searchCatalog",
+        name: "search_catalog",
         description: "Searches the store catalog. Use when the user looks for products by name, type, or feature.",
         inputSchema: {
           type: "object",
@@ -87,7 +87,7 @@ export const routes: Routes = [
     providers: [
       provideExperimentalWebMcpTools([
         {
-          name: "exportDashboardReports",
+          name: "export_dashboard_report",
           description:
             "Exports the analytics report for the open dashboard. Use when the user asks to download or share dashboard data.",
           inputSchema: { type: "object", properties: {} },
@@ -116,7 +116,7 @@ export class CartService {
 
   constructor() {
     declareExperimentalWebMcpTool({
-      name: "getCartStatus",
+      name: "get_cart_status",
       description:
         "Returns how many items are in the shopping cart. Use when the user asks what is in their cart or before checkout.",
       inputSchema: { type: "object", properties: {} },
@@ -175,7 +175,7 @@ export class UserRegistrationComponent {
     {
       // Automatically exposes the WebMCP tool
       experimentalWebMcpTool: {
-        name: "registerUser",
+        name: "register_user",
         description: "Creates a new user account. Use when the user asks to sign up or register.",
       },
       submission: {

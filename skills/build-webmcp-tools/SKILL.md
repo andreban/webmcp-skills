@@ -1,12 +1,15 @@
 ---
 name: build-webmcp-tools
 description: >-
-  Comprehensive guide and workflow for designing, role-playing, evaluating,
-  auditing, and implementing WebMCP tools into web applications. Supports jumping
-  into any stage of the lifecycle (user goals portfolio, start states matrix,
-  conversation roleplay, edge-case variations, schema & evals generation, and
-  app integration). Enforces Chrome's official guardrails, character budgets,
-  annotations, and agent security principles.
+  Designs, evaluates, audits, and implements WebMCP tools: client-side tools a
+  web page exposes to in-browser AI agents on document.modelContext, via
+  registerTool, declarative form attributes (toolname, tooldescription), React
+  useWebMCP, or Angular provideExperimentalWebMcpTools. Use when a developer
+  wants to make a website or web app agent-ready, add or review tools for
+  in-browser agents, write tool schemas, descriptions, annotations, or
+  evals.json, audit existing WebMCP tools, or fix Lighthouse "Agentic browsing"
+  and DevTools WebMCP findings. Not for backend MCP servers over stdio or SSE,
+  or for scraping and browser automation.
 ---
 
 <!--
@@ -39,7 +42,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 - **Errors reach the agent**: React `useWebMCP` throws `Error` (→ `isError: true`); native `registerTool` **resolves** `{ error, code, retryable }` because rejections become a generic `DOMException: UnknownError`; declarative forms resolve structured field errors via `event.respondWith`. → [error-handling.md](./references/error-handling.md)
 - **UI sync**: await state and DOM updates before a tool returns.
 - **Cross-origin**: tools are same-origin by default (Permissions Policy `tools`, default `self`); delegate only with `<iframe allow="tools">` plus `registerTool(tool, { exposedTo: ['https://trusted.origin'] })`; origin isolation is required (`Origin-Agent-Cluster: ?0` disables WebMCP). → [vanilla-patterns.md](./references/vanilla-patterns.md)
-- **Design before code**: one goal per iteration, each ending with the user critique (agent tone, clarifying questions, autonomous boundaries); never write schemas, evals, or code for goals that were not role-played and approved; implementation simplicity is not conversational simplicity. → [conversational-design.md](./references/conversational-design.md)
+- **Design before code**: one goal per iteration, each ending with the user critique (agent tone, clarifying questions, autonomous boundaries); never write schemas, evals, or code for goals that were not role-played and approved; implementation simplicity is not conversational simplicity. The only exception is the explicit fast path below, when the developer asks to skip design for one tool. → [conversational-design.md](./references/conversational-design.md)
 
 ---
 
@@ -60,6 +63,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 | **Feedback on, review, or audit of existing tools** (live site or local code) | Audit | `audit-checklist.md`, `agent-security.md`, `error-handling.md` | Restart Stage 1 ideation |
 | Testing, DevTools, Lighthouse, page readiness | — | `testing-and-debugging.md` | — |
 | Concept questions | — | Budgets/naming/descriptions: `tool-design.md`; annotations: `annotations.md`; prompt injection, spotlighting: `agent-security.md`; errors: `error-handling.md` | — |
+| Wants to skip design for one tool ("can we skip role-play and just code it?", "skip the design, give me the code") | Explicit fast path (below) | `tool-design.md`, `annotations.md`, the framework file | Refuse or re-argue |
 | Backend MCP (`stdio`/SSE server, Node/Python) | Out of scope | — | Use `document.modelContext` on a server |
 
 **Framework files**: React → `react-patterns.md`; Angular → `angular-patterns.md`; Vanilla JS, Vue, Svelte → `vanilla-patterns.md`; declarative HTML forms → `declarative-patterns.md`. All files are in `references/`.
@@ -67,6 +71,15 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 **Unclear entry point**: ask which applies — 1) discover user goals, 2) model starting states, 3) role-play conversations, 4) harden with variations, 5) generate `schema.json`/`evals.json`, 6) implement in frontend code, or audit existing tools.
 
 ---
+
+## Explicit Fast Path
+
+Only when the developer asks to skip design (asking "can we skip it?" counts) for a **single tool**. It never applies to greenfield requests or to a new tool idea that doesn't mention skipping design.
+
+1. **Start the response** with one or two sentences naming what is being skipped, e.g. "Skipping role-play means ambiguous requests, clarifying questions, and confirmation boundaries stay untested." Do this every time, even if the developer says they understand the risks.
+2. If their reason is that the code is simple, also correct that: easy code is not an easy conversation (e.g. "a one-line state update is simple, but 'save the one I just opened' or a duplicate URL is where agents fail").
+3. Deliver the tool schema, at least one `evals.json` case, and the framework code.
+4. Still apply every Non-Negotiable (budgets, What + When, annotations, error handling). Don't argue for design again.
 
 ## Stage 1: User Goals Portfolio
 
