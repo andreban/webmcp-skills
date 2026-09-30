@@ -24,7 +24,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 
 1. Match the developer's request to a row in the **Router** and go to that stage.
 2. **Read the files in the "Read first" column before responding.** Paths are relative to this skill's directory. This file only summarizes them; the detailed rules, examples, and code patterns live in the references, so do not answer from this summary alone.
-3. If the request refers to an artifact you were not given (transcripts, `schema.json`, source files), read it if it is available in the workspace; otherwise ask for it, and outline how you will apply the stage's key rules from its reference file. Never invent the missing artifact.
+3. If the request refers to an artifact you were not given (transcripts, `schema.json`, source files), read it if it is available in the workspace; otherwise ask for it, and outline how you will apply the stage's key rules from its reference file (for audits, include the verification steps). Never invent the missing artifact.
 4. Apply the **Non-Negotiables** to everything you produce.
 5. Before finishing an audit, `schema.json`, or implementation, check your output against [`references/audit-checklist.md`](./references/audit-checklist.md).
 
@@ -69,8 +69,10 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 
 ## Stage 1: User Goals Portfolio
 
-- Inspect the app yourself (for a live site: browse or inspect its pages and check `/llms.txt`), then propose 3 prioritized candidate journeys **derived from what the app actually does**. For each: ideal outcome, required context, and autonomous boundary (what the agent must not do without confirmation).
+- Inspect the app yourself, then propose 3 prioritized candidate journeys **derived from what the app actually does**. For **each** journey, state its ideal outcome, required context, and **autonomous boundary** (what the agent must not do without user confirmation).
+- **Live site**: explain that tools must be registered by code running in the page (first-party code or an extension/content script) on `document.modelContext`, not by headless scraping; recommend browsing or inspecting the site's pages and checking `/llms.txt` before proposing journeys.
 - Invite the user to pick **ONE** goal to take through Stages 2–4.
+- **Single tool idea** (e.g. "a tool to search flights"): skip the portfolio. Frame that one request as a user goal (ideal outcome, required context, autonomous boundaries) and continue straight into Stage 2 or Stage 3 for it.
 
 ## Stage 2: Starting States Matrix
 
@@ -90,16 +92,17 @@ Stress-test the baseline: missing required parameters (ask, never guess), prereq
 
 - Consolidate only tools from approved goals (Iterative Incremental or Portfolio-First pathway); apply `tool-design.md` and `annotations.md` to every tool.
 - Write `schema.json` and `evals.json` per `evals-format.md`.
-- Then **ask the user** whether to run `npx webmcp-evals local -t schema.json -e evals.json` now or proceed to Stage 6.
+- Then **ask the user** whether to run `npx webmcp-evals local -t schema.json -e evals.json` now or proceed to Stage 6. If they run it, check that `GEMINI_API_KEY` (or the provider key) is set and suggest a fast model (`-m gemini-3.5-flash-lite`).
 
 ## Stage 6: Application Implementation
 
-- Read the framework file first. React: `useWebMCP` from `use-webmcp-tool` (never raw `registerTool` in components), schema literals hoisted or stable, plus a Vitest + React Testing Library test that mocks `document.modelContext.registerTool`. Angular: `provideExperimentalWebMcpTools`. Vanilla: `document.modelContext.registerTool` with an `AbortController` signal. Declarative: `<form toolname tooldescription>`.
+- Read the framework file first. React: `useWebMCP` from `use-webmcp-tool` (never raw `registerTool` in components), schema literals hoisted or stable, and **always include** a Vitest + React Testing Library test that mocks `document.modelContext.registerTool` and calls the captured `execute`. Angular: `provideExperimentalWebMcpTools`. Vanilla: `document.modelContext.registerTool` with an `AbortController` signal. Declarative: `<form toolname tooldescription>`.
 - Verify with `testing-and-debugging.md` (DevTools Application > WebMCP pane, Lighthouse "Agentic browsing") and self-check against `audit-checklist.md`.
 
 ## Audits
 
-1. Read `audit-checklist.md`, `agent-security.md`, and `error-handling.md` before judging any tool. The checklist, not the Non-Negotiables summary, is the audit standard.
+1. **First** read `references/audit-checklist.md`, `references/agent-security.md`, and `references/error-handling.md` (you can request them together), and only then open the code under review. The checklist, not the Non-Negotiables summary, is the audit standard; an audit based only on this file is incomplete.
 2. Collect the tools: read the registration code, or for a live site use `document.modelContext.getTools()` or the DevTools Application > WebMCP pane.
 3. Report findings per checklist item, each with the affected tool and a concrete fix.
-4. Always end with verification steps, even when you still need the tools from the user: inspect and manually execute the tools in the Chrome DevTools **Application > WebMCP** pane (Play icon), and run the Lighthouse **"Agentic browsing"** audit.
+4. End with verification steps: inspect and manually execute the tools in the Chrome DevTools **Application > WebMCP** pane (Play icon), and run the Lighthouse **"Agentic browsing"** audit.
+5. **No tools available yet** (e.g. a live site you cannot open): do not stop at asking for code. Tell the user how to collect the tools (`await document.modelContext.getTools()` in the console, or the DevTools Application > WebMCP pane), list the checklist areas you will audit (budgets and jargon, annotations including navigation and UGC, error handling, security), and include the verification steps from step 4.
