@@ -167,6 +167,26 @@
         "The output briefly notes the risk of skipping conversational design without refusing or insisting on role-play first",
         "The output declares readOnlyHint: true and untrustedContentHint: true for search_notes"
       ]
+    },
+    {
+      "id": "core-read-tools-capability-not-size",
+      "prompt": "Our markdown editor exposes a WebMCP `read` tool that returns the whole document, which is too big for long files. We plan to add `read_range(start_line, end_line)` and `read_full()` tools alongside it. Is that a good tool design?",
+      "expected_output": "The agent advises against adding tools that differ only in how much text they return, because they overlap: all of them answer 'show me the text', so the agent must guess between them and every extra tool costs prompt tokens. It recommends one read tool with optional range or section parameters, plus a separate tool for a different capability such as a document outline (headings with line numbers) or search, so the agent can locate content before reading it.",
+      "assertions": [
+        "The agent advises against separate read tools that differ only in size or range, explaining that they overlap or answer the same request",
+        "The agent recommends a single read tool with optional range, section, or offset parameters",
+        "The agent suggests a separate way to locate content before reading, such as an outline or table-of-contents tool, or search with line numbers"
+      ]
+    },
+    {
+      "id": "core-long-content-budget-exact-text",
+      "prompt": "Our markdown editor exposes a WebMCP `read_document` tool and an `edit(originalText, newText)` tool that only works when `originalText` exactly matches text in the document. Documents can be 20,000 characters long. How should `read_document` respect the 1,500-character tool output budget?",
+      "expected_output": "The agent recommends paginated or ranged reads (offset/limit or line ranges) that return an explicit truncation or continuation signal (e.g. truncated: true plus the next offset) instead of silently cutting the document at 1,500 characters. It recommends a way to locate the relevant part first (an outline, search with line numbers) so the agent only fetches what it needs, and it keeps the returned text exact and unsummarized so edit can match originalText.",
+      "assertions": [
+        "The agent recommends paginated or ranged reads with an explicit truncation or continuation signal, rather than silently cutting the document at 1,500 characters",
+        "The agent recommends a way to locate the relevant part before reading, such as an outline, headings, or search with line numbers",
+        "The agent says the returned text must be exact (not summarized or paraphrased) so the edit tool can match originalText"
+      ]
     }
   ]
 }
