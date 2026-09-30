@@ -158,7 +158,7 @@ To maintain high skill quality and prevent regressions:
    - Automated bundling generates the standard `evals/evals.json` for external tools.
 2. **Hybrid Assertion Strategy**:
    - **Deterministic assertions**: Use specific phrases like `"The output does NOT include navigator.modelContext"` or `"The output includes readOnlyHint: true"` for immediate programmatic validation.
-   - **File-read assertions**: Use exactly `"The agent read references/<file>.md"` or `"The agent did NOT read references/<file>.md"` to check reference loading deterministically against the run's `files_read`. Prefer these over assertions that the output *mentions* a reference file.
+   - **File-read assertions**: Use exactly `"The agent read references/<file>.md"` or `"The agent did NOT read references/<file>.md"` to check reference loading deterministically against the run's `files_read`. Prefer these over assertions that the output *mentions* a reference file. For `without_skill`, read-assertions about skill files are not graded (it cannot read them, so they would be automatic failures or passes); read-assertions about the eval's own `files` are graded in both configurations.
    - **Semantic assertions**: Evaluated by the model judge requiring concrete textual citations and evidence for a PASS.
 3. **Mandatory Comparative Benchmarking (`benchmark.json`)**:
    - **Always run both configurations**: Every evaluation run MUST execute both `with_skill` and `without_skill` baselines to calculate statistical deltas across pass rates, token consumption, and latency. Single-sided ("with-only") runs without baselines are prohibited; evaluations must always run with and without the skill to demonstrate value-add and populate comparative dashboard panes.
