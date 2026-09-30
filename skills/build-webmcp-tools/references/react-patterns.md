@@ -215,11 +215,17 @@ useWebMCP({
 
 ### Pattern D: Polymorphic Tool Consolidation & Concurrent Fetching
 
-When an application manages multiple entity types (e.g. notes, tasks, documents), do not register granular tools per entity type (`list_notes`, `list_tasks`, `move_note`, `move_task`). Instead, register consolidated polymorphic tools that query or mutate across entity types in a single turn using `Promise.all`:
+When an application manages multiple entity types (e.g. notes, tasks, documents), do not register granular tools per entity type (`list_notes`, `list_tasks`, `move_note`, `move_task`). Instead, register consolidated polymorphic tools that query or mutate across entity types in a single turn using `Promise.all`.
+
+Both tools share one hoisted `ITEM_TYPES` list, so every `type` value that `list_items` returns is valid input for `move_items`. Map those values to API paths inside `execute` rather than exposing path names (e.g. plural `tasks`) in one schema and entity names (`task`) in the other.
 
 ```tsx
 import React, { useState } from "react";
 import { useWebMCP } from "use-webmcp-tool";
+
+// Shared by both schemas: list_items output feeds straight into move_items input
+const ITEM_TYPES = ["task", "note", "doc"];
+const API_PATHS: Record<string, string> = { task: "tasks", note: "notes", doc: "docs" };
 
 export function WorkspaceView() {
   const [items, setItems] = useState<any[]>([]);
@@ -234,7 +240,7 @@ export function WorkspaceView() {
       properties: {
         types: {
           type: "array",
-          items: { type: "string", enum: ["tasks", "notes", "docs"] },
+          items: { type: "string", enum: ITEM_TYPES },
           description: "Entity types to query. Defaults to all types if omitted.",
         },
         query: {
@@ -251,14 +257,14 @@ export function WorkspaceView() {
       readOnlyHint: true,
       untrustedContentHint: true,
     },
-    async execute({ types = ["tasks", "notes", "docs"], query = "", page = 1 }) {
+    async execute({ types = ITEM_TYPES, query = "", page = 1 }) {
       // Execute sub-queries concurrently with Promise.all to avoid multi-turn roundtrips
       const fetchers = types.map(async (type) => {
         const params = new URLSearchParams({ q: query, page: String(page), limit: "10" });
-        const res = await fetch(`/api/${type}?${params}`);
-        if (!res.ok) throw new Error(`Failed to fetch ${type} (${res.status})`);
+        const res = await fetch(`/api/${API_PATHS[type]}?${params}`);
+        if (!res.ok) throw new Error(`Failed to fetch ${type} items (${res.status})`);
         const data = await res.json();
-        return data.items.map((item: any) => ({ ...item, entityType: type }));
+        return data.items.map((item: any) => ({ ...item, type }));
       });
 
       const resultsPerType = await Promise.all(fetchers);
@@ -272,7 +278,7 @@ export function WorkspaceView() {
         total_found: combined.length,
         items: combined.slice(0, 10).map((i) => ({
           id: i.id,
-          type: i.entityType,
+          type: i.type,
           title: i.title,
         })),
       };
@@ -291,7 +297,7 @@ export function WorkspaceView() {
           items: {
             type: "object",
             properties: {
-              type: { type: "string", enum: ["task", "note", "doc"] },
+              type: { type: "string", enum: ITEM_TYPES },
               id: { type: "string", description: "Item identifier" },
             },
             required: ["type", "id"],

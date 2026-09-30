@@ -206,8 +206,17 @@ export function useWebMcpCart(cartStore) {
           readOnlyHint: false, // Explicitly declare that this tool mutates application state
         },
         async execute({ itemId, quantity = 1 }) {
-          await cartStore.addItem(itemId, quantity);
-          return `Added ${quantity} of ${itemId} to cart. Total items: ${cartStore.count}.`;
+          try {
+            await cartStore.addItem(itemId, quantity);
+            return `Added ${quantity} of ${itemId} to cart. Total items: ${cartStore.count}.`;
+          } catch (err) {
+            // Resolve a structured error: an unhandled throw reaches the agent only as UnknownError
+            return {
+              error: `Could not add ${itemId} to cart: ${err.message}`,
+              code: "ADD_TO_CART_FAILED",
+              retryable: false,
+            };
+          }
         },
       },
       { signal: controller.signal },

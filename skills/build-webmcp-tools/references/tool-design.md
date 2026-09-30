@@ -87,9 +87,10 @@ For every tool and parameter description:
 - **Reject entity-specific tool proliferation**: Avoid separate CRUD tools per entity (e.g. `list_tasks`, `list_notes`, `get_note`, `move_task`). Granular tool bloat causes prompt token explosion, selection paralysis, and multi-turn roundtrips.
 - **Merge overlapping tools** into cohesive, parameterized tools (e.g., a single `search_catalog` tool with category filters rather than distinct tools per category).
 - Where domain entities share common operational lifecycles (e.g. tasks, notes, documents, files, folders):
-  - **Consolidated Listing**: Expose `list_items` accepting an array of `types` (e.g. `types: ['tasks', 'notes']`), keyword `query`, and pagination parameters rather than individual `list_tasks`, `list_notes`, `list_folders`.
+  - **Consolidated Listing**: Expose `list_items` accepting an array of `types` (e.g. `types: ['task', 'note']`), keyword `query`, and pagination parameters rather than individual `list_tasks`, `list_notes`, `list_folders`.
   - **Consolidated Detail Retrieval**: Expose `get_item` accepting `item_type` and `id` rather than per-entity getter tools.
   - **Batch Mutation Operations**: Expose `move_items` (or `delete_items`, `tag_items`) accepting an array of items `items: [{ type: string, id: string }]` and target destination, enabling the agent to relocate multiple entities across categories in a single turn without sequential roundtrips.
+  - **Shared Type Values**: Use one set of `type` values across all consolidated tools (e.g. singular `task`, `note`), so the items `list_items` returns can be passed straight to `get_item` and `move_items`. Map them to API paths inside the handler.
   - **Concurrent Execution**: Implementations must query or mutate across entity types concurrently using `Promise.all` inside the tool handler, keeping turn latency low and returning consolidated LLM-readable payloads.
 
 ---

@@ -98,6 +98,8 @@ The `SubmitEvent` includes two WebMCP properties:
 const reservationForm = document.querySelector('form[toolname="reserve_restaurant_table"]');
 
 reservationForm.addEventListener("submit", async (event) => {
+  // This handler submits via fetch for both humans and agents, so it always
+  // prevents the default navigation (required before calling event.respondWith).
   event.preventDefault();
 
   const formData = new FormData(event.target);
@@ -125,6 +127,9 @@ reservationForm.addEventListener("submit", async (event) => {
     if (event.agentInvoked) {
       // Return structured validation errors directly to the model so the agent can self-correct specific fields
       event.respondWith(Promise.resolve(validationErrors));
+    } else {
+      // Human submission: show the same errors next to the fields
+      showFieldErrors(validationErrors);
     }
     return;
   }
@@ -151,10 +156,15 @@ reservationForm.addEventListener("submit", async (event) => {
       return `Reservation confirmed! Confirmation code: ${data.confirmationCode}.`;
     })
     .catch((err) => {
-      // Re-throw actionable Error so submissionPromise rejects and signals an execution failure to the agent
-      throw new Error(
-        `Reservation failed: ${err.message}. Please verify availability with the user.`,
-      );
+      // Resolve (do not rethrow) a structured error: a rejected respondWith promise reaches
+      // the agent only as a generic DOMException: UnknownError, losing this guidance.
+      showFormError(`Reservation failed: ${err.message}`);
+      return {
+        error: `Reservation failed: ${err.message}`,
+        code: "RESERVATION_FAILED",
+        retryable: true,
+        suggestion: "Verify availability or a different time with the user.",
+      };
     });
 
   // 3. Resolve to the agent
@@ -164,7 +174,7 @@ reservationForm.addEventListener("submit", async (event) => {
 });
 ```
 
-> **Resolve, don't reject, validation errors**: As implemented in official Chrome docs and GoogleChromeLabs reference demos (`demos/french-bistro`), field validation errors are returned as structured payloads (e.g. `[{ field, value, message }]`) via `event.respondWith(validationErrors)` so the model learns exactly which form fields need correction. Rejecting (`Promise.reject`) discards the field details into a generic `DOMException: UnknownError`. Reserve rejection only for fatal operational crashes. For how React and native imperative tools report errors, see [error-handling.md](./error-handling.md).
+> **Resolve, don't reject, errors**: This applies to both field validation errors and failed API calls (the `.catch` above). As implemented in official Chrome docs and GoogleChromeLabs reference demos (`demos/french-bistro`), field validation errors are returned as structured payloads (e.g. `[{ field, value, message }]`) via `event.respondWith(validationErrors)` so the model learns exactly which form fields need correction. Rejecting (`Promise.reject`) discards the field details into a generic `DOMException: UnknownError`. Reserve rejection only for fatal operational crashes. For how React and native imperative tools report errors, see [error-handling.md](./error-handling.md).
 
 ---
 
