@@ -19,6 +19,7 @@ npm install -D webmcp-types  # Optional: for direct TypeScript typings
 ```
 
 - **Requirements**: React 18+ peer dependency, ESM-only, bundled TypeScript types, zero runtime dependencies.
+- **Direct `document.modelContext` access** (e.g. tests, consumer code): use `webmcp-types` rather than hand-written declarations; see [vanilla-patterns.md](./vanilla-patterns.md) for setup.
 - **Next.js & Server Components**: The hook uses React state and lifecycle effects, so components declaring tools must include the `"use client"` directive. During SSR, the hook gracefully feature-detects and returns `{ supported: false, registered: false, error: null }` without throwing.
 
 ---

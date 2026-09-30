@@ -13,10 +13,22 @@ This guide covers native imperative WebMCP tool authoring, lifecycle management,
 
 The WebMCP imperative API is hosted directly on **`document.modelContext`**.
 
-```typescript
-// Install TypeScript definitions if developing with TypeScript
-// npm install -D webmcp-types
+### TypeScript: use `webmcp-types`
+
+In TypeScript projects, use the [`webmcp-types`](https://www.npmjs.com/package/webmcp-types) package, published from the spec's own `webmachinelearning` organization. It augments the global DOM types, so `document.modelContext` is typed everywhere without imports (TypeScript 5.0+).
+
+```bash
+npm install -D webmcp-types
 ```
+
+Enable it in `tsconfig.json`:
+
+```json
+{ "compilerOptions": { "types": ["webmcp-types"] } }
+```
+
+- **Gotcha**: a `types` array makes TypeScript include *only* the listed packages. If the project has no `types` array yet, adding one drops `@types/node` and other automatically included types; add `webmcp-types` to an existing array instead, or use `/// <reference types="webmcp-types" />` in one source file.
+- **Replace hand-written declarations**: If the project already declares its own WebMCP types (e.g. `declare global { interface Document { modelContext?: ... } }` with custom `ModelContext` or tool interfaces), recommend deleting them and using `webmcp-types`. Hand-written types drift from the spec and hide parts of the API: a custom `execute(args)` signature without the second argument means the execution `signal` is never available, and missing `annotations` fields mean tools ship without them.
 
 ```javascript
 // 1. Feature detection

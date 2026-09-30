@@ -728,6 +728,16 @@
         "The output registers the tool with document.modelContext.registerTool and unregisters it via AbortController",
         "The execute callback catches failures from cartStore.addItem and resolves a structured error payload (e.g. { error, code, retryable }) instead of letting the error propagate as a rejection"
       ]
+    },
+    {
+      "id": "stage-6-typescript-webmcp-types",
+      "prompt": "We're adding WebMCP tools to our existing TypeScript app. We already wrote our own types for it in src/webmcp.d.ts:\n\n```ts\ninterface WebMCPTool {\n  name: string;\n  description: string;\n  inputSchema: object;\n  execute: (args: Record<string, unknown>) => string | Promise<string>;\n}\n\ninterface ModelContext {\n  registerTool(tool: WebMCPTool, options?: { signal?: AbortSignal }): void;\n}\n\ndeclare global {\n  interface Document {\n    modelContext?: ModelContext;\n  }\n}\n```\n\nIs this a good setup for our WebMCP types?",
+      "expected_output": "The agent recommends replacing the hand-written declarations with the webmcp-types package (npm install -D webmcp-types), which is maintained with the WebMCP spec and augments the global DOM types, and shows how to enable it: add \"webmcp-types\" to compilerOptions.types in tsconfig.json (adding to any existing types array, since listing types restricts which @types packages are included) or use /// <reference types=\"webmcp-types\" />. It explains that hand-written types drift from the spec and miss parts of the API, e.g. this execute signature has no second argument, so the execution cancellation signal is never available, and annotations are missing.",
+      "assertions": [
+        "The agent recommends replacing the hand-written WebMCP declarations with the webmcp-types package",
+        "The agent explains how to enable webmcp-types, via compilerOptions.types in tsconfig.json or a /// <reference types=\"webmcp-types\" /> directive",
+        "The agent explains that hand-written types drift from the spec or miss parts of the API, such as the execute callback's second argument with the cancellation signal, or annotations"
+      ]
     }
   ]
 }
