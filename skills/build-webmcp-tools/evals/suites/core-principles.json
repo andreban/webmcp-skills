@@ -20,7 +20,7 @@
         "The agent specifies that tool names must be 30 characters or fewer",
         "The agent specifies that tool descriptions must be 500 characters or fewer",
         "The agent specifies that parameter descriptions must be 150 characters or fewer",
-        "The agent specifies that tool output should be 1,500 characters (~1.5KB) or fewer"
+        "The agent specifies that tool output should be 1,500 characters or fewer"
       ]
     },
     {
