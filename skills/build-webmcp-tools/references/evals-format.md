@@ -31,21 +31,21 @@ The consolidated `schema.json` file contains a root object with a `tools` array.
   "tools": [
     {
       "name": "search_flights",
-      "description": "Searches available flights between origin and destination airports for specified dates.",
+      "description": "Finds available flights for a trip. Use when the user wants to compare flight options, times, or prices before choosing one.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "origin": {
             "type": "string",
-            "description": "3-letter IATA departure airport code (e.g. SFO)"
+            "description": "Departure airport code (e.g. SFO) or city name as the user said it"
           },
           "destination": {
             "type": "string",
-            "description": "3-letter IATA arrival airport code (e.g. JFK)"
+            "description": "Arrival airport code (e.g. JFK) or city name as the user said it"
           },
           "departure_date": {
             "type": "string",
-            "description": "Departure date in YYYY-MM-DD format"
+            "description": "Departure date as ISO YYYY-MM-DD or as the user phrased it (e.g. 'next Friday'); the app resolves relative dates"
           },
           "cabin_class": {
             "type": "string",
@@ -61,7 +61,7 @@ The consolidated `schema.json` file contains a root object with a `tools` array.
     },
     {
       "name": "initiate_booking",
-      "description": "Pre-selects the flight and navigates user to checkout confirmation screen.",
+      "description": "Opens the checkout confirmation screen for a chosen flight so the user can review and confirm. Use when the user has picked a flight and wants to book it.",
       "inputSchema": {
         "type": "object",
         "properties": {

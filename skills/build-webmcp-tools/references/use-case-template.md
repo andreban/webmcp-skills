@@ -101,9 +101,9 @@ Ensure every tool respects Chrome character budgets:
 
 | Tool Name          | Parameters & JSON Schema                                  | Description & Purpose                                                              | Annotations               | Expected Site Reaction         |
 | :----------------- | :-------------------------------------------------------- | :--------------------------------------------------------------------------------- | :------------------------ | :----------------------------- |
-| `search_catalog`   | `query: string`<br>`category?: string`<br>`page?: number` | Searches catalog items by keywords; returns paginated results and facet summaries. | `readOnlyHint: true`      | Updates search results grid    |
-| `select_item`      | `item_id: string`<br>`options?: object`                   | Configures and selects a specific catalog item.                                    | `readOnlyHint: false`     | Focuses item detail pane       |
-| `initiate_booking` | `item_id: string`                                         | Navigates the user to the checkout screen to confirm booking.                      | `consequentialHint: true` | Navigates route to `/checkout` |
+| `search_catalog`   | `query: string`<br>`category?: string`<br>`page?: number` | Finds catalog items with facet summaries. Use when the user browses or searches the catalog. | `readOnlyHint: true`      | Updates search results grid    |
+| `select_item`      | `item_id: string`<br>`options?: object`                   | Selects a catalog item and its options. Use when the user picks an item from results. | `readOnlyHint: false`     | Focuses item detail pane       |
+| `initiate_booking` | `item_id: string`                                         | Opens checkout for the user to confirm. Use when the user is ready to book an item. | `consequentialHint: true` | Navigates route to `/checkout` |
 
 ---
 

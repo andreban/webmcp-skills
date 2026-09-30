@@ -97,7 +97,7 @@ function processToolResponse(toolDef, rawOutput) {
 // ❌ VULNERABLE: Omits untrustedContentHint under false assumption that DB data is trusted
 useWebMCP({
   name: "get_note",
-  description: "Fetches the markdown content of a workspace note by ID.",
+  description: "Returns the full content of a workspace note. Use when the user asks to read, quote, or summarize a note.",
   annotations: {
     readOnlyHint: true,
     // BUG: Host agent ingests note content as trusted directives without spotlighting!
@@ -111,7 +111,7 @@ useWebMCP({
 // ✅ SECURE: Declares untrustedContentHint: true for user-authored text
 useWebMCP({
   name: "get_note",
-  description: "Fetches the markdown content of a workspace note by ID.",
+  description: "Returns the full content of a workspace note. Use when the user asks to read, quote, or summarize a note.",
   annotations: {
     readOnlyHint: true,
     untrustedContentHint: true, // Triggers host agent delimiter sandboxing & spotlighting

@@ -22,7 +22,8 @@
         "The output uses provideExperimentalWebMcpTools",
         "The output does NOT include navigator.modelContext",
         "The agent read references/angular-patterns.md",
-        "The agent did NOT read references/react-patterns.md"
+        "The agent did NOT read references/react-patterns.md",
+        "The tool description says when the agent should use the tool (What + When), not only what it does"
       ]
     },
     {
@@ -89,7 +90,8 @@
       "assertions": [
         "The output includes the toolname attribute on the form",
         "The output includes the toolautosubmit attribute",
-        "The output uses event.respondWith to return the tool result"
+        "The output uses event.respondWith to return the tool result",
+        "The tool description says when the agent should use the tool (What + When), not only what it does"
       ]
     },
     {

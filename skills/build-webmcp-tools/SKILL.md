@@ -34,7 +34,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 
 - **Budgets**: tool and parameter names ≤ 30 chars; tool descriptions ≤ 500 chars; parameter descriptions ≤ 150 chars; output ≤ 1,500 chars (~400 tokens), paginated. → [tool-design.md](./references/tool-design.md)
 - **Descriptions**: "What + When" (what the tool does, when to choose it); never repeat `inputSchema` parameters; no implementation jargon (Zustand, Redux, Axum, REST, GraphQL, IPC). → [tool-design.md](./references/tool-design.md)
-- **Naming & shape**: action verbs; `initiate_*` for tools that open a form or wizard vs. `book_*`/`create_*` for immediate execution; accept raw user input (natural dates, names) over IDs or computed values; consolidate entities that share a lifecycle into polymorphic, batched tools. → [tool-design.md](./references/tool-design.md)
+- **Naming & shape**: action verbs; `initiate_*` for tools that open a form or wizard vs. `book_*`/`create_*` for immediate execution; never make the model compute values (relative dates, conversions): accept the user's phrasing and resolve it in the app, though unambiguous lookups to standard codes are fine; prefer names over opaque IDs; consolidate entities that share a lifecycle and annotations into polymorphic, batched tools, keeping trusted and user-authored content in separate tools. → [tool-design.md](./references/tool-design.md)
 - **Annotations**: `readOnlyHint: true` only on pure queries; `consequentialHint: true` on irreversible, financial, or destructive actions **and** on view navigation/tab switching (never `readOnlyHint` there); `untrustedContentHint: true` on any output containing user- or third-party-authored text, even from your own database. → [annotations.md](./references/annotations.md)
 - **Errors reach the agent**: React `useWebMCP` throws `Error` (→ `isError: true`); native `registerTool` **resolves** `{ error, code, retryable }` because rejections become a generic `DOMException: UnknownError`; declarative forms resolve structured field errors via `event.respondWith`. → [error-handling.md](./references/error-handling.md)
 - **UI sync**: await state and DOM updates before a tool returns.
@@ -47,7 +47,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 
 | The developer has / asks for | Go to | Read first | Don't yet |
 | :-- | :-- | :-- | :-- |
-| "Add WebMCP to this project" (local code) | Stage 1 | The project's `package.json`, routes, and main components; `conversational-design.md` | Ask what the app does; write code or schemas |
+| "Add WebMCP to this project" (**local code in the workspace**, no URL) | Stage 1 | The project's `package.json`, routes, and main components; `conversational-design.md` | Ask what the app does; write code or schemas |
 | One specific tool idea ("a tool to search flights") | Stage 2 or 3 for that goal | `conversational-design.md`, `use-case-template.md` | Ideate an unrelated portfolio; write code |
 | Goals already defined | Stage 2 | `conversational-design.md` | Re-ideate goals |
 | Goal + starting state | Stage 3 | `use-case-template.md`, `conversational-design.md` | Skip the critique loop |
@@ -56,7 +56,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 | Existing `schema.json` → `evals.json` | Stage 5 (evals) | `evals-format.md` | Force Stages 1–4 |
 | Just finished `schema.json`/`evals.json` ("what next?") | Stage 5 eval gate | `evals-format.md` | Start Stage 6 without asking |
 | Existing schema or design → code | Stage 6 | The framework file (below), `error-handling.md` | Reopen conversational design |
-| A live site / URL to **add** tools to | Stage 1, after exploring the site | `live-site-discovery.md` | Ask the user to describe the site; write frontend code |
+| A **URL or domain** (e.g. `example.com`) to **add** tools to | Stage 1, after exploring the site | `live-site-discovery.md` (not `conversational-design.md` first) | Ask the user to describe the site; write frontend code |
 | **Feedback on, review, or audit of existing tools** (live site or local code) | Audit | `audit-checklist.md`, `agent-security.md`, `error-handling.md` | Restart Stage 1 ideation |
 | Testing, DevTools, Lighthouse, page readiness | — | `testing-and-debugging.md` | — |
 | Concept questions | — | Budgets/naming/descriptions: `tool-design.md`; annotations: `annotations.md`; prompt injection, spotlighting: `agent-security.md`; errors: `error-handling.md` | — |
