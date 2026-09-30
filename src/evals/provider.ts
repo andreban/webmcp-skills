@@ -18,6 +18,42 @@ export interface GenerationResult {
   timing: Timing;
 }
 
+/**
+ * Gemini function declaration (subset of the OpenAPI schema supported by the API).
+ */
+export interface FunctionDeclaration {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
+
+/**
+ * Gemini content part. Unknown fields (e.g. thoughtSignature) are preserved so model turns
+ * can be echoed back verbatim in multi-turn function calling.
+ */
+export interface Part {
+  text?: string;
+  thought?: boolean;
+  functionCall?: { id?: string; name: string; args?: Record<string, unknown> };
+  functionResponse?: { id?: string; name: string; response: Record<string, unknown> };
+  [key: string]: unknown;
+}
+
+export interface Content {
+  role: "user" | "model";
+  parts: Part[];
+}
+
+export interface TurnOptions extends GenerateOptions {
+  tools?: FunctionDeclaration[];
+  /** Function calling mode; "NONE" forces a text-only answer even when tools are declared. */
+  functionCallingMode?: "AUTO" | "NONE";
+}
+
+export interface TurnResult extends GenerationResult {
+  parts: Part[];
+}
+
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 
 /**
@@ -39,19 +75,47 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * Concatenates the visible text parts of a model response, skipping thought summaries.
+ */
+export function extractText(parts: Part[]): string {
+  return parts
+    .filter((p) => typeof p.text === "string" && !p.thought)
+    .map((p) => p.text)
+    .join("");
+}
+
+/**
  * Generates content using Google Gemini API with native fetch and exponential backoff retry.
  */
 export async function generateContent(
   prompt: string,
   options: GenerateOptions = {},
 ): Promise<GenerationResult> {
+  const { text, timing } = await generateTurn(
+    [{ role: "user", parts: [{ text: prompt }] }],
+    options,
+  );
+  return { text, timing };
+}
+
+/**
+ * Sends one request for a multi-turn conversation, optionally declaring function tools.
+ * Returns all response parts so callers can detect and answer function calls.
+ */
+export async function generateTurn(
+  contents: Content[],
+  options: TurnOptions = {},
+): Promise<TurnResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   const isMock = options.mock || !apiKey;
 
   if (isMock) {
-    // Deterministic mock generation for offline / dry-run / testing
+    // Deterministic mock generation for offline / dry-run / testing (never calls tools)
+    const firstUserText = contents.find((c) => c.role === "user")?.parts[0]?.text ?? "";
+    const text = `[MOCK OUTPUT] Response to: ${firstUserText.slice(0, 80)}...`;
     return {
-      text: `[MOCK OUTPUT] Response to: ${prompt.slice(0, 80)}...`,
+      text,
+      parts: [{ text }],
       timing: {
         duration_ms: 50,
         total_tokens: 150,
@@ -65,12 +129,7 @@ export async function generateContent(
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const requestBody: Record<string, unknown> = {
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: prompt }],
-      },
-    ],
+    contents,
     generationConfig: {
       temperature: options.temperature ?? 0.2,
       ...(options.responseMimeType ? { responseMimeType: options.responseMimeType } : {}),
@@ -80,6 +139,13 @@ export async function generateContent(
   if (options.systemInstruction) {
     requestBody.system_instruction = {
       parts: [{ text: options.systemInstruction }],
+    };
+  }
+
+  if (options.tools && options.tools.length > 0) {
+    requestBody.tools = [{ functionDeclarations: options.tools }];
+    requestBody.toolConfig = {
+      functionCallingConfig: { mode: options.functionCallingMode ?? "AUTO" },
     };
   }
 
@@ -116,11 +182,12 @@ export async function generateContent(
       }
 
       const data = await response.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const parts: Part[] = data?.candidates?.[0]?.content?.parts || [];
       const usage = data?.usageMetadata || {};
 
       return {
-        text,
+        text: extractText(parts),
+        parts,
         timing: {
           duration_ms: durationMs,
           total_tokens: usage.totalTokenCount || 0,

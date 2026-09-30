@@ -83,7 +83,22 @@ npm run eval:bundle
 
 # Open interactive Vite evaluation viewer to review outputs & record feedback
 npm run eval:view
+
+# Limit model calls per run in the read_file agent loop (default: 6)
+npm run eval -- --max-turns 4
 ```
+
+### 3. How Eval Runs Execute (Progressive Disclosure)
+
+Each run is a short tool-calling loop, not a single prompt, so evals measure whether the agent actually loads `references/`:
+
+- The model receives a `read_file(path)` tool and may call it for up to `--max-turns` turns (default 6). The final turn forces a text answer.
+- **Readable files per configuration**:
+  - `with_skill`: `SKILL.md` is the system instruction; the model may read any file under the skill directory **except `evals/`** (which holds assertions), plus the eval's `files`.
+  - `without_skill`: no system instruction; the model may read **only** the eval's `files`.
+- **Eval `files`**: Paths (relative to the skill directory, e.g. `evals/fixtures/notes-app/package.json`) are listed in the prompt and readable in both configurations. Use them to give the model a realistic codebase context.
+- Absolute paths, `..` traversal, and symlinks escaping the skill directory are rejected.
+- Each run records `turns` and `files_read` (saved as `agent.json` next to `timing.json`, shown in the viewer, and aggregated in `benchmark.json`).
 
 ---
 
@@ -143,6 +158,7 @@ To maintain high skill quality and prevent regressions:
    - Automated bundling generates the standard `evals/evals.json` for external tools.
 2. **Hybrid Assertion Strategy**:
    - **Deterministic assertions**: Use specific phrases like `"The output does NOT include navigator.modelContext"` or `"The output includes readOnlyHint: true"` for immediate programmatic validation.
+   - **File-read assertions**: Use exactly `"The agent read references/<file>.md"` or `"The agent did NOT read references/<file>.md"` to check reference loading deterministically against the run's `files_read`. Prefer these over assertions that the output *mentions* a reference file.
    - **Semantic assertions**: Evaluated by the model judge requiring concrete textual citations and evidence for a PASS.
 3. **Mandatory Comparative Benchmarking (`benchmark.json`)**:
    - **Always run both configurations**: Every evaluation run MUST execute both `with_skill` and `without_skill` baselines to calculate statistical deltas across pass rates, token consumption, and latency. Single-sided ("with-only") runs without baselines are prohibited; evaluations must always run with and without the skill to demonstrate value-add and populate comparative dashboard panes.

@@ -6,6 +6,7 @@
 interface EvalRun {
   output: string;
   timing: { total_tokens: number; duration_ms: number };
+  agent?: { turns: number; files_read: string[] };
   grading: {
     assertion_results: Array<{ text: string; passed: boolean; evidence: string }>;
     summary: { passed: number; failed: number; total: number; pass_rate: number };
@@ -32,6 +33,7 @@ interface IterationData {
         pass_rate: { mean: number };
         time_seconds: { mean: number };
         tokens: { mean: number };
+        files_read?: { mean: number };
       };
       without_skill?: {
         pass_rate: { mean: number };
@@ -109,6 +111,15 @@ async function loadData() {
         <span class="metric-val">${Math.round(summary.with_skill.tokens.mean)}</span>
       </div>
       ${
+        summary.with_skill.files_read
+          ? `
+      <div class="metric">
+        <span class="metric-label">Avg Files Read</span>
+        <span class="metric-val">${summary.with_skill.files_read.mean}</span>
+      </div>`
+          : ""
+      }
+      ${
         summary.delta
           ? `
       <div class="metric">
@@ -151,6 +162,7 @@ async function loadData() {
                 <span>With Skill</span>
                 <span>${e.with_skill ? `${e.with_skill.timing.duration_ms}ms · ${e.with_skill.timing.total_tokens} tokens` : "N/A"}</span>
               </div>
+              ${renderFilesRead(e.with_skill)}
               <div class="pane-output">${e.with_skill ? escapeHtml(e.with_skill.output) : "No output"}</div>
               <ul class="assertions-list">
                 ${(e.with_skill?.grading.assertion_results || [])
@@ -174,6 +186,7 @@ async function loadData() {
                 <span>Without Skill (Baseline)</span>
                 <span>${e.without_skill ? `${e.without_skill.timing.duration_ms}ms · ${e.without_skill.timing.total_tokens} tokens` : "N/A"}</span>
               </div>
+              ${renderFilesRead(e.without_skill)}
               <div class="pane-output">${e.without_skill ? escapeHtml(e.without_skill.output) : "No baseline run"}</div>
               <ul class="assertions-list">
                 ${(e.without_skill?.grading.assertion_results || [])
@@ -217,6 +230,12 @@ function escapeHtml(str: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function renderFilesRead(run: EvalRun | undefined): string {
+  if (!run?.agent) return "";
+  const files = run.agent.files_read.length > 0 ? run.agent.files_read.join(", ") : "none";
+  return `<div class="evidence">Files read (${run.agent.turns} turns): ${escapeHtml(files)}</div>`;
 }
 
 (

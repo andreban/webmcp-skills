@@ -84,6 +84,10 @@ export interface SingleRunResult {
   output: string;
   timing: Timing;
   grading: GradingOutput;
+  /** Number of model calls in the read_file agent loop. */
+  turns?: number;
+  /** Relative paths successfully read via read_file, in first-read order. */
+  files_read?: string[];
 }
 
 /**
@@ -103,6 +107,10 @@ export interface ConfigStats {
   pass_rate: MetricStats;
   time_seconds: MetricStats;
   tokens: MetricStats;
+  /** Model calls per run in the read_file agent loop (absent for legacy runs). */
+  turns?: MetricStats;
+  /** Distinct files read per run via read_file (absent for legacy runs). */
+  files_read?: MetricStats;
 }
 
 /**
@@ -133,12 +141,16 @@ export interface EvalBenchmarkResult {
     pass_rate: number;
     time_seconds: number;
     tokens: number;
+    turns?: number;
+    files_read?: number;
   };
   without_skill?: {
     passed: boolean;
     pass_rate: number;
     time_seconds: number;
     tokens: number;
+    turns?: number;
+    files_read?: number;
   };
   delta_pass_rate?: number;
 }

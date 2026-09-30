@@ -111,10 +111,11 @@
     {
       "id": "stage-0-router-local-codebase-audit",
       "prompt": "Can you audit our existing WebMCP tools in src/tools/ for best practices and security?",
-      "expected_output": "The agent routes directly to Stage 6 Review Checklist & Auditing, instructs inspecting references/agent-security.md and references/vanilla-patterns.md using view_file, and systematically checks against character budgets, unhandled rejections, UI view navigation missing consequentialHint, UGC missing untrustedContentHint, and DevTools/Lighthouse readiness.",
+      "expected_output": "The agent routes directly to Stage 6 Review Checklist & Auditing, reads references/agent-security.md and references/vanilla-patterns.md before auditing, and systematically checks against character budgets, unhandled rejections, UI view navigation missing consequentialHint, UGC missing untrustedContentHint, and DevTools/Lighthouse readiness.",
       "assertions": [
         "The output routes directly to Stage 6 Review Checklist & Auditing.",
-        "The output references or instructs inspecting references/agent-security.md and references/vanilla-patterns.md (using view_file or citing both reference files).",
+        "The agent read references/agent-security.md",
+        "The agent read references/vanilla-patterns.md",
         "The output systematically checks against character budgets (names <= 30 chars, descriptions <= 500 chars) and removing internal implementation jargon.",
         "The output audits that tools return actionable error guidance rather than unhandled Promise rejections.",
         "The output audits that tools shifting views or tabs declare consequentialHint: true and strictly omit readOnlyHint: true.",
