@@ -15,7 +15,7 @@ import {
 } from "../agent-loop.js";
 import { buildBenchmarkReport } from "../aggregate-benchmark.js";
 import { gradeAssertions, tryReadAssertionCheck } from "../grader.js";
-import { buildAccessPolicy, buildPrompt, runSkillEvals } from "../runner.js";
+import { buildAccessPolicy, buildPrompt, gradableAssertions, runSkillEvals } from "../runner.js";
 import type { EvalCase, SingleRunResult, Skill } from "../types.js";
 
 const fixtureDir = path.resolve("node_modules/.cache/agent-loop-fixture");
@@ -337,8 +337,32 @@ describe("Agent Loop - runner integration", () => {
     for (const r of results) {
       expect(r.turns).toBe(1);
       expect(r.files_read).toEqual([]);
-      expect(r.grading.assertion_results[0].passed).toBe(true);
     }
+    const withRun = results.find((r) => r.config === "with_skill")!;
+    const withoutRun = results.find((r) => r.config === "without_skill")!;
+    expect(withRun.grading.assertion_results[0].passed).toBe(true);
+    // The skill-file read-assertion is not graded for without_skill
+    expect(withoutRun.grading.summary.total).toBe(0);
+  });
+
+  it("drops skill-file read-assertions for without_skill but keeps eval-file ones", () => {
+    const mixed: EvalCase = {
+      ...item,
+      assertions: [
+        "The agent read references/guide.md",
+        "The agent did NOT read references/other.md",
+        "The agent read ./evals/fixtures/app/package.json",
+        "The output includes useWebMCP",
+        "The agent reads the request carefully",
+      ],
+    };
+
+    expect(gradableAssertions(mixed, "with_skill")).toEqual(mixed.assertions);
+    expect(gradableAssertions(mixed, "without_skill")).toEqual([
+      "The agent read ./evals/fixtures/app/package.json",
+      "The output includes useWebMCP",
+      "The agent reads the request carefully",
+    ]);
   });
 });
 

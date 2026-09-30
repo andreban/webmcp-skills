@@ -4,7 +4,7 @@
  */
 
 import { type FileAccessPolicy, normalizeRelativePath, runAgentLoop } from "./agent-loop.js";
-import { gradeAssertions } from "./grader.js";
+import { gradeAssertions, parseReadAssertion } from "./grader.js";
 import type { EvalCase, SingleRunResult, Skill } from "./types.js";
 
 export interface RunOptions {
@@ -33,6 +33,26 @@ export function buildAccessPolicy(
     excludeDirs: ["evals"],
     allowedFiles: item.files ?? [],
   };
+}
+
+/**
+ * Returns the assertions to grade for a configuration. without_skill cannot read skill
+ * files, so read-assertions about them would be automatic failures ("read") or automatic
+ * passes ("did NOT read"); they are dropped. Read-assertions about the eval's own files
+ * stay, since both configurations can read those.
+ */
+export function gradableAssertions(
+  item: EvalCase,
+  config: "with_skill" | "without_skill",
+): string[] {
+  if (config === "with_skill") {
+    return item.assertions;
+  }
+  const evalFiles = new Set((item.files ?? []).map(normalizeRelativePath));
+  return item.assertions.filter((assertion) => {
+    const parsed = parseReadAssertion(assertion);
+    return !parsed || evalFiles.has(parsed.target);
+  });
 }
 
 /**
@@ -89,7 +109,7 @@ export async function runSkillEvals(
       const withGrading = await gradeAssertions(
         withGen.text,
         item.expected_output,
-        item.assertions,
+        gradableAssertions(item, "with_skill"),
         {
           model: options.model,
           mock: options.mock,
@@ -126,7 +146,7 @@ export async function runSkillEvals(
         const withoutGrading = await gradeAssertions(
           withoutGen.text,
           item.expected_output,
-          item.assertions,
+          gradableAssertions(item, "without_skill"),
           {
             model: options.model,
             mock: options.mock,

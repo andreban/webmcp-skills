@@ -14,6 +14,19 @@ export interface GraderOptions {
 }
 
 /**
+ * Parses "The agent read <path>" / "The agent did NOT read <path>" into its parts,
+ * with the path normalized to forward slashes and no leading "./".
+ */
+export function parseReadAssertion(assertion: string): { negated: boolean; target: string } | null {
+  const match = assertion.trim().match(/^The agent (did NOT )?read (\S+?)\.?$/i);
+  if (!match) return null;
+  return {
+    negated: Boolean(match[1]),
+    target: match[2].replace(/\\/g, "/").replace(/^(\.\/)+/, ""),
+  };
+}
+
+/**
  * Checks "The agent read <path>" and "The agent did NOT read <path>" assertions against
  * the files recorded by the read_file agent loop. Returns null for any other assertion.
  */
@@ -21,11 +34,10 @@ export function tryReadAssertionCheck(
   assertion: string,
   filesRead: string[] | undefined,
 ): AssertionResult | null {
-  const match = assertion.trim().match(/^The agent (did NOT )?read (\S+?)\.?$/i);
-  if (!match) return null;
+  const parsed = parseReadAssertion(assertion);
+  if (!parsed) return null;
 
-  const negated = Boolean(match[1]);
-  const target = match[2].replace(/\\/g, "/").replace(/^(\.\/)+/, "");
+  const { negated, target } = parsed;
 
   if (!filesRead) {
     return {
