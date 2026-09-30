@@ -6,6 +6,7 @@
       "prompt": "What checks does the Lighthouse 'Agentic browsing' audit run on WebMCP applications, and what causes a page to fail?",
       "expected_output": "The agent details the Lighthouse Agentic browsing audits: paired `toolname`/`tooldescription`, unique field names, parameter description fallback chain, accessibility tree naming, CLS thresholds to prevent agent misclicks, and `/llms.txt` presence. It explains that missing either `toolname` or `tooldescription`, or having inputs without names, triggers audit failures.",
       "assertions": [
+        "The agent read references/testing-and-debugging.md",
         "The agent explains pairing toolname and tooldescription on forms",
         "The agent mentions field names, label/toolparamdescription fallbacks, or accessibility tree readiness",
         "The agent mentions layout stability (CLS) or /llms.txt"
@@ -16,6 +17,7 @@
       "prompt": "How can a developer inspect and debug registered WebMCP tools using Chrome DevTools without invoking an LLM?",
       "expected_output": "The agent explains opening Chrome DevTools → Application → WebMCP pane to view active tools, check the invocation counter, execute tools manually with custom parameters via the Play icon, and review schema validation warnings.",
       "assertions": [
+        "The agent read references/testing-and-debugging.md",
         "The agent points to Chrome DevTools Application > WebMCP pane",
         "The agent explains manual tool execution or checking invocation counts/schema warnings"
       ]
@@ -23,10 +25,11 @@
     {
       "id": "stage-6-audit-reference-loading-directives",
       "prompt": "Can you audit the WebMCP tools on our live production site and advise on best practices for error reporting and user-generated content?",
-      "expected_output": "The agent routes to Stage 6 Review Checklist & Auditing. Critically, it reads the relevant reference files (specifically references/agent-security.md and references/vanilla-patterns.md) before generating final findings. It details deeper architectural context from these references: the W3C WebMCP unhandled rejection mapping to generic DOMException: UnknownError (requiring structured error payloads rather than throwing/rejecting unhandled promises) and the 'First-Party Database Fallacy' where user-authored database records require untrustedContentHint: true and delimiter sandboxing against prompt injection.",
+      "expected_output": "The agent routes to Stage 6 Review Checklist & Auditing. Critically, it reads the relevant reference files (specifically references/agent-security.md and references/error-handling.md) before generating final findings. It details deeper architectural context from these references: the W3C WebMCP unhandled rejection mapping to generic DOMException: UnknownError (requiring structured error payloads rather than throwing/rejecting unhandled promises) and the 'First-Party Database Fallacy' where user-authored database records require untrustedContentHint: true and delimiter sandboxing against prompt injection.",
       "assertions": [
+        "The agent read references/audit-checklist.md",
         "The agent read references/agent-security.md",
-        "The agent read references/vanilla-patterns.md",
+        "The agent read references/error-handling.md",
         "The output explains that unhandled promise rejections are mapped by W3C WebMCP to generic DOMException: UnknownError.",
         "The output explains the First-Party Database Fallacy or untrusted user-authored content prompt injection threat model."
       ]
@@ -160,13 +163,18 @@
     {
       "id": "stage-0-router-local-codebase-greenfield",
       "prompt": "Add WebMCP tools to this project.",
-      "expected_output": "The agent inspects local codebase structure (routes, components, package.json), proposes candidate user journeys tailored to the project with autonomous boundaries, enforces the One Goal Per Iteration rule, and avoids premature code dumping.",
+      "expected_output": "The agent reads the project files (package.json, routes in App.tsx, and the store) before responding, recognizes a React notes app, and routes to Stage 1 by proposing 3 candidate user journeys specific to note-taking (e.g. finding notes, organizing notes into folders or tags, sharing a note, emptying trash), each with an ideal outcome and autonomous boundary (e.g. sharing or permanent deletion requires confirmation). It invites the user to pick one goal and writes no code or schemas.",
       "assertions": [
-        "The agent inspects or references local project structure (package.json, routes, or components) rather than asking generic questions.",
-        "The output routes to Stage 1 (User Goals Portfolio) by proposing concrete candidate user journeys tailored to the project.",
-        "The output explicitly defines or highlights autonomous boundaries for the proposed journeys.",
+        "The agent read evals/fixtures/notes-app/src/App.tsx",
+        "The output proposes candidate user journeys specific to a notes app (such as finding, organizing, tagging, sharing, or deleting notes) and does not propose shopping cart or checkout journeys.",
+        "The output explicitly defines or highlights autonomous boundaries for the proposed journeys, such as requiring confirmation before sharing a note or permanently deleting notes.",
         "The output invites the user to select or focus on ONE goal first (enforcing the \"One Goal Per Iteration\" rule).",
         "The output does NOT write or modify application code (e.g., no useWebMCP, registerTool, or final schema generation) in this initial turn."
+      ],
+      "files": [
+        "evals/fixtures/notes-app/package.json",
+        "evals/fixtures/notes-app/src/App.tsx",
+        "evals/fixtures/notes-app/src/store.ts"
       ]
     },
     {
@@ -213,12 +221,17 @@
     {
       "id": "stage-0-router-specs-evals-generation",
       "prompt": "Here are our approved role-play transcripts. Generate the tool schemas and automated evals.",
-      "expected_output": "The agent routes to Stage 5 (Tool Specs & Evals Generation), applies polymorphic consolidation, enforces What + When descriptions without internal jargon, audits annotations, and offers the local evaluation gate.",
+      "expected_output": "The agent reads the approved role-play transcript and routes to Stage 5. It consolidates the per-entity search_tasks/search_notes and repeated move_task/move_note calls into polymorphic batched tools (e.g. list_items with a types array and move_items with an items array executed with Promise.all), writes What + When descriptions without jargon, sets readOnlyHint and untrustedContentHint on the listing tool (task and note text is collaborator-authored), and offers the local evaluation gate (npx webmcp-evals local).",
       "assertions": [
         "The output routes to Stage 5 (Tool Specs & Evals Generation).",
-        "The output applies polymorphic consolidation (list_items, move_items with batching) rather than entity CRUD bloat.",
+        "The agent read references/evals-format.md",
+        "The agent read evals/fixtures/workspace-app/roleplay-migration.md",
+        "The output consolidates the per-entity search_tasks/search_notes and repeated move_task/move_note calls into polymorphic batched tools (e.g. list_items with a types array and move_items with an items array) rather than keeping per-entity tools.",
         "The output enforces \"What + When\" descriptions, strips internal jargon, and audits annotations (readOnlyHint, consequentialHint, untrustedContentHint).",
         "The output proactively offers the local evaluation gate (npx webmcp-evals local)."
+      ],
+      "files": [
+        "evals/fixtures/workspace-app/roleplay-migration.md"
       ]
     },
     {
@@ -234,18 +247,25 @@
       "prompt": "Here is my schema.json for my web app. Help me implement these tools in React.",
       "expected_output": "The agent routes directly to Stage 6 (Application Implementation) without re-opening conversational design, recommending use-webmcp-tool (useWebMCP), stable schema literals, and RTL mocking.",
       "assertions": [
+        "The agent read evals/fixtures/hotel-app/schema.json",
         "The output routes directly to Stage 6 (Application Implementation) without re-opening conversational design.",
-        "The output uses use-webmcp-tool (useWebMCP), stable/hoisted schema literals, and RTL mocking."
+        "The output uses use-webmcp-tool (useWebMCP), stable/hoisted schema literals, and RTL mocking.",
+        "The agent read references/react-patterns.md",
+        "The agent did NOT read references/angular-patterns.md"
+      ],
+      "files": [
+        "evals/fixtures/hotel-app/schema.json"
       ]
     },
     {
       "id": "stage-0-router-live-site-url",
       "prompt": "I want to add WebMCP tools to example.com. Where do we start?",
-      "expected_output": "The agent clarifies that WebMCP runs client-side in the browser tab on document.modelContext rather than external headless scraping, recommends using browser capabilities (such as the /browser command or checking /llms.txt) to explore workflows, routes to Stage 1 (User Goals Portfolio) proposing candidate user journeys with autonomous boundaries, and avoids premature code dumping.",
+      "expected_output": "The agent clarifies that WebMCP runs client-side in the browser tab on document.modelContext rather than external headless scraping, recommends using browser capabilities (such as the browser or page inspection or checking /llms.txt) to explore workflows, routes to Stage 1 (User Goals Portfolio) proposing candidate user journeys with autonomous boundaries, and avoids premature code dumping.",
       "assertions": [
+        "The agent read references/live-site-discovery.md",
         "The output clarifies that WebMCP runs client-side in the browser tab on document.modelContext (requiring first-party site code or extension/content script execution).",
         "The output does NOT confuse WebMCP with external headless scraping (Puppeteer, Playwright, or DOM clicking).",
-        "The output recommends using browser capabilities (e.g., /browser command, page inspection, or checking /llms.txt) to explore the site's workflows.",
+        "The output recommends using browser capabilities (e.g., browsing or inspecting the live pages, or checking /llms.txt) to explore the site's workflows.",
         "The output routes to Stage 1 (User Goals Portfolio) by proposing or offering to inspect candidate user journeys with autonomous boundaries.",
         "The output does NOT immediately output frontend code before defining goals."
       ]
@@ -253,9 +273,10 @@
     {
       "id": "stage-0-router-live-site-audit",
       "prompt": "Can you give feedback on the tools on example.com?",
-      "expected_output": "The agent references inspecting live tools via document.modelContext.getTools(), the Chrome DevTools Application > WebMCP pane, or using /browser to inspect the live page, routes to the Stage 6 audit/review checklist rather than restarting Stage 1 ideation, audits annotations and character budgets without jargon, and suggests running the Lighthouse 'Agentic browsing' audit or DevTools manual execution.",
+      "expected_output": "The agent references inspecting live tools via document.modelContext.getTools(), the Chrome DevTools Application > WebMCP pane, or using browser inspection to inspect the live page, routes to the Stage 6 audit/review checklist rather than restarting Stage 1 ideation, audits annotations and character budgets without jargon, and suggests running the Lighthouse 'Agentic browsing' audit or DevTools manual execution.",
       "assertions": [
-        "The output references inspecting live tools via document.modelContext.getTools(), the Chrome DevTools Application > WebMCP pane, or using /browser to inspect the live page.",
+        "The agent read references/audit-checklist.md",
+        "The output references inspecting live tools via document.modelContext.getTools(), the Chrome DevTools Application > WebMCP pane, or browsing/inspecting the live page.",
         "The output routes to the Stage 6 audit/review checklist rather than restarting Stage 1 ideation from scratch.",
         "The output mentions auditing tool annotations (specifically readOnlyHint, consequentialHint for navigation, or untrustedContentHint for UGC).",
         "The output mentions character budgets (names <= 30 chars, descriptions <= 500 chars) or removing implementation jargon.",
@@ -265,16 +286,20 @@
     {
       "id": "stage-0-router-local-codebase-audit",
       "prompt": "Can you audit our existing WebMCP tools in src/tools/ for best practices and security?",
-      "expected_output": "The agent routes directly to Stage 6 Review Checklist & Auditing, reads references/agent-security.md and references/vanilla-patterns.md before auditing, and systematically checks against character budgets, unhandled rejections, UI view navigation missing consequentialHint, UGC missing untrustedContentHint, and DevTools/Lighthouse readiness.",
+      "expected_output": "The agent routes directly to Stage 6 Review Checklist & Auditing, reads references/audit-checklist.md and references/agent-security.md (plus references/error-handling.md as needed) before auditing, and systematically checks against character budgets, unhandled rejections, UI view navigation missing consequentialHint, UGC missing untrustedContentHint, and DevTools/Lighthouse readiness.",
       "assertions": [
         "The output routes directly to Stage 6 Review Checklist & Auditing.",
+        "The agent read evals/fixtures/workspace-app/src/tools/workspace-tools.ts",
+        "The agent read references/audit-checklist.md",
         "The agent read references/agent-security.md",
-        "The agent read references/vanilla-patterns.md",
         "The output systematically checks against character budgets (names <= 30 chars, descriptions <= 500 chars) and removing internal implementation jargon.",
         "The output audits that tools return actionable error guidance rather than unhandled Promise rejections.",
         "The output audits that tools shifting views or tabs declare consequentialHint: true and strictly omit readOnlyHint: true.",
         "The output audits that tools returning user-generated text declare untrustedContentHint: true.",
         "The output verifies live inspection in the Chrome DevTools Application > WebMCP pane and running the Lighthouse \"Agentic browsing\" audit."
+      ],
+      "files": [
+        "evals/fixtures/workspace-app/src/tools/workspace-tools.ts"
       ]
     },
     {
@@ -464,7 +489,9 @@
       "expected_output": "Angular implementation using provideExperimentalWebMcpTools without deprecated navigator.modelContext.",
       "assertions": [
         "The output uses provideExperimentalWebMcpTools",
-        "The output does NOT include navigator.modelContext"
+        "The output does NOT include navigator.modelContext",
+        "The agent read references/angular-patterns.md",
+        "The agent did NOT read references/react-patterns.md"
       ]
     },
     {

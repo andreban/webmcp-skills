@@ -96,7 +96,7 @@ Evaluation & Benchmarking:
   --filter <regex>        Filter evals by ID or prompt substring/regex
   --mode <mode>           Run mode: 'comparison' (default, with vs without skill) or 'with-only'
   --runs <N>, -r <N>      Number of runs per configuration (default: 1)
-  --max-turns <N>         Max model calls per run in the read_file agent loop (default: 6)
+  --max-turns <N>         Max model calls per run in the read_file agent loop (default: 8)
   --iteration <N>         Explicit iteration folder number
   --model <model>         Gemini model identifier (default: gemini-3.5-flash-lite)
   --dry-run               Run validation and mock generation without calling model APIs

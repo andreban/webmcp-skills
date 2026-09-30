@@ -84,7 +84,7 @@ npm run eval:bundle
 # Open interactive Vite evaluation viewer to review outputs & record feedback
 npm run eval:view
 
-# Limit model calls per run in the read_file agent loop (default: 6)
+# Limit model calls per run in the read_file agent loop (default: 8)
 npm run eval -- --max-turns 4
 ```
 
@@ -92,7 +92,7 @@ npm run eval -- --max-turns 4
 
 Each run is a short tool-calling loop, not a single prompt, so evals measure whether the agent actually loads `references/`:
 
-- The model receives a `read_file(path)` tool and may call it for up to `--max-turns` turns (default 6). The final turn forces a text answer.
+- The model receives a `read_file(path)` tool and may call it (several files per turn if it likes) for up to `--max-turns` turns (default 8). The last tool results carry a notice that the read limit is reached; if the model still calls tools on the final turn, the calls are declined and it is asked once more for a text answer.
 - **Readable files per configuration**:
   - `with_skill`: `SKILL.md` is the system instruction; the model may read any file under the skill directory **except `evals/`** (which holds assertions), plus the eval's `files`.
   - `without_skill`: no system instruction; the model may read **only** the eval's `files`.

@@ -9,7 +9,11 @@ import { resolveSafePath } from "../eval-viewer/security.js";
 import { type Content, type FunctionDeclaration, type Part, generateTurn } from "./provider.js";
 import type { Timing } from "./types.js";
 
-export const DEFAULT_MAX_TURNS = 6;
+export const DEFAULT_MAX_TURNS = 8;
+
+/** Sent with the last tool results so the model answers on the final turn. */
+export const FINAL_TURN_NOTICE =
+  "File-read limit reached. Do not call any more tools; write your final answer now using the information you already have.";
 
 /** Files larger than this are truncated before being returned to the model. */
 const MAX_FILE_CHARS = 100_000;
@@ -17,7 +21,7 @@ const MAX_FILE_CHARS = 100_000;
 export const READ_FILE_TOOL: FunctionDeclaration = {
   name: "read_file",
   description:
-    "Reads a UTF-8 text file from the workspace by its relative path. Use to load referenced documentation or project files before answering.",
+    "Reads a UTF-8 text file from the workspace by its relative path. Use to load referenced documentation or project files before answering. Call it several times in one turn to read multiple files at once.",
   parameters: {
     type: "object",
     properties: {
@@ -112,7 +116,8 @@ export interface AgentLoopResult {
 
 /**
  * Runs a short tool-calling loop in which the model may read files via `read_file`
- * before producing its final text answer. The last allowed turn forces a text-only reply.
+ * before producing its final text answer. The last allowed turn requests a text-only reply;
+ * if the model still calls tools, the calls are declined and it is asked once more.
  */
 export async function runAgentLoop(
   prompt: string,
@@ -127,37 +132,64 @@ export async function runAgentLoop(
   const filesRead: string[] = [];
   const timing: Timing = { duration_ms: 0, total_tokens: 0, prompt_tokens: 0, candidate_tokens: 0 };
 
-  for (let turn = 1; turn <= maxTurns; turn++) {
-    const isFinalTurn = turn === maxTurns;
+  const generate = async (mode: "AUTO" | "NONE") => {
     const result = await generateTurn(contents, {
       model: options.model,
       systemInstruction: options.systemInstruction,
       mock: options.mock,
       tools: [READ_FILE_TOOL],
-      functionCallingMode: isFinalTurn ? "NONE" : "AUTO",
+      functionCallingMode: mode,
     });
-
     timing.duration_ms += result.timing.duration_ms;
     timing.total_tokens += result.timing.total_tokens;
     timing.prompt_tokens = (timing.prompt_tokens ?? 0) + (result.timing.prompt_tokens ?? 0);
     timing.candidate_tokens =
       (timing.candidate_tokens ?? 0) + (result.timing.candidate_tokens ?? 0);
+    return result;
+  };
+
+  for (let turn = 1; turn <= maxTurns; turn++) {
+    const isFinalTurn = turn === maxTurns;
+    const result = await generate(isFinalTurn ? "NONE" : "AUTO");
 
     const calls = result.parts.filter((p) => p.functionCall);
-    if (calls.length === 0 || isFinalTurn) {
+    if (calls.length === 0) {
       return { text: result.text, timing, turns: turn, filesRead };
     }
 
     // Echo the model turn verbatim (preserves thought signatures), then answer each call
     contents.push({ role: "model", parts: result.parts });
-    contents.push({
-      role: "user",
-      parts: calls.map((call) => answerFunctionCall(call, options.access, filesRead)),
-    });
+
+    if (isFinalTurn) {
+      // Gemini can ignore mode NONE; decline the calls and ask once more for a text answer
+      contents.push({
+        role: "user",
+        parts: [...calls.map((call) => declineFunctionCall(call)), { text: FINAL_TURN_NOTICE }],
+      });
+      const retry = await generate("NONE");
+      return { text: retry.text, timing, turns: turn + 1, filesRead };
+    }
+
+    const parts = calls.map((call) => answerFunctionCall(call, options.access, filesRead));
+    if (turn === maxTurns - 1) {
+      parts.push({ text: FINAL_TURN_NOTICE });
+    }
+    contents.push({ role: "user", parts });
   }
 
   // Unreachable: the final turn always returns
   return { text: "", timing, turns: maxTurns, filesRead };
+}
+
+function declineFunctionCall(call: Part): Part {
+  const { id, name } = call.functionCall!;
+  return {
+    functionResponse: {
+      ...(id ? { id } : {}),
+      name,
+      response: { error: "File-read limit reached; no more files can be read." },
+    },
+  };
 }
 
 function answerFunctionCall(call: Part, access: FileAccessPolicy, filesRead: string[]): Part {
