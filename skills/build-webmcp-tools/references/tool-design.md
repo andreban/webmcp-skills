@@ -30,7 +30,7 @@ Rules for shaping individual tools and the overall toolset. Apply them when writ
   - Use `create_event` or `book_flight` when the tool executes immediately.
   - Use `start_event_creation_process` or `initiate_booking` when the tool navigates to a form or wizard for user interaction.
   - Tools that navigate or switch views mutate the client viewport and unmount active views; they must declare `consequentialHint: true` (see [annotations.md](./annotations.md)).
-- **One function per tool**: Avoid overlapping tools. Fewer, well-scoped tools improve agent selection accuracy.
+- **One capability per tool, no overlap**: Each tool covers one user capability (e.g. "list workspace items", "move items"), and no two tools can answer the same request. A single tool may span several entity types when they share a lifecycle (see §6). Fewer, well-scoped tools improve agent selection accuracy.
 
 ---
 
@@ -77,8 +77,13 @@ For every tool and parameter description:
 
 ## 5. Accept Raw User Input
 
-- Accept raw dates, natural-language queries, and entity names; do not force the agent to perform manual math or offset calculations.
-- Use natural-language values over opaque database IDs (e.g. `shipping="Express"`, not `shipping_id=1`).
+Never make the model **compute** a value; letting it **look up** a standard value is fine.
+
+- **Computation (avoid)**: resolving relative dates ("next Friday" → `2026-10-09`), timezone or unit conversion, epoch timestamps, or arithmetic. The model may not know today's date or the user's timezone and gets these wrong silently.
+  - For dates, accept an ISO date **or** the user's phrasing (e.g. `"next Friday"`), and resolve relative dates in the app (e.g. with a date-parsing library). Say so in the parameter description.
+- **Lookup (fine)**: mapping a name to a standard code or enum value (e.g. "San Francisco" → `SFO`, "economy" → `"economy"`). Structured codes give the app clean, validated input.
+  - When the lookup is ambiguous (e.g. "London" has several airports), also accept the name as the user said it so the app can resolve it or ask.
+- **Names over opaque IDs**: use natural-language values over internal database IDs (e.g. `shipping="Express"`, not `shipping_id=1`). IDs the agent received from a previous tool response (e.g. `flight_id` from search results) are fine.
 
 ---
 
@@ -86,6 +91,7 @@ For every tool and parameter description:
 
 - **Reject entity-specific tool proliferation**: Avoid separate CRUD tools per entity (e.g. `list_tasks`, `list_notes`, `get_note`, `move_task`). Granular tool bloat causes prompt token explosion, selection paralysis, and multi-turn roundtrips.
 - **Merge overlapping tools** into cohesive, parameterized tools (e.g., a single `search_catalog` tool with category filters rather than distinct tools per category).
+- **When not to consolidate**: keep entities in separate tools when they differ in parameters, permissions, or annotations. For example, user-written notes need `untrustedContentHint: true` while admin-managed system templates do not; merging them into one `list_items` would either mislabel trusted content as untrusted or drop the untrusted-content signal for user text. Consolidate only entities that share a lifecycle, parameters, permissions, and annotations.
 - Where domain entities share common operational lifecycles (e.g. tasks, notes, documents, files, folders):
   - **Consolidated Listing**: Expose `list_items` accepting an array of `types` (e.g. `types: ['task', 'note']`), keyword `query`, and pagination parameters rather than individual `list_tasks`, `list_notes`, `list_folders`.
   - **Consolidated Detail Retrieval**: Expose `get_item` accepting `item_type` and `id` rather than per-entity getter tools.

@@ -27,7 +27,7 @@ if ("modelContext" in document && typeof document.modelContext.registerTool === 
     {
       name: "search_products", // <= 30 chars
       description:
-        "Searches the product catalog by query and category. Returns top matching items.", // <= 500 chars
+        "Searches the product catalog. Use when the user wants to find products by keyword, optionally within a category.", // <= 500 chars
       inputSchema: {
         type: "object",
         properties: {
@@ -125,7 +125,8 @@ A page can selectively expose tools to approved secure origins:
 await document.modelContext.registerTool(
   {
     name: "shareable_cart_lookup",
-    description: "Looks up cart items for verified partners.",
+    description:
+      "Returns the items in the user's current cart. Use when an embedded partner site needs to show or price the cart.",
     // ...
   },
   {
@@ -193,7 +194,7 @@ export function useWebMcpCart(cartStore) {
     document.modelContext.registerTool(
       {
         name: "add_to_cart",
-        description: "Adds an item to the shopping cart.",
+        description: "Adds a product to the user's shopping cart. Use when the user asks to buy or add a product.",
         inputSchema: {
           type: "object",
           properties: {

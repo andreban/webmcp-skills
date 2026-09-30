@@ -161,6 +161,24 @@
       ]
     },
     {
+      "id": "core-raw-input-relative-dates",
+      "prompt": "Write the WebMCP inputSchema and description for a search_flights tool. Users typically say things like \"fly from San Francisco to Tokyo next Friday, returning Sunday\".",
+      "expected_output": "A search_flights schema whose date parameters do not force the model to compute absolute dates from relative phrases: they accept an ISO date or the user's phrasing (e.g. 'next Friday') and the app resolves relative dates. Origin and destination may use airport codes, since mapping a city to a code is a lookup, ideally also accepting a city name for multi-airport cities. The tool description states what the tool does and when to use it, without listing parameters.",
+      "assertions": [
+        "The date parameters accept the user's relative phrasing (e.g. 'next Friday') or explicitly state that the app resolves relative dates, rather than requiring the model to compute an absolute YYYY-MM-DD date on its own",
+        "The tool description says when the agent should use the tool (What + When), not only what it does"
+      ]
+    },
+    {
+      "id": "core-consolidation-boundaries",
+      "prompt": "Our workspace app has user-written notes and admin-managed system templates (read-only boilerplate that users cannot edit). We already expose a polymorphic list_items tool for tasks and notes. Should templates also go into list_items, or get their own tool?",
+      "expected_output": "Templates should stay out of list_items (e.g. a separate list_templates tool). Consolidation fits entities that share a lifecycle, parameters, permissions, and annotations; list_items returns user-authored text and must declare untrustedContentHint: true, while trusted system templates do not, so merging them would either mislabel trusted content or drop the untrusted-content signal.",
+      "assertions": [
+        "The agent recommends keeping templates in a separate tool rather than adding them to list_items",
+        "The agent explains that the entities differ in trust or annotations (untrustedContentHint applies to user notes but not to system templates), or otherwise do not share a lifecycle"
+      ]
+    },
+    {
       "id": "stage-0-router-local-codebase-greenfield",
       "prompt": "Add WebMCP tools to this project.",
       "expected_output": "The agent reads the project files (package.json, routes in App.tsx, and the store) before responding, recognizes a React notes app, and routes to Stage 1 by proposing 3 candidate user journeys specific to note-taking (e.g. finding notes, organizing notes into folders or tags, sharing a note, emptying trash), each with an ideal outcome and autonomous boundary (e.g. sharing or permanent deletion requires confirmation). It invites the user to pick one goal and writes no code or schemas.",
@@ -491,7 +509,8 @@
         "The output uses provideExperimentalWebMcpTools",
         "The output does NOT include navigator.modelContext",
         "The agent read references/angular-patterns.md",
-        "The agent did NOT read references/react-patterns.md"
+        "The agent did NOT read references/react-patterns.md",
+        "The tool description says when the agent should use the tool (What + When), not only what it does"
       ]
     },
     {
@@ -558,7 +577,8 @@
       "assertions": [
         "The output includes the toolname attribute on the form",
         "The output includes the toolautosubmit attribute",
-        "The output uses event.respondWith to return the tool result"
+        "The output uses event.respondWith to return the tool result",
+        "The tool description says when the agent should use the tool (What + When), not only what it does"
       ]
     },
     {

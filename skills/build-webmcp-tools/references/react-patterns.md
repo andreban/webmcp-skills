@@ -100,12 +100,12 @@ export function FlightSearch() {
 
   const { supported, registered, error } = useWebMCP({
     name: "search_flights",
-    description: "Searches available flights by destination and date.",
+    description: "Finds available flights to a destination. Use when the user wants to see flight options for a trip before choosing one.",
     inputSchema: {
       type: "object",
       properties: {
-        destination: { type: "string", description: "3-letter IATA airport code (e.g. JFK)" },
-        date: { type: "string", description: "Departure date in YYYY-MM-DD format" },
+        destination: { type: "string", description: "Airport code (e.g. JFK) or city name as the user said it" },
+        date: { type: "string", description: "Departure date as ISO YYYY-MM-DD or as the user phrased it (e.g. 'next Friday')" },
       },
       required: ["destination", "date"],
     },
@@ -115,7 +115,10 @@ export function FlightSearch() {
     async execute({ destination, date }) {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/flights?dest=${destination}&date=${date}`);
+        // The API resolves city names and relative dates ("next Friday") so the model never computes them
+        const response = await fetch(
+          `/api/flights?dest=${encodeURIComponent(destination)}&date=${encodeURIComponent(date)}`,
+        );
         if (!response.ok) {
           throw new Error(`Flight search failed (${response.status}). Check airport code or date.`);
         }
@@ -154,7 +157,7 @@ export function CheckoutWizard({ currentStep, orderId }) {
   // Tool only available during the 'payment' step
   useWebMCP({
     name: "apply_coupon",
-    description: "Applies a promotional discount coupon to the active order.",
+    description: "Applies a promotional coupon to the current order. Use when the user provides a discount or promo code during payment.",
     enabled: currentStep === "payment",
     inputSchema: {
       type: "object",
@@ -186,7 +189,7 @@ Enforce character budgets (≤ 1.5K characters) and structure output for LLM con
 ```tsx
 useWebMCP({
   name: "search_catalog",
-  description: "Searches product catalog; returns top matches with prices and stock.",
+  description: "Searches the product catalog and returns top matches with prices and stock. Use when the user looks for products by name, type, or feature.",
   inputSchema: {
     type: "object",
     properties: {
@@ -234,7 +237,7 @@ export function WorkspaceView() {
   useWebMCP({
     name: "list_items",
     description:
-      "Searches and lists items across tasks, notes, and documents with optional type filtering.",
+      "Finds tasks, notes, and documents in the workspace. Use when the user wants to locate, review, or pick items before acting on them.",
     inputSchema: {
       type: "object",
       properties: {
@@ -288,7 +291,8 @@ export function WorkspaceView() {
   // 2. Consolidated polymorphic batch mutation tool
   useWebMCP({
     name: "move_items",
-    description: "Moves a batch of items (tasks, notes, or docs) to a target folder or project.",
+    description:
+      "Moves one or more tasks, notes, or documents to another folder or project in a single call. Use when the user asks to reorganize or file items.",
     inputSchema: {
       type: "object",
       properties: {

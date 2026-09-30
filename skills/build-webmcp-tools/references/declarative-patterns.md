@@ -37,7 +37,7 @@ The browser derives a standard JSON Schema tool definition directly from HTML fo
 ```html
 <form
   toolname="reserve_restaurant_table"
-  tooldescription="Reserves a dining table for a specified party size, date, and seating preference."
+  tooldescription="Books a table at the restaurant. Use when the user wants to reserve a table for a specific date and time."
   action="/api/reservations"
   method="POST"
 >
