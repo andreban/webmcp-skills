@@ -39,7 +39,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 - **Errors reach the agent**: React `useWebMCP` throws `Error` (→ `isError: true`); native `registerTool` **resolves** `{ error, code, retryable }` because rejections become a generic `DOMException: UnknownError`; declarative forms resolve structured field errors via `event.respondWith`. → [error-handling.md](./references/error-handling.md)
 - **UI sync**: await state and DOM updates before a tool returns.
 - **Cross-origin**: tools are same-origin by default (Permissions Policy `tools`, default `self`); delegate only with `<iframe allow="tools">` plus `registerTool(tool, { exposedTo: ['https://trusted.origin'] })`; origin isolation is required (`Origin-Agent-Cluster: ?0` disables WebMCP). → [vanilla-patterns.md](./references/vanilla-patterns.md)
-- **Design before code**: one goal per iteration; never write schemas, evals, or code for goals that were not role-played and approved; implementation simplicity is not conversational simplicity. → [conversational-design.md](./references/conversational-design.md)
+- **Design before code**: one goal per iteration, each ending with the user critique (agent tone, clarifying questions, autonomous boundaries); never write schemas, evals, or code for goals that were not role-played and approved; implementation simplicity is not conversational simplicity. → [conversational-design.md](./references/conversational-design.md)
 
 ---
 
@@ -54,6 +54,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 | A happy-path transcript to harden | Stage 4 | `conversational-design.md` | — |
 | Approved role-plays → schemas & evals | Stage 5 | `tool-design.md`, `annotations.md`, `evals-format.md` | Invent tools for un-modeled goals |
 | Existing `schema.json` → `evals.json` | Stage 5 (evals) | `evals-format.md` | Force Stages 1–4 |
+| Just finished `schema.json`/`evals.json` ("what next?") | Stage 5 eval gate | `evals-format.md` | Start Stage 6 without asking |
 | Existing schema or design → code | Stage 6 | The framework file (below), `error-handling.md` | Reopen conversational design |
 | A live site / URL to **add** tools to | Stage 1, after exploring the site | `live-site-discovery.md` | Ask the user to describe the site; write frontend code |
 | **Feedback on, review, or audit of existing tools** (live site or local code) | Audit | `audit-checklist.md`, `agent-security.md`, `error-handling.md` | Restart Stage 1 ideation |
