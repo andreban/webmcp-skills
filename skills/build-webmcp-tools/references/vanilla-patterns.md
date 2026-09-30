@@ -97,8 +97,8 @@ if ("modelContext" in document && typeof document.modelContext.registerTool === 
 
 Every imperative tool should explicitly set annotations:
 
-- `readOnlyHint: true` only for pure queries that change neither application state nor the UI viewport.
-- `consequentialHint: true` for irreversible, financial, or destructive actions, and for view navigation or tab switching.
+- `readOnlyHint: true` only for pure queries that change neither application state nor the UI viewport (navigation and tab switching are `readOnlyHint: false`).
+- `consequentialHint: true` only for significant, irreversible real-world actions (payments, bookings, deletions).
 - `untrustedContentHint: true` whenever output includes text created or edited by users or third parties, even from your own database.
 
 The full matrix with examples is in [annotations.md](./annotations.md).

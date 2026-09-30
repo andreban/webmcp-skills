@@ -73,7 +73,7 @@ The consolidated `schema.json` file contains a root object with a `tools` array.
         "required": ["flight_id"]
       },
       "annotations": {
-        "consequentialHint": true
+        "readOnlyHint": false
       }
     }
   ]

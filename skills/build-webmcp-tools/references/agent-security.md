@@ -61,7 +61,7 @@ If the query tool (`get_note`) declares only `readOnlyHint: true` and omits `unt
       - Applies defensive spotlighting and system prompt anchors directing the model to treat the content strictly as passive data.
     - When `untrustedContentHint` is omitted, the host agent has no signal to isolate the payload, treating the returned text as trusted instructions.
 - **Confirm Consequential Actions**:
-  - When a tool sets `annotations: { consequentialHint: true }` (or lacks `readOnlyHint: true`), require explicit human approval via the agent UI or browser dialog before executing.
+  - When a tool sets `annotations: { consequentialHint: true }`, require explicit human approval via the agent UI or browser dialog before executing.
 - **Restrict Cross-Origin Origins**:
   - Scope agent tool access to known, trusted origins. Never allow arbitrary cross-origin tool execution.
 

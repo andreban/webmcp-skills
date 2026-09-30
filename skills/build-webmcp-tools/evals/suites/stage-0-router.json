@@ -58,7 +58,7 @@
       "expected_output": "The agent routes to Stage 4 (Variations & Graceful Failure), exploring missing parameters, prerequisite errors, over-constrained queries, coreference resolution, and human confirmation hand-offs.",
       "assertions": [
         "The output routes to Stage 4 (Variations & Graceful Failure).",
-        "The output explores missing parameters, prerequisite errors, over-constrained queries, coreference resolution, and human confirmation hand-offs (consequentialHint: true)."
+        "The output explores missing parameters, prerequisite errors, over-constrained queries, coreference resolution, and human confirmation hand-offs for sensitive actions (confirmation on a dedicated UI, or consequentialHint: true on tools that commit the action)."
       ]
     },
     {
@@ -121,7 +121,7 @@
         "The agent read references/audit-checklist.md",
         "The output references inspecting live tools via document.modelContext.getTools(), the Chrome DevTools Application > WebMCP pane, or browsing/inspecting the live page.",
         "The output routes to the Stage 6 audit/review checklist rather than restarting Stage 1 ideation from scratch.",
-        "The output mentions auditing tool annotations (specifically readOnlyHint, consequentialHint for navigation, or untrustedContentHint for UGC).",
+        "The output mentions auditing tool annotations (specifically readOnlyHint, consequentialHint for irreversible actions, or untrustedContentHint for UGC).",
         "The output mentions character budgets (names <= 30 chars, descriptions <= 500 chars) or removing implementation jargon.",
         "The output suggests running the Lighthouse \"Agentic browsing\" audit or checking DevTools manual execution."
       ]
@@ -137,7 +137,7 @@
         "The agent read references/agent-security.md",
         "The output systematically checks against character budgets (names <= 30 chars, descriptions <= 500 chars) and removing internal implementation jargon.",
         "The output audits that tools return actionable error guidance rather than unhandled Promise rejections.",
-        "The output audits that tools shifting views or tabs declare consequentialHint: true and strictly omit readOnlyHint: true.",
+        "The output flags that the tab-switching tool must not declare readOnlyHint: true (it mutates UI state) and does NOT require consequentialHint: true for it.",
         "The output audits that tools returning user-generated text declare untrustedContentHint: true.",
         "The output verifies live inspection in the Chrome DevTools Application > WebMCP pane and running the Lighthouse \"Agentic browsing\" audit."
       ],
