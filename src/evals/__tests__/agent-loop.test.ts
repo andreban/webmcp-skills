@@ -8,6 +8,7 @@ import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   type FileAccessPolicy,
+  FINAL_TURN_NOTICE,
   READ_FILE_TOOL,
   resolveReadablePath,
   runAgentLoop,
@@ -185,7 +186,7 @@ describe("Agent Loop - tool-calling loop", () => {
     );
   });
 
-  it("stops at maxTurns and forces a text-only final turn", async () => {
+  it("stops at maxTurns, warns on the last tool results, and forces a text-only final turn", async () => {
     mockFetch([
       () => reply([{ functionCall: { name: "read_file", args: { path: "SKILL.md" } } }]),
       () => reply([{ functionCall: { name: "read_file", args: { path: "SKILL.md" } } }]),
@@ -196,8 +197,31 @@ describe("Agent Loop - tool-calling loop", () => {
 
     expect(requests).toHaveLength(3);
     expect(requests[2].toolConfig.functionCallingConfig.mode).toBe("NONE");
+    // The notice rides along only with the last tool results before the final turn
+    expect(requests[1].contents[2].parts.some((p: any) => p.text)).toBe(false);
+    expect(requests[2].contents[4].parts.at(-1)).toEqual({ text: FINAL_TURN_NOTICE });
     expect(result.turns).toBe(3);
     expect(result.text).toBe("forced answer");
+    expect(result.filesRead).toEqual(["SKILL.md"]);
+  });
+
+  it("declines calls and retries once when the model ignores mode NONE on the final turn", async () => {
+    mockFetch([
+      () => reply([{ functionCall: { name: "read_file", args: { path: "SKILL.md" } } }]),
+      () => reply([{ functionCall: { name: "read_file", args: { path: "references/guide.md" } } }]),
+      () => reply([{ text: "answer after retry" }]),
+    ]);
+
+    const result = await runAgentLoop("prompt", { access: withSkillPolicy, maxTurns: 2 });
+
+    expect(requests).toHaveLength(3);
+    expect(requests[2].toolConfig.functionCallingConfig.mode).toBe("NONE");
+    const declined = requests[2].contents[4].parts;
+    expect(declined[0].functionResponse.response.error).toMatch(/limit reached/);
+    expect(declined.at(-1)).toEqual({ text: FINAL_TURN_NOTICE });
+    expect(result.text).toBe("answer after retry");
+    expect(result.turns).toBe(3);
+    // The declined call was never executed
     expect(result.filesRead).toEqual(["SKILL.md"]);
   });
 
