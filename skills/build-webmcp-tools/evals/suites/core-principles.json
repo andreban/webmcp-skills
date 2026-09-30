@@ -122,11 +122,11 @@
     {
       "id": "core-design-vs-code-completion",
       "prompt": "We are building a simple bookmark manager in React. Since saving a bookmark is just a one-line `setBookmarks([...bookmarks, newBookmark])`, can we skip conversational role-playing and start implementing the WebMCP tool code immediately?",
-      "expected_output": "The agent enforces Principle 12: Never conflate code completion with design completion. It explains that implementation simplicity does not mean conversational design is trivial overhead. Natural language interactions introduce coreference, user ambiguity, confirmation boundaries, recovery paths, and indirect prompt injection vectors that do not exist in button clicks, so thorough conversational co-design in Stages 1–4 must be completed before writing code.",
+      "expected_output": "The agent takes the explicit fast path, but first corrects the misconception behind the request (Principle 12): a one-line state update is easy to code, but the conversation around it is not. It names the natural-language risks being skipped (coreference such as 'the one I just saved', ambiguous or missing parameters, duplicates, confirmation boundaries, prompt injection) in a short opening statement, then delivers or offers the tool without re-arguing for design.",
       "assertions": [
-        "The agent states that code completion or implementation simplicity must not be conflated with design completion",
+        "The agent states that code completion or implementation simplicity must not be conflated with design or conversational simplicity",
         "The agent explains that natural language interaction introduces coreference, ambiguity, confirmation boundaries, or prompt injection risks",
-        "The agent insists on completing conversational design or role-playing before implementing tool code"
+        "The agent delivers or offers the tool implementation without refusing or repeatedly insisting on role-play first"
       ]
     },
     {
@@ -155,6 +155,17 @@
         "The agent says initiate_booking does not need consequentialHint: true because the human confirms the booking in the checkout UI",
         "The agent says a confirm_booking tool that charges the card must declare consequentialHint: true",
         "The agent states that initiate_booking should not be marked readOnlyHint: true because it changes the UI or navigates"
+      ]
+    },
+    {
+      "id": "core-explicit-fast-path",
+      "prompt": "Add one read-only search_notes tool to our React notes app. Skip the goal portfolio and role-play stages, I understand the risks. I just want the tool schema, a minimal eval, and the useWebMCP code now.",
+      "expected_output": "Because the user explicitly chose to skip design for a single tool, the agent briefly states the risk being skipped (untested ambiguity and confirmation boundaries) once, then delivers the schema, a minimal evals.json case, and useWebMCP code. It still applies the core rules: What + When description, readOnlyHint: true, and untrustedContentHint: true because notes are user-authored.",
+      "assertions": [
+        "The output delivers the search_notes implementation using useWebMCP from use-webmcp-tool",
+        "The output includes a tool schema and at least one evals.json-style test case for search_notes",
+        "The output briefly notes the risk of skipping conversational design without refusing or insisting on role-play first",
+        "The output declares readOnlyHint: true and untrustedContentHint: true for search_notes"
       ]
     }
   ]

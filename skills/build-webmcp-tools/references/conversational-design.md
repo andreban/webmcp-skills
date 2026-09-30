@@ -124,6 +124,7 @@ Stress-test each baseline conversation against ambiguity, unexpected inputs, and
 - **Implementation simplicity is not conversational simplicity**: Simple frontend state updates (e.g. appending to an array via `setBookmarks([...bookmarks, newBookmark])` or toggling a boolean in React) are trivial to write, but natural language interaction is non-deterministic and ambiguous. Never treat conversational design as negligible overhead to rush through.
 - **Conversational Complexity**: Natural language interactions introduce coreference ("the second one"), underspecified parameters, recovery paths, autonomous confirmation boundaries, and indirect prompt injection vectors that do not exist in button clicks.
 - **The Rule**: Always prioritize conversational co-design and boundary exploration with the user. Code implementation must never be treated as the shortcut or primary deliverable—thorough conversational alignment across Stages 1–4 is required.
+- **Explicit fast path**: If the developer asks to skip design for a single tool, state the risk once (and, if their reason is that the code is simple, correct that misconception), then deliver the schema, a minimal eval, and code while still applying all tool design rules. Don't re-argue for design.
 
 ---
 
