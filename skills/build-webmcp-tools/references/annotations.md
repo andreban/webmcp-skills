@@ -17,6 +17,8 @@ Every tool should explicitly set its annotations. Agents assume a tool mutates s
 | **`consequentialHint`**    | Executing the tool performs a significant, real-world, or non-reversible action, e.g. booking a flight, transferring money, deleting an account. | Signals the client or agent to require explicit user confirmation before execution.                                                                   |
 | **`untrustedContentHint`** | Output includes any text created or edited by users or third parties, including content from your own database (see §3).                    | Signals the host agent to isolate, spotlight, or delimiter-sandbox (`<untrusted_content>`) the payload to defend against indirect prompt injection. |
 
+Chrome 156+ also supports **`debugging: true`** for tools built for inspection and developer tooling (testing frameworks, Chrome DevTools AI assistance) rather than end users, so end-user agents can filter them out.
+
 The two behavioral hints form a 2×2 matrix:
 
 | `readOnlyHint` | `consequentialHint` | Meaning                                                                    | Examples                                                        |
@@ -69,7 +71,7 @@ An `initiate_*` tool that opens a confirmation screen (e.g. `initiate_booking` n
 ## 3. Mandatory `untrustedContentHint: true` for UGC & Third-Party Content
 
 - Any tool querying, searching, or returning content created or edited by users or third parties (workspace notes, task descriptions, comments, reviews, profile bios, uploaded files, external web content) **must** declare `untrustedContentHint: true`, even when stored in your own application database (the "First-Party Database" Fallacy; see [agent-security.md](./agent-security.md)).
-- **Why**: User-authored text is the primary vector for indirect prompt injection. Declaring `untrustedContentHint: true` instructs the consuming browser agent to isolate, spotlight, or delimiter-sandbox (`<untrusted_content>`) the payload defensively rather than executing embedded adversarial instructions.
+- **Why**: User-authored text is the primary vector for indirect prompt injection. Declaring `untrustedContentHint: true` signals the consuming browser agent that the payload is untrusted, so it can isolate, spotlight, or delimiter-sandbox (`<untrusted_content>`) it rather than follow embedded adversarial instructions. The spec defines the signal; how a host acts on it varies (see [agent-security.md](./agent-security.md)).
 - **UGC vs Application Configuration**:
   - ❌ _Requires `untrustedContentHint: true`_: `get_note`, `search_tasks`, `list_comments`, `read_document`, `get_customer_reviews` (contains user-generated text).
   - ✅ _Omit `untrustedContentHint`_: `get_user_preferences`, `get_app_config`, `get_project_config`, `list_system_locales` (trusted system settings and flags without user-authored text).

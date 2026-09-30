@@ -75,11 +75,11 @@
     {
       "id": "stage-5-eval-gate-user-choice",
       "prompt": "We just finished generating `schema.json` and `evals.json` in Stage 5. Should the agent immediately start implementing the React code in Stage 6, or what should happen next?",
-      "expected_output": "The agent proactively asks the user whether they want to run the local schema evaluations (`npx webmcp-evals local -t schema.json -e evals.json`) now or proceed directly to Stage 6 application implementation. It does not silently skip evaluations, and explains that if running evals, it checks for `GEMINI_API_KEY` and suggests using a fast model like `-m gemini-3.5-flash-lite`.",
+      "expected_output": "The agent proactively asks the user whether they want to run the local schema evaluations (`npx webmcp-evals local -t schema.json -e evals.json`) now or proceed directly to Stage 6 application implementation. It does not silently skip evaluations, and explains that if running evals, it checks for `the provider key (GOOGLE_AI for Gemini)` and suggests using a fast model like `-m gemini-3.5-flash-lite`.",
       "assertions": [
         "The agent proactively asks the user whether to run evaluations (npx webmcp-evals local) or proceed to Stage 6 application implementation",
         "The agent emphasizes that running evaluations is an explicit choice for the user rather than an unmentioned afterthought or silent skip",
-        "The agent mentions checking for GEMINI_API_KEY (or provider key) or using a lightweight model"
+        "The agent says to check that the webmcp-evals provider key is set, naming GOOGLE_AI for Gemini (or OPENAI_API_KEY / ANTHROPIC_API_KEY), and does not tell the user to set GEMINI_API_KEY"
       ]
     },
     {

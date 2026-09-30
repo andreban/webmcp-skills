@@ -89,6 +89,8 @@ Never make the model **compute** a value; letting it **look up** a standard valu
 
 ## 6. Polymorphic Tool Consolidation Over Granular Tool Bloat
 
+> **Project recommendation**: This is this skill's design guidance for keeping tool catalogs small, not a WebMCP spec or Chrome requirement. Apply it when it fits the app, within the limits below.
+
 - **Reject entity-specific tool proliferation**: Avoid separate CRUD tools per entity (e.g. `list_tasks`, `list_notes`, `get_note`, `move_task`). Granular tool bloat causes prompt token explosion, selection paralysis, and multi-turn roundtrips.
 - **Merge overlapping tools** into cohesive, parameterized tools (e.g., a single `search_catalog` tool with category filters rather than distinct tools per category).
 - **When not to consolidate**: keep entities in separate tools when they differ in parameters, permissions, or annotations. For example, user-written notes need `untrustedContentHint: true` while admin-managed system templates do not; merging them into one `list_items` would either mislabel trusted content as untrusted or drop the untrusted-content signal for user text. Consolidate only entities that share a lifecycle, parameters, permissions, and annotations.
@@ -97,7 +99,7 @@ Never make the model **compute** a value; letting it **look up** a standard valu
   - **Consolidated Detail Retrieval**: Expose `get_item` accepting `item_type` and `id` rather than per-entity getter tools.
   - **Batch Mutation Operations**: Expose `move_items` (or `delete_items`, `tag_items`) accepting an array of items `items: [{ type: string, id: string }]` and target destination, enabling the agent to relocate multiple entities across categories in a single turn without sequential roundtrips.
   - **Shared Type Values**: Use one set of `type` values across all consolidated tools (e.g. singular `task`, `note`), so the items `list_items` returns can be passed straight to `get_item` and `move_items`. Map them to API paths inside the handler.
-  - **Concurrent Execution**: Implementations must query or mutate across entity types concurrently using `Promise.all` inside the tool handler, keeping turn latency low and returning consolidated LLM-readable payloads.
+  - **Concurrent Execution**: Query or mutate across entity types concurrently using `Promise.all` inside the tool handler, keeping turn latency low and returning consolidated LLM-readable payloads.
 
 ---
 

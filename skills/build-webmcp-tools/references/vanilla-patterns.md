@@ -158,14 +158,14 @@ const allTools = await document.modelContext.getTools({
   fromOrigins: ["https://trusted-partner.example.com"],
 });
 
-// 3. Execute a tool using a JSON string payload
+// 3. Execute a tool with an arguments object (JSON-string arguments are deprecated from Chrome 155)
 const targetTool = tools.find((t) => t.name === "search_products");
 if (targetTool) {
   const executionController = new AbortController();
 
   const result = await document.modelContext.executeTool(
     targetTool,
-    JSON.stringify({ query: "laptop", category: "electronics" }),
+    { query: "laptop", category: "electronics" },
     { signal: executionController.signal },
   );
 

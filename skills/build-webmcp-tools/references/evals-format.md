@@ -279,12 +279,12 @@ Key authoring rules for mid-chain failure tests:
   > _"Would you like to run the local schema evaluations (`npx webmcp-evals local -t schema.json -e evals.json`) now to verify tool selection and argument parsing, or proceed directly to Stage 6 (Application Implementation)?"_
 - **NEVER** silently skip evaluations or drop them as an unmentioned afterthought.
 - **If the user chooses to run evaluations**:
-  - Check if `GEMINI_API_KEY` (or provider key) is configured in the environment or project `.env`. If missing, prompt the user to add it so evaluations can execute.
+  - Check that the provider key is configured in the project `.env`: `GOOGLE_AI` for Gemini, `OPENAI_API_KEY` for OpenAI, or `ANTHROPIC_API_KEY` for Anthropic (`OLLAMA_HOST` for local Ollama). If missing, prompt the user to add it so evaluations can execute.
   - Propose running:
     ```bash
-    npx webmcp-evals local -t schema.json -e evals.json -m gemini-3.5-flash-lite
+    npx webmcp-evals local -b gemini -m gemini-3.5-flash-lite -t schema.json -e evals.json
     ```
-    _(Passing `-m gemini-3.5-flash-lite` provides high velocity and low latency)._
+    _(`-b` selects the backend: `vercel` (default), `gemini`, or `ollama`. `-m` picks the model; the default is `gemini-3.5-flash`, and a smaller model such as `gemini-3.5-flash-lite` runs faster and cheaper.)_
   - If tool selection or ordering fails, use the Failure-Mode Troubleshooting Matrix (§5) to diagnose and resolve schema or description issues before moving to code.
 - **If the user chooses implementation**: Proceed directly to Stage 6 without blocking.
 
