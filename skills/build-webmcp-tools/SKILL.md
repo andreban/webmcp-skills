@@ -35,7 +35,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 - **Budgets**: tool and parameter names ≤ 30 chars; tool descriptions ≤ 500 chars; parameter descriptions ≤ 150 chars; output ≤ 1,500 chars (~400 tokens), paginated. → [tool-design.md](./references/tool-design.md)
 - **Descriptions**: "What + When" (what the tool does, when to choose it); never repeat `inputSchema` parameters; no implementation jargon (Zustand, Redux, Axum, REST, GraphQL, IPC). → [tool-design.md](./references/tool-design.md)
 - **Naming & shape**: action verbs; `initiate_*` for tools that open a form or wizard vs. `book_*`/`create_*` for immediate execution; never make the model compute values (relative dates, conversions): accept the user's phrasing and resolve it in the app, though unambiguous lookups to standard codes are fine; prefer names over opaque IDs; consolidate entities that share a lifecycle and annotations into polymorphic, batched tools, keeping trusted and user-authored content in separate tools. → [tool-design.md](./references/tool-design.md)
-- **Annotations**: `readOnlyHint: true` only on pure queries; `consequentialHint: true` on irreversible, financial, or destructive actions **and** on view navigation/tab switching (never `readOnlyHint` there); `untrustedContentHint: true` on any output containing user- or third-party-authored text, even from your own database. → [annotations.md](./references/annotations.md)
+- **Annotations**: `readOnlyHint: true` only on pure queries; `consequentialHint: true` only on significant, irreversible real-world actions (payments, bookings, deletions); view navigation, tab switching, and `initiate_*` hand-offs are `readOnlyHint: false` without `consequentialHint`, and protect unsaved work inside the tool; `untrustedContentHint: true` on any output containing user- or third-party-authored text, even from your own database. → [annotations.md](./references/annotations.md)
 - **Errors reach the agent**: React `useWebMCP` throws `Error` (→ `isError: true`); native `registerTool` **resolves** `{ error, code, retryable }` because rejections become a generic `DOMException: UnknownError`; declarative forms resolve structured field errors via `event.respondWith`. → [error-handling.md](./references/error-handling.md)
 - **UI sync**: await state and DOM updates before a tool returns.
 - **Cross-origin**: tools are same-origin by default (Permissions Policy `tools`, default `self`); delegate only with `<iframe allow="tools">` plus `registerTool(tool, { exposedTo: ['https://trusted.origin'] })`; origin isolation is required (`Origin-Agent-Cluster: ?0` disables WebMCP). → [vanilla-patterns.md](./references/vanilla-patterns.md)
@@ -87,7 +87,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 
 ## Stage 4: Variations & Graceful Failure
 
-Stress-test the baseline: missing required parameters (ask, never guess), prerequisite violations (actionable errors), over-constrained queries (suggest relaxations), coreference ("the second one"), and human-in-the-loop hand-off for sensitive actions (`consequentialHint: true`, confirmation on dedicated UI).
+Stress-test the baseline: missing required parameters (ask, never guess), prerequisite violations (actionable errors), over-constrained queries (suggest relaxations), coreference ("the second one"), and human-in-the-loop hand-off for sensitive actions (open a confirmation UI the user completes; `consequentialHint: true` only on a tool that commits the action itself).
 
 ## Stage 5: Tool Consolidation & Evals
 

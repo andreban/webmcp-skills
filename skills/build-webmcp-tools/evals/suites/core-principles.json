@@ -72,13 +72,13 @@
       ]
     },
     {
-      "id": "core-navigation-consequential-actions",
+      "id": "core-navigation-annotations",
       "prompt": "A developer is writing a `switch_tab` tool for an accounting dashboard that switches the active tab between 'Expenses', 'Invoices', and 'Payroll'. The developer sets `annotations: { readOnlyHint: true }` because 'it only changes what is visible and doesn't write to the backend database'. What is the problem with this annotation, and how should it be configured?",
-      "expected_output": "The agent explains that client-side UI navigation, tab switching, and route changes mutate active client state and can unmount active components, destroying uncommitted form state or disrupting user workflow. Therefore, navigation tools must not be marked as read-only; they should declare `consequentialHint: true` (and omit `readOnlyHint: true`) so agents do not execute them autonomously in the background without user confirmation.",
+      "expected_output": "The agent explains that tab switching mutates client UI state and can unmount the active view, so readOnlyHint must not be true; the tool should declare readOnlyHint: false. It should NOT declare consequentialHint: true, which the WebMCP spec reserves for significant, irreversible real-world actions (e.g. booking a flight, transferring money); flagging navigation causes confirmation fatigue. Unsaved drafts are protected by the app itself: the tool checks for unsaved changes and returns an actionable error (ask the user to save or discard) or preserves the draft.",
       "assertions": [
-        "The agent explains that UI navigation or tab switching mutates active client viewport state and can destroy unsaved form state",
-        "The agent states that readOnlyHint must NOT be set to true on UI navigation tools",
-        "The agent recommends declaring consequentialHint: true (or requiring user confirmation)"
+        "The agent explains that UI navigation or tab switching mutates client UI state, so readOnlyHint must NOT be true (it should be false)",
+        "The agent does NOT recommend consequentialHint: true for the tab-switching tool, reserving it for significant or irreversible real-world actions such as payments or bookings",
+        "The agent explains how to protect unsaved form state without consequentialHint, e.g. the tool checks for unsaved changes and returns an actionable error or preserves the draft"
       ]
     },
     {
@@ -145,6 +145,16 @@
       "assertions": [
         "The agent recommends keeping templates in a separate tool rather than adding them to list_items",
         "The agent explains that the entities differ in trust or annotations (untrustedContentHint applies to user notes but not to system templates), or otherwise do not share a lifecycle"
+      ]
+    },
+    {
+      "id": "core-handoff-annotations",
+      "prompt": "In our flight app, `initiate_booking` opens the checkout screen with the selected flight so the user can review the price and press Confirm themselves. The agent cannot complete the payment. Should `initiate_booking` declare `consequentialHint: true`? What if we later add a `confirm_booking` tool that charges the card directly?",
+      "expected_output": "initiate_booking only navigates to a confirmation screen where the human commits the booking, so it is not itself a significant, irreversible action: it declares readOnlyHint: false and does not need consequentialHint: true. The hand-off to the human-confirmed checkout UI is the confirmation boundary. A confirm_booking tool that charges the card commits an irreversible financial action and must declare consequentialHint: true.",
+      "assertions": [
+        "The agent says initiate_booking does not need consequentialHint: true because the human confirms the booking in the checkout UI",
+        "The agent says a confirm_booking tool that charges the card must declare consequentialHint: true",
+        "The agent states that initiate_booking should not be marked readOnlyHint: true because it changes the UI or navigates"
       ]
     }
   ]

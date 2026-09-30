@@ -82,7 +82,7 @@ After simulating a conversation, actively prompt the user for feedback across th
 
 1. **Agent Demeanor & Tone**: Is the conversational tone appropriate? Is the response concise and clearly presenting findings?
 2. **Clarifying Questions**: Does the agent ask the right questions when parameters are missing or ambiguous, without making unwarranted assumptions?
-3. **Autonomous Boundaries**: Does the agent act autonomously only within acceptable limits? Are high-risk, irreversible, or navigational actions properly flagged for confirmation (`consequentialHint: true`)?
+3. **Autonomous Boundaries**: Does the agent act autonomously only within acceptable limits? Are high-risk, irreversible actions handed off to the user or flagged for confirmation (`consequentialHint: true`), without over-flagging routine navigation?
 
 ---
 
@@ -115,7 +115,7 @@ Stress-test each baseline conversation against ambiguity, unexpected inputs, and
 - **Scenario**: Irreversible, sensitive, or financial actions (e.g., completing a $500 booking, deleting an account).
 - **Behavior**:
   - Tool or agent transitions the UI to a confirmation modal or checkout view (`initiate_booking`) requiring explicit user approval on a dedicated UI (`requires_user_action` status).
-  - Tool declares `consequentialHint: true` and strictly omits `readOnlyHint: true`.
+  - A hand-off tool that only opens the confirmation UI (`initiate_booking`) declares `readOnlyHint: false` without `consequentialHint`; the user's confirmation in the UI is the boundary. Any tool that commits the action itself (e.g. `confirm_booking`) declares `consequentialHint: true`.
 
 ---
 

@@ -11,25 +11,58 @@ Every tool should explicitly set its annotations. Agents assume a tool mutates s
 
 ## 1. Annotations Matrix
 
-| Annotation                 | Set `true` When                                                                                                                            | Agent / Browser Behavior                                                                                                                                 |
-| :------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`readOnlyHint`**         | Tool only reads data (e.g. search, check status) and does not mutate application state or the UI viewport.                                 | Agents assume tools mutate state unless `readOnlyHint: true` is present. Read-only tools skip confirmation prompts.                                      |
-| **`consequentialHint`**    | Tool executes irreversible/financial/destructive changes (payments, bookings, deletions) OR client-side UI navigation/tab switching.       | Signals the browser and agent to demand explicit user confirmation before execution, preventing unmounted views or data loss.                           |
-| **`untrustedContentHint`** | Output includes any text created or edited by users or third parties, including content from your own database (see §3).                  | Signals the host agent to isolate, spotlight, or delimiter-sandbox (`<untrusted_content>`) the payload to defend against indirect prompt injection.     |
+| Annotation                 | Set `true` When                                                                                                                              | Agent / Browser Behavior                                                                                                                              |
+| :------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`readOnlyHint`**         | Tool only reads data (e.g. search, check status) and changes neither application state nor the UI (no navigation, tab switch, or modal).    | Agents assume tools mutate state unless `readOnlyHint: true` is present. Read-only tools can run autonomously in the background.                      |
+| **`consequentialHint`**    | Executing the tool performs a significant, real-world, or non-reversible action, e.g. booking a flight, transferring money, deleting an account. | Signals the client or agent to require explicit user confirmation before execution.                                                                   |
+| **`untrustedContentHint`** | Output includes any text created or edited by users or third parties, including content from your own database (see §3).                    | Signals the host agent to isolate, spotlight, or delimiter-sandbox (`<untrusted_content>`) the payload to defend against indirect prompt injection. |
+
+The two behavioral hints form a 2×2 matrix:
+
+| `readOnlyHint` | `consequentialHint` | Meaning                                                                    | Examples                                                        |
+| :------------- | :------------------ | :------------------------------------------------------------------------- | :-------------------------------------------------------------- |
+| `true`         | `false`             | Safe query; no state or UI change.                                         | `search_flights`, `get_invoice_summary`, `get_app_config`       |
+| `false`        | `false`             | Changes application or UI state, but nothing significant or irreversible. | `set_filters`, `switch_tab`, `navigate_to_invoices`, `open_modal`, `initiate_booking`, `update_draft` |
+| `false`        | `true`              | Significant, irreversible, or financial real-world action.                 | `book_flight`, `transfer_money`, `delete_account`, `send_email` |
+| `true`         | `true`              | Contradictory; do not use.                                                 | —                                                               |
 
 ---
 
 ## 2. `readOnlyHint` and `consequentialHint`
 
-- **`readOnlyHint: true` (Query Tools Only)**: Set on queries that read data without modifying application state or viewport (e.g. `get_invoice_summary`, `get_active_tab`).
-- **`consequentialHint: true` (Sensitive Actions)**: Set on irreversible, financial, or destructive actions (payments, bookings, deletions) so the browser/agent demands user confirmation.
+- **`readOnlyHint: true` (Query Tools Only)**: Set on queries that read data without modifying application state or the UI (e.g. `get_invoice_summary`, `get_active_tab`).
+- **`consequentialHint: true` (Significant Actions Only)**: The WebMCP spec reserves it for actions that are significant, real-world, or non-reversible (payments, bookings, deletions, sending messages), so the browser or agent can require user confirmation.
+- **Don't over-flag**: Marking routine UI changes as consequential makes the agent ask for confirmation on every step. Users learn to approve without reading, and the prompt stops protecting the actions that matter.
 
-### Mandatory for UI View Navigation, Tab Switching & Modals
+### UI View Navigation, Tab Switching & Modals
 
-- Tools that shift the active viewport, route, tab, or modal (`switch_tab`, `navigate_to`, `open_modal`) **must declare `consequentialHint: true` and strictly omit `readOnlyHint: true`**.
-- **Why**: Client-side navigation alters the active viewport and unmounts active views. If executed autonomously via `readOnlyHint: true`, it startles the user and destroys uncommitted local state (such as unsaved form drafts).
-- ❌ _Anti-pattern_: `switch_tab` with `readOnlyHint: true` (causes autonomous unmounting and form data loss).
-- ✅ _Best Practice_: `get_invoices` sets `readOnlyHint: true` (background query); `navigate_to_invoices` sets `consequentialHint: true` (foreground view navigation).
+- Tools that shift the active view, route, tab, or modal (`switch_tab`, `navigate_to`, `open_modal`) change client state, so they **must not declare `readOnlyHint: true`**; declare `readOnlyHint: false`.
+- They should **not** declare `consequentialHint: true` unless the step itself commits a significant, irreversible action.
+- ❌ _Anti-pattern_: `switch_tab` with `readOnlyHint: true` (the agent treats it as a background query).
+- ❌ _Anti-pattern_: `navigate_to_invoices` with `consequentialHint: true` (a confirmation prompt for a view change).
+- ✅ _Best Practice_: `get_invoices` sets `readOnlyHint: true`; `navigate_to_invoices` sets `readOnlyHint: false`; `pay_invoice` sets `consequentialHint: true`.
+
+### Protecting Unsaved Work
+
+Navigation can unmount a view that holds uncommitted state, such as a half-filled form. Protect it in the tool, not with `consequentialHint`: before navigating, check for unsaved changes and either preserve the draft or return an actionable error so the agent asks the user.
+
+```javascript
+async execute({ tab }) {
+  if (invoiceForm.hasUnsavedChanges()) {
+    return {
+      error: "The invoice form has unsaved changes.",
+      code: "UNSAVED_CHANGES",
+      suggestion: "Ask the user whether to save or discard the draft, then call switch_tab again.",
+    };
+  }
+  await router.navigate(`/${tab}`);
+  return `Switched to the ${tab} tab.`;
+}
+```
+
+### Human-in-the-Loop Hand-off Tools
+
+An `initiate_*` tool that opens a confirmation screen (e.g. `initiate_booking` navigating to checkout, where the user presses Confirm) is navigation: `readOnlyHint: false`, no `consequentialHint`. The hand-off itself is the confirmation boundary. If you also expose a tool that commits the action directly (e.g. `confirm_booking` charging the card), that tool declares `consequentialHint: true`.
 
 ---
 

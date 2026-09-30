@@ -29,7 +29,7 @@ Rules for shaping individual tools and the overall toolset. Apply them when writ
 - **Distinguish execution from initiation & navigation**:
   - Use `create_event` or `book_flight` when the tool executes immediately.
   - Use `start_event_creation_process` or `initiate_booking` when the tool navigates to a form or wizard for user interaction.
-  - Tools that navigate or switch views mutate the client viewport and unmount active views; they must declare `consequentialHint: true` (see [annotations.md](./annotations.md)).
+  - Tools that navigate or switch views change client state, so they declare `readOnlyHint: false`; they do not need `consequentialHint: true` unless they commit an irreversible action (see [annotations.md](./annotations.md)).
 - **One capability per tool, no overlap**: Each tool covers one user capability (e.g. "list workspace items", "move items"), and no two tools can answer the same request. A single tool may span several entity types when they share a lifecycle (see §6). Fewer, well-scoped tools improve agent selection accuracy.
 
 ---
