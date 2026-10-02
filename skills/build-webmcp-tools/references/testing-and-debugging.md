@@ -43,7 +43,7 @@ You can also list registered tools from the console with `await document.modelCo
 
 ## 3. Chrome DevTools for Agents (`chrome-devtools-mcp`)
 
-Use the Chrome DevTools MCP server to let coding agents interact with running WebMCP web pages:
+Use the Chrome DevTools MCP server to let coding agents inspect and test running WebMCP pages:
 
 ```json
 {
@@ -53,8 +53,8 @@ Use the Chrome DevTools MCP server to let coding agents interact with running We
       "args": [
         "-y",
         "chrome-devtools-mcp@latest",
-        "--autoConnect",
         "--categoryExperimentalWebmcp",
+        "--chromeArg=--enable-features=WebMCP",
         "--channel=canary"
       ]
     }
@@ -62,8 +62,20 @@ Use the Chrome DevTools MCP server to let coding agents interact with running We
 }
 ```
 
-- Enables coding agents to query available WebMCP tools, execute tools inside the browser, and inspect accessibility trees and visual renders.
-- `--categoryExperimentalWebmcp` requires Chrome 150+ launched with `--enable-features=WebMCP`. `--autoConnect` attaches to a running Chrome (144+) whose remote debugging server was started via `chrome://inspect/#remote-debugging`; `--channel` selects `canary`, `dev`, `beta`, or `stable`. See the [configuration guide](https://github.com/ChromeDevTools/chrome-devtools-mcp/blob/main/docs/configuration.md).
+`--categoryExperimentalWebmcp` exposes the WebMCP tools in the MCP server, while `--chromeArg=--enable-features=WebMCP` enables WebMCP in the Chrome instance launched by the server (requires Chrome 150+). If using `--autoConnect` to attach to an already-running browser, `--chromeArg` does not apply and that browser must have `chrome://flags/#enable-webmcp-testing` or `--enable-features=WebMCP` enabled.
+
+### WebMCP Discovery Rules on Live Pages
+
+1. **Runtime Tool Discovery (`list_webmcp_tools` / `getTools()`)**:
+   - When `--categoryExperimentalWebmcp` is active, call `list_webmcp_tools` (registered tools are also surfaced automatically by `navigate_page` and `select_page`) and `execute_webmcp_tool`.
+   - Otherwise, run `await document.modelContext.getTools()` via `evaluate_script` (and check the DOM snapshot for declarative `<form toolname tooldescription>` elements).
+   - **If `document.modelContext` is `undefined`**: WebMCP is not enabled in the browser. Real-world apps guard registration with `if (!document.modelContext) return;` or `useWebMCP`, so imperative registrations are skipped when the flag is off. Stop and instruct the user to enable WebMCP (`--chromeArg=--enable-features=WebMCP` when launched by `chrome-devtools-mcp`, or `chrome://flags/#enable-webmcp-testing` when using `--autoConnect`) rather than concluding the page has no tools.
+2. **Multi-Route & State-Gated Discovery**:
+   - WebMCP tools are often scoped to specific routes or gated by UI state (`useWebMCP(..., { enabled })`, Angular route `providers`, or `AbortController` cleanup). Checking only the initial landing URL misses tools mounted on other views.
+   - Walk the application's routes, tabs, modals, and authenticated states, re-running `list_webmcp_tools` or `await document.modelContext.getTools()` at each state to build a **Route/State $\rightarrow$ Tools** inventory.
+3. **Never Scrape Minified Production Bundles**:
+   - **Never** fetch `<script src="...">` bundles or regex-search minified production JS to discover or audit WebMCP tools.
+   - Only inspect source files on a live site when readable source is available—either because the site ships unminified code or exposes source maps (`sourceMappingURL` / `.map`).
 
 ---
 

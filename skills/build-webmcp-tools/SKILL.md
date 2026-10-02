@@ -61,7 +61,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 | Existing schema or design → code | Stage 6 | The framework file (below), `error-handling.md` | Reopen conversational design |
 | A **URL or domain** (e.g. `example.com`) to **add** tools to | Stage 1, after exploring the site | `live-site-discovery.md` (not `conversational-design.md` first) | Ask the user to describe the site; write frontend code |
 | **Feedback on, review, or audit of existing tools** (live site or local code) | Audit | `audit-checklist.md`, `agent-security.md`, `error-handling.md` | Restart Stage 1 ideation |
-| Testing, DevTools, Lighthouse, page readiness | — | `testing-and-debugging.md` | — |
+| Testing, DevTools, `chrome-devtools-mcp` live discovery, Lighthouse, page readiness | — | `testing-and-debugging.md` | Scrape minified JS bundles |
 | Concept questions | — | Budgets/naming/descriptions: `tool-design.md`; annotations: `annotations.md`; prompt injection, spotlighting: `agent-security.md`; errors: `error-handling.md` | — |
 | Wants to skip design for one tool ("can we skip role-play and just code it?", "skip the design, give me the code") | Explicit fast path (below) | `tool-design.md`, `annotations.md`, the framework file | Refuse or re-argue |
 | Backend MCP (`stdio`/SSE server, Node/Python) | Out of scope | — | Use `document.modelContext` on a server |
@@ -116,7 +116,9 @@ Stress-test the baseline: missing required parameters (ask, never guess), prereq
 ## Audits
 
 1. **First** read `references/audit-checklist.md`, `references/agent-security.md`, and `references/error-handling.md` (you can request them together), and only then open the code under review. The checklist, not the Non-Negotiables summary, is the audit standard; an audit based only on this file is incomplete.
-2. Collect the tools: read the registration code, or for a live site use `document.modelContext.getTools()` or the DevTools Application > WebMCP pane.
+2. Collect the tools:
+   - **Local codebase**: read the registration code (`useWebMCP`, `registerTool`, `provideExperimentalWebMcpTools`, `<form toolname>`).
+   - **Live site**: discover tools at runtime across routes, tabs, and UI states using `list_webmcp_tools` (`chrome-devtools-mcp` with `--categoryExperimentalWebmcp`), `await document.modelContext.getTools()`, or the DevTools Application > WebMCP pane (see `references/testing-and-debugging.md`). If `document.modelContext` is `undefined`, WebMCP is not enabled in the browser (`--enable-features=WebMCP` or `chrome://flags/#enable-webmcp-testing`)—report that prerequisite instead of assuming no tools exist. **Never** fetch or scrape minified production JS bundles on a live site; only inspect live-site source when unminified or sourcemapped.
 3. Report findings per checklist item, each with the affected tool and a concrete fix.
 4. End with verification steps: inspect and manually execute the tools in the Chrome DevTools **Application > WebMCP** pane (Play icon), and run the Lighthouse **"Agentic browsing"** audit.
-5. **No tools available yet** (e.g. a live site you cannot open): do not stop at asking for code. Tell the user how to collect the tools (`await document.modelContext.getTools()` in the console, or the DevTools Application > WebMCP pane), list the checklist areas you will audit (budgets and jargon, annotations including navigation and UGC, error handling, security), and end your reply with the verification steps from step 4 (DevTools manual execution, Lighthouse "Agentic browsing").
+5. **No tools available yet** (e.g. a live site you cannot open): do not stop at asking for code. Tell the user how to collect the tools (`await document.modelContext.getTools()` across routes in the console, `list_webmcp_tools` via `chrome-devtools-mcp`, or the DevTools Application > WebMCP pane), list the checklist areas you will audit (budgets and jargon, annotations including navigation and UGC, error handling, security), and end your reply with the verification steps from step 4 (DevTools manual execution, Lighthouse "Agentic browsing").
