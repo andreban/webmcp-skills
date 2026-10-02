@@ -5,11 +5,11 @@ description: >-
   web page exposes to in-browser AI agents on document.modelContext, via
   registerTool, declarative form attributes (toolname, tooldescription), React
   useWebMCP, or Angular provideExperimentalWebMcpTools. Use when a developer
-  wants to make a website or web app agent-ready, add or review tools for
-  in-browser agents, write tool schemas, descriptions, annotations, or
-  evals.json, audit existing WebMCP tools, or fix Lighthouse "Agentic browsing"
-  and DevTools WebMCP findings. Not for backend MCP servers over stdio or SSE,
-  or for scraping and browser automation.
+  wants to make a website or web app agent-ready, analyze a site or URL for
+  WebMCP user journeys, add or review tools for in-browser agents, write tool
+  schemas, descriptions, annotations, or evals.json, audit existing WebMCP
+  tools, or fix Lighthouse "Agentic browsing" and DevTools WebMCP findings. Not
+  for backend MCP servers over stdio or SSE, or for standalone scraping scripts.
 ---
 
 <!--
@@ -59,7 +59,7 @@ WebMCP lets a web page expose client-side capabilities as structured tools to in
 | Existing `schema.json` → `evals.json` | Stage 5 (evals) | `evals-format.md` | Force Stages 1–4 |
 | Just finished `schema.json`/`evals.json` ("what next?") | Stage 5 eval gate | `evals-format.md` | Start Stage 6 without asking |
 | Existing schema or design → code | Stage 6 | The framework file (below), `error-handling.md` | Reopen conversational design |
-| A **URL or domain** (e.g. `example.com`) to **add** tools to | Stage 1, after exploring the site | `live-site-discovery.md` (not `conversational-design.md` first) | Ask the user to describe the site; write frontend code |
+| A **URL or domain** (e.g. `example.com`, `https://...`) to **add** tools to or analyze for journeys | Stage 1, after exploring the site with `chrome-devtools` MCP | `live-site-discovery.md` (not `conversational-design.md` first) | Ask the user to describe the site; use `read_url_content` or guess instead of calling `chrome-devtools` MCP; write frontend code |
 | **Feedback on, review, or audit of existing tools** (live site or local code) | Audit | `audit-checklist.md`, `agent-security.md`, `error-handling.md` | Restart Stage 1 ideation |
 | Testing, DevTools, `chrome-devtools-mcp` live discovery, Lighthouse, page readiness | — | `testing-and-debugging.md` | Scrape minified JS bundles |
 | Concept questions | — | Budgets/naming/descriptions: `tool-design.md`; annotations: `annotations.md`; prompt injection, spotlighting: `agent-security.md`; errors: `error-handling.md` | — |
@@ -84,7 +84,7 @@ Only when the developer asks to skip design (asking "can we skip it?" counts) fo
 ## Stage 1: User Goals Portfolio
 
 - Inspect the app yourself, then propose 3 prioritized candidate journeys **derived from what the app actually does**. For **each** journey, state its ideal outcome, required context, and **autonomous boundary** (what the agent must not do without user confirmation).
-- **Live site**: explain that tools must be registered by code running in the page (first-party code or an extension/content script) on `document.modelContext`, not by headless scraping; recommend browsing or inspecting the site's pages and checking `/llms.txt` before proposing journeys.
+- **Live site**: explain that tools must be registered by code running in the page (first-party code or an extension/content script) on `document.modelContext`, not by headless scraping. **If `chrome-devtools` MCP (or another browser tool) is available in your environment, call it immediately** (`navigate_page`, `take_snapshot`, check `/llms.txt`, and check `list_webmcp_tools` / `document.modelContext.getTools()`) to inspect the rendered pages before proposing journeys—never rely on static HTTP fetchers (`read_url_content`, `curl`) or training-data assumptions. Only if no browser tool is available in your environment, recommend browsing or inspecting the site's pages and checking `/llms.txt` before proposing journeys.
 - Invite the user to pick **ONE** goal to take through Stages 2–4, ending with the user critique on agent tone, clarifying questions, and autonomous boundaries.
 - **Single tool idea** (e.g. "a tool to search flights"): skip the portfolio. Frame that one request as a user goal (ideal outcome, required context, autonomous boundaries) and continue straight into Stage 2 or Stage 3 for it.
 
