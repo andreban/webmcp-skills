@@ -35,6 +35,18 @@
       ]
     },
     {
+      "id": "stage-6-devtools-mcp-live-discovery",
+      "prompt": "I'm using chrome-devtools-mcp to audit the WebMCP tools on a live web app (https://example.com/app), and on the initial page I don't see any tools yet. Should I fetch the page's <script> files to find the tool definitions, or how should I discover all registered WebMCP tools across the app?",
+      "expected_output": "The agent warns against fetching or regex-scraping minified production JS bundles on a live site (only inspect source if unminified or sourcemapped). It explains discovering tools at runtime using `list_webmcp_tools` (when `--categoryExperimentalWebmcp` is enabled) or `await document.modelContext.getTools()` via `evaluate_script`. It notes that if `document.modelContext` is `undefined`, WebMCP is not enabled in the browser (`--enable-features=WebMCP` or `chrome://flags/#enable-webmcp-testing`), causing guarded registrations (`if (!document.modelContext) return`) to be skipped. Finally, it instructs walking the app's routes, tabs, and UI states and re-querying tools at each state to build a route/state-to-tools inventory because tools are often dynamically scoped to specific routes or UI states.",
+      "assertions": [
+        "The agent read references/testing-and-debugging.md",
+        "The output advises against fetching or scraping minified production JS bundles on a live site",
+        "The output explains discovering tools at runtime via list_webmcp_tools or document.modelContext.getTools()",
+        "The output explains checking if document.modelContext is undefined because WebMCP flags (--enable-features=WebMCP or chrome://flags/#enable-webmcp-testing) must be enabled in the browser",
+        "The output explains navigating across routes, views, or UI states and re-checking tools at each state because tools can be route-scoped or state-gated"
+      ]
+    },
+    {
       "id": "core-intab-vs-stdio",
       "prompt": "How do I configure the stdio transport for WebMCP in my Express backend?",
       "expected_output": "The agent clarifies that WebMCP runs client-side in the browser tab via document.modelContext and does not use stdio, SSE, or Node.js backend server transports.",
